@@ -175,7 +175,7 @@ const Bar = ({ value, max, color, h = 5 }) => (
   </div>
 );
 const Bdg = ({ small }) => (<span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: small ? "1px 6px" : "2px 8px", borderRadius: 6, background: `linear-gradient(135deg,${C.gold},${C.orange})`, fontSize: small ? 8 : 9, fontWeight: 800, color: "#1a1a1a" }}>👑 PRO</span>);
-// SBar removed for PWA (real status bar is used)
+// SBar removed — real status bar used on mobile
 
 // ─── FLEXO LOGO ───────────────────────────
 const FlexoIcon = ({ size = 56, style: s = {} }) => (
@@ -351,13 +351,13 @@ const Input = ({ placeholder, type = "text", value, onChange, icon }) => (
 
 // ─── SIGNUP ───────────────────────────────
 const SignupScreen = ({ onComplete }) => {
-  const [mode, setMode] = useState(null); // null | "gmail" | "email"
+  const [mode, setMode] = useState(null); // null | "gmail" | "gmail_custom" | "email"
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
 
   if (!mode) return (
-    <div style={{ padding: "0 20px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", minHeight: 580 }}>
+    <div style={{ padding: "20px 20px 40px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "80vh" }}>
       <div style={{ marginBottom: 6 }}><FlexoLogo size={90} /></div>
       <div style={{ color: C.dim, fontSize: 13, lineHeight: 1.5, marginBottom: 28, padding: "0 10px" }}>
         Des micro-séances adaptées à votre métier pour prendre soin de votre corps au travail
@@ -391,29 +391,55 @@ const SignupScreen = ({ onComplete }) => {
   );
 
   if (mode === "gmail") return (
-    <div style={{ padding: "0 20px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", minHeight: 580 }}>
+    <div style={{ padding: "20px 20px 40px", textAlign: "center" }}>
       <div style={{ fontSize: 44, marginBottom: 12 }}>🔐</div>
       <div style={{ color: C.text, fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Connexion Google</div>
       <div style={{ color: C.dim, fontSize: 12, marginBottom: 20 }}>Sélectionnez votre compte</div>
 
-      {[{ name: "Alex Martin", email: "alex.martin@gmail.com", avatar: "👨‍💻" }, { name: "Autre compte", email: "Ajouter un compte Google", avatar: "➕" }].map((a, i) => (
-        <div key={i} onClick={() => { if (i === 0) onComplete({ name: a.name, email: a.email, method: "gmail" }); }} style={{
-          display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14,
-          background: C.card, border: `1px solid ${C.cardL}`, cursor: "pointer", marginBottom: 8, textAlign: "left",
-        }}>
-          <div style={{ width: 40, height: 40, borderRadius: 20, background: i === 0 ? C.accentDim : C.cardL, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{a.avatar}</div>
-          <div><div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>{a.name}</div><div style={{ color: C.dim, fontSize: 11 }}>{a.email}</div></div>
-        </div>
-      ))}
+      <div onClick={() => onComplete({ name: "Alex Martin", email: "alex.martin@gmail.com", method: "gmail" })} style={{
+        display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14,
+        background: C.card, border: `1px solid ${C.accent}44`, cursor: "pointer", marginBottom: 8, textAlign: "left",
+      }}>
+        <div style={{ width: 40, height: 40, borderRadius: 20, background: C.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>👨‍💻</div>
+        <div style={{ flex: 1 }}><div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>Alex Martin</div><div style={{ color: C.dim, fontSize: 11 }}>alex.martin@gmail.com</div></div>
+        <div style={{ background: C.accent, color: "#0a0f14", fontSize: 9, fontWeight: 800, padding: "2px 8px", borderRadius: 6 }}>TEST</div>
+      </div>
+
+      <div onClick={() => setMode("gmail_custom")} style={{
+        display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14,
+        background: C.card, border: `1px solid ${C.cardL}`, cursor: "pointer", marginBottom: 8, textAlign: "left",
+      }}>
+        <div style={{ width: 40, height: 40, borderRadius: 20, background: C.cardL, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>➕</div>
+        <div><div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>Utiliser un autre compte</div><div style={{ color: C.dim, fontSize: 11 }}>Entrez vos informations</div></div>
+      </div>
 
       <div onClick={() => setMode(null)} style={{ color: C.dim, fontSize: 12, marginTop: 12, cursor: "pointer" }}>← Retour</div>
     </div>
   );
 
+  if (mode === "gmail_custom") {
+    const canGo = name.length > 1 && email.includes("@") && email.includes(".");
+    return (
+      <div style={{ padding: "20px 20px 40px", textAlign: "center" }}>
+        <div style={{ fontSize: 44, marginTop: 10, marginBottom: 8 }}>🔐</div>
+        <div style={{ color: C.text, fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Votre compte Google</div>
+        <div style={{ color: C.dim, fontSize: 12, marginBottom: 16 }}>Entrez vos informations</div>
+        <Input icon="👤" placeholder="Votre nom" value={name} onChange={setName} />
+        <Input icon="📧" placeholder="Votre email Google" type="email" value={email} onChange={setEmail} />
+        <div onClick={() => canGo && onComplete({ name, email, method: "gmail" })} style={{
+          padding: "14px 0", borderRadius: 14, marginTop: 8, cursor: canGo ? "pointer" : "default",
+          background: canGo ? C.accent : C.cardL, color: canGo ? "#0a0f14" : C.dim,
+          fontSize: 14, fontWeight: 800, opacity: canGo ? 1 : 0.5,
+        }}>Continuer</div>
+        <div onClick={() => setMode("gmail")} style={{ color: C.dim, fontSize: 12, marginTop: 12, cursor: "pointer" }}>← Retour</div>
+      </div>
+    );
+  }
+
   // Email signup
   const canSubmit = name.length > 1 && email.includes("@") && pass.length >= 4;
   return (
-    <div style={{ padding: "0 20px", textAlign: "center" }}>
+    <div style={{ padding: "20px 20px 40px", textAlign: "center" }}>
       <div style={{ fontSize: 44, marginTop: 20, marginBottom: 8 }}>📧</div>
       <div style={{ color: C.text, fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Créer un compte</div>
       <div style={{ color: C.dim, fontSize: 12, marginBottom: 16 }}>Remplissez vos informations</div>
@@ -449,7 +475,7 @@ const PlanScreen = ({ onSelect, userName, showPayment }) => {
   ];
 
   return (
-    <div style={{ padding: "0 16px" }}>
+    <div style={{ padding: "10px 16px 40px" }}>
       <div style={{ textAlign: "center", padding: "16px 0 10px" }}>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}><FlexoIcon size={44} /></div>
         <div style={{ color: C.dim, fontSize: 11 }}>Bienvenue {userName} 👋</div>
@@ -562,7 +588,7 @@ const Onboarding = ({ onComplete, isPremium }) => {
   const dots = (<div style={{ display: "flex", gap: 6, justifyContent: "center", margin: "10px 0" }}>{[0, 1, 2].map(i => (<div key={i} style={{ width: i === step ? 22 : 7, height: 7, borderRadius: 4, background: i === step ? C.accent : C.cardL, transition: "all 0.3s" }} />))}</div>);
 
   if (step === 0) return (
-    <div style={{ padding: "0 18px", textAlign: "center" }}>
+    <div style={{ padding: "16px 18px 40px", textAlign: "center" }}>
       <div style={{ marginTop: 10, marginBottom: 6, display: "flex", justifyContent: "center" }}><FlexoIcon size={48} /></div>
       <div style={{ color: C.text, fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Votre <span style={{ color: C.accent }}>environnement</span></div>
       <div style={{ color: C.dim, fontSize: 12, marginBottom: 12 }}>On adapte tout à votre quotidien</div>
@@ -581,7 +607,7 @@ const Onboarding = ({ onComplete, isPremium }) => {
   );
 
   if (step === 1) return (
-    <div style={{ padding: "0 18px", textAlign: "center" }}>
+    <div style={{ padding: "16px 18px 40px", textAlign: "center" }}>
       <div style={{ fontSize: 44, marginTop: 14, marginBottom: 6 }}>💼</div>
       <div style={{ color: C.text, fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Votre <span style={{ color: C.accent }}>métier</span></div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginBottom: 10 }}>
@@ -618,7 +644,7 @@ const Onboarding = ({ onComplete, isPremium }) => {
   );
 
   return (
-    <div style={{ padding: "0 18px" }}>
+    <div style={{ padding: "16px 18px 40px" }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 44, marginTop: 14, marginBottom: 6 }}>🫀</div>
         <div style={{ color: C.text, fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Profil <span style={{ color: C.accent }}>santé</span></div>
@@ -654,7 +680,7 @@ const Home = ({ goTo, profile, stats, dailyProgram, completedBlocks, isPremium, 
   const [showStreak, setShowStreak] = useState(false);
 
   return (
-    <div style={{ padding: "0 14px" }}>
+    <div style={{ padding: "10px 14px 30px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0 6px" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 1 }}>
@@ -805,6 +831,52 @@ const Session = ({ goTo, blockId, dailyProgram, sessions, onComplete, isFromLibr
   const [breathPhase, setBreathPhase] = useState("Appuyez sur ▶");
   const timer = useRef(null);
   const breathRef = useRef(null);
+  const audioCtx = useRef(null);
+  const audioNodes = useRef([]);
+
+  // Ambient chill audio
+  const startAudio = () => {
+    try {
+      if (audioCtx.current) return;
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx.current = ctx;
+      const master = ctx.createGain();
+      master.gain.value = 0.12;
+      master.connect(ctx.destination);
+      // Warm pad — two detuned oscillators
+      const freqs = [110, 164.81, 220, 329.63];
+      freqs.forEach(f => {
+        const osc = ctx.createOscillator(); osc.type = "sine"; osc.frequency.value = f;
+        const g = ctx.createGain(); g.gain.value = 0.04;
+        const flt = ctx.createBiquadFilter(); flt.type = "lowpass"; flt.frequency.value = 400 + Math.random() * 200;
+        osc.connect(flt); flt.connect(g); g.connect(master); osc.start();
+        // Slow LFO on volume for movement
+        const lfo = ctx.createOscillator(); lfo.type = "sine"; lfo.frequency.value = 0.08 + Math.random() * 0.06;
+        const lfoG = ctx.createGain(); lfoG.gain.value = 0.015;
+        lfo.connect(lfoG); lfoG.connect(g.gain); lfo.start();
+        audioNodes.current.push(osc, lfo);
+      });
+      // Soft noise layer
+      const bufSize = ctx.sampleRate * 2;
+      const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
+      const noise = ctx.createBufferSource(); noise.buffer = buf; noise.loop = true;
+      const nFlt = ctx.createBiquadFilter(); nFlt.type = "lowpass"; nFlt.frequency.value = 250;
+      const nG = ctx.createGain(); nG.gain.value = 0.025;
+      noise.connect(nFlt); nFlt.connect(nG); nG.connect(master); noise.start();
+      audioNodes.current.push(noise);
+    } catch(e) { console.log("Audio not supported"); }
+  };
+
+  const stopAudio = () => {
+    audioNodes.current.forEach(n => { try { n.stop(); } catch(e){} });
+    audioNodes.current = [];
+    if (audioCtx.current) { try { audioCtx.current.close(); } catch(e){} audioCtx.current = null; }
+  };
+
+  useEffect(() => { return () => stopAudio(); }, []);
+  useEffect(() => { if (running) startAudio(); else stopAudio(); }, [running]);
   const cur = exercises[step];
   const progress = cur ? 1 - timeLeft / cur.dur : 0;
   const xp = block.xp || 50;
@@ -833,7 +905,7 @@ const Session = ({ goTo, blockId, dailyProgram, sessions, onComplete, isFromLibr
   const skip = () => { setRunning(false); const nd = new Set(done); nd.add(step); setDone(nd); if (step < exercises.length - 1) setStep(step + 1); else { setFinished(true); onComplete(xp, block.id); } };
 
   if (finished) return (
-    <div style={{ padding: "0 16px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 550 }}>
+    <div style={{ padding: "20px 16px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh" }}>
       <div style={{ width: 90, height: 90, borderRadius: 45, background: C.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 42, marginBottom: 14, border: `3px solid ${C.accent}`, boxShadow: `0 0 30px ${C.accentGlow}` }}>✅</div>
       <div style={{ color: C.text, fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Séance terminée !</div>
       <div style={{ color: C.dim, fontSize: 13, marginBottom: 6 }}>{block.name || block.zone}</div>
@@ -849,13 +921,13 @@ const Session = ({ goTo, blockId, dailyProgram, sessions, onComplete, isFromLibr
   );
 
   return (
-    <div style={{ padding: "0 14px", textAlign: "center" }}>
+    <div style={{ padding: "10px 14px 30px", textAlign: "center" }}>
       <div style={{ padding: "10px 0 4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span onClick={() => { setRunning(false); goTo("home"); }} style={{ color: C.dim, fontSize: 12, cursor: "pointer" }}>✕ Quitter</span>
+        <span onClick={() => { setRunning(false); stopAudio(); goTo("home"); }} style={{ color: C.dim, fontSize: 12, cursor: "pointer" }}>✕ Quitter</span>
         <span style={{ color: C.dim, fontSize: 11 }}>{step + 1}/{exercises.length}</span>
         <span onClick={skip} style={{ color: C.accent, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Passer ⏭</span>
       </div>
-      <div style={{ color: color, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>{block.icon || "🧘"} {block.name || block.zone}</div>
+      <div style={{ color: color, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>{block.icon || "🧘"} {block.name || block.zone}{running ? " 🎵" : ""}</div>
 
       <div style={{ position: "relative", width: 155, height: 155, margin: "10px auto" }}>
         <svg width="155" height="155" viewBox="0 0 155 155">
@@ -907,7 +979,7 @@ const Library = ({ goTo, sessions, isPremium }) => {
   const filtered = sessions.filter(s => tf === "all" || s.type === tf);
   const freeLimit = 4;
   return (
-    <div style={{ padding: "0 14px" }}>
+    <div style={{ padding: "10px 14px 30px" }}>
       <div style={{ padding: "10px 0 6px", display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: C.text, fontSize: 18, fontWeight: 800, flex: 1 }}>Bibliothèque</span>{isPremium && <Bdg />}</div>
       <div style={{ display: "flex", gap: 5, marginBottom: 8, overflowX: "auto" }}>{[{ k: "all", l: "Toutes" }, { k: "flash", l: "⚡ Flash" }, { k: "standard", l: "🎯 Standard" }, { k: "deep", l: "🧘 Deep" }, { k: "sos", l: "🆘 SOS" }].map(f => (<Pill key={f.k} active={tf === f.k} onClick={() => setTf(f.k)} color={isPremium ? C.gold : C.accent}>{f.l}</Pill>))}</div>
       {tf === "sos" && (
@@ -952,7 +1024,7 @@ const Stats = ({ stats, profile, isPremium }) => {
   const multiplier = period === "7j" ? 1 : period === "30j" ? 3.5 : 10;
 
   return (
-  <div style={{ padding: "0 14px" }}>
+  <div style={{ padding: "10px 14px 30px" }}>
     <div style={{ padding: "10px 0 6px", display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: C.text, fontSize: 18, fontWeight: 800, flex: 1 }}>Statistiques</span>{isPremium && <Bdg />}</div>
 
     {/* AI Motivation — Premium */}
@@ -1016,7 +1088,7 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
   const avatars = ["👨‍💻", "👩‍💻", "👨‍🔬", "👩‍🎨", "🧑‍🏫", "👷", "👩‍⚕️", "🧑‍🍳", "👨‍🚀", "🦸", "🧙", "🥷"];
 
   return (
-  <div style={{ padding: "0 14px" }}>
+  <div style={{ padding: "10px 14px 30px" }}>
     <div style={{ padding: "10px 0 8px", display: "flex", alignItems: "center", gap: 10 }}>
       {/* Avatar — clickable for premium */}
       <div onClick={() => isPremium && setAvatarOpen(!avatarOpen)} style={{
@@ -1169,8 +1241,136 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
       <div style={{ color: C.dim, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 5 }}>Zones à risque</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>{profile.riskZones.map(z => <Pill key={z} active color={C.orange}>{z}</Pill>)}</div>
     </div>
+    {/* Feedback Beta */}
+    <div onClick={() => goTo("feedback")} style={{ padding: "12px 0", borderRadius: 14, background: `${C.accent}15`, color: C.accent, fontSize: 12, fontWeight: 700, textAlign: "center", cursor: "pointer", border: `1px solid ${C.accent}30`, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+      💬 Donner mon avis (Beta)
+    </div>
     <div onClick={onReset} style={{ padding: "12px 0", borderRadius: 14, background: C.redDim, color: C.red, fontSize: 12, fontWeight: 700, textAlign: "center", cursor: "pointer", border: `1px solid ${C.red}30`, marginBottom: 16 }}>🔄 Recommencer depuis le début</div>
   </div>
+  );
+};
+
+
+// ─── FEEDBACK ─────────────────────────────
+const Feedback = ({ goTo, stats, profile }) => {
+  const [rating, setRating] = useState(0);
+  const [frequency, setFrequency] = useState(null);
+  const [useful, setUseful] = useState(null);
+  const [ideas, setIdeas] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const freqOptions = ["Chaque jour", "3-4x/semaine", "1-2x/semaine", "Rarement"];
+  const usefulOptions = ["Très utile", "Plutôt utile", "Moyennement", "Pas assez"];
+
+  const handleSubmit = () => {
+    const data = { rating, frequency, useful, ideas, user: stats.userName, job: profile?.job, date: new Date().toISOString() };
+    console.log("📋 Feedback:", JSON.stringify(data));
+    // Future: send to webhook / Google Sheet
+    setSubmitted(true);
+  };
+
+  if (submitted) return (
+    <div style={{ padding: "40px 20px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
+      <div style={{ width: 80, height: 80, borderRadius: 40, background: C.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, marginBottom: 16, border: `3px solid ${C.accent}`, boxShadow: `0 0 30px ${C.accentGlow}` }}>💙</div>
+      <div style={{ color: C.text, fontSize: 20, fontWeight: 900, marginBottom: 6 }}>Merci pour ton retour !</div>
+      <div style={{ color: C.dim, fontSize: 13, lineHeight: 1.5, marginBottom: 24, maxWidth: 280 }}>Ton avis nous aide à construire la meilleure app de bien-être au travail.</div>
+      <div onClick={() => goTo("home")} style={{ width: "100%", maxWidth: 300, padding: "14px 0", borderRadius: 14, background: C.accent, color: "#0a0f14", fontSize: 15, fontWeight: 800, textAlign: "center", cursor: "pointer" }}>
+        Retour à l'accueil →
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "10px 14px 40px" }}>
+      <div style={{ padding: "10px 0 6px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span onClick={() => goTo("profile")} style={{ color: C.dim, fontSize: 12, cursor: "pointer" }}>← Retour</span>
+        <span style={{ color: C.accent, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Beta Feedback</span>
+        <span style={{ width: 50 }} />
+      </div>
+
+      <div style={{ textAlign: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: 28, marginBottom: 4 }}>💬</div>
+        <div style={{ color: C.text, fontSize: 17, fontWeight: 900 }}>Ton avis compte</div>
+        <div style={{ color: C.dim, fontSize: 11, marginTop: 2 }}>3 questions rapides + tes idées</div>
+      </div>
+
+      {/* Q1 — Rating */}
+      <div style={{ background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 10, border: `1px solid ${C.cardL}` }}>
+        <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>1. Comment notes-tu Flexo ?</div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+          {[1,2,3,4,5].map(n => (
+            <div key={n} onClick={() => setRating(n)} style={{
+              width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 22, cursor: "pointer", transition: "all 0.2s",
+              background: rating >= n ? `${C.gold}25` : C.cardL,
+              border: `2px solid ${rating >= n ? C.gold : "transparent"}`,
+              transform: rating >= n ? "scale(1.1)" : "scale(1)",
+            }}>
+              {rating >= n ? "⭐" : "☆"}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Q2 — Frequency */}
+      <div style={{ background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 10, border: `1px solid ${C.cardL}` }}>
+        <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>2. À quelle fréquence utiliserais-tu Flexo ?</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+          {freqOptions.map(opt => (
+            <div key={opt} onClick={() => setFrequency(opt)} style={{
+              padding: "10px 8px", borderRadius: 10, textAlign: "center", cursor: "pointer",
+              background: frequency === opt ? `${C.accent}20` : C.cardL,
+              border: `1.5px solid ${frequency === opt ? C.accent : "transparent"}`,
+              color: frequency === opt ? C.accent : C.dim, fontSize: 11, fontWeight: 600,
+              transition: "all 0.2s",
+            }}>{opt}</div>
+          ))}
+        </div>
+      </div>
+
+      {/* Q3 — Usefulness */}
+      <div style={{ background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 10, border: `1px solid ${C.cardL}` }}>
+        <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>3. Les exercices te semblent-ils adaptés à ton métier ?</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+          {usefulOptions.map(opt => (
+            <div key={opt} onClick={() => setUseful(opt)} style={{
+              padding: "10px 8px", borderRadius: 10, textAlign: "center", cursor: "pointer",
+              background: useful === opt ? `${C.accent}20` : C.cardL,
+              border: `1.5px solid ${useful === opt ? C.accent : "transparent"}`,
+              color: useful === opt ? C.accent : C.dim, fontSize: 11, fontWeight: 600,
+              transition: "all 0.2s",
+            }}>{opt}</div>
+          ))}
+        </div>
+      </div>
+
+      {/* Q4 — Ideas (open) */}
+      <div style={{ background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 16, border: `1px solid ${C.cardL}` }}>
+        <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>💡 Une idée d'amélioration ?</div>
+        <textarea
+          value={ideas} onChange={e => setIdeas(e.target.value)}
+          placeholder="Ex : J'aimerais des séances plus courtes, un mode rappel…"
+          rows={3}
+          style={{
+            width: "100%", background: C.cardL, border: "none", borderRadius: 10,
+            padding: "10px 12px", color: C.text, fontSize: 12, fontFamily: "inherit",
+            resize: "none", outline: "none", lineHeight: 1.5,
+          }}
+        />
+      </div>
+
+      {/* Submit */}
+      <div onClick={handleSubmit} style={{
+        width: "100%", padding: "14px 0", borderRadius: 14, textAlign: "center", cursor: "pointer",
+        background: (rating && frequency && useful) ? C.accent : C.cardL,
+        color: (rating && frequency && useful) ? "#0a0f14" : C.dim,
+        fontSize: 15, fontWeight: 800, transition: "all 0.3s",
+        opacity: (rating && frequency && useful) ? 1 : 0.5,
+        pointerEvents: (rating && frequency && useful) ? "auto" : "none",
+      }}>
+        Envoyer mon avis 🚀
+      </div>
+    </div>
   );
 };
 
@@ -1179,7 +1379,7 @@ const UpgradeScreen = ({ goTo, onUpgrade, userName, showPayment }) => {
   const [planType, setPlanType] = useState("monthly");
 
   return (
-  <div style={{ padding: "0 16px" }}>
+  <div style={{ padding: "10px 16px 40px" }}>
     <div style={{ textAlign: "center", padding: "16px 0 10px" }}>
       <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><FlexoIcon size={64} /></div>
       <div style={{ color: C.gold, fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Flexo Premium</div>
@@ -1274,6 +1474,7 @@ function App() {
     if (screen === "signup") return <SignupScreen onComplete={handleSignup} />;
     if (screen === "plan") return <PlanScreen onSelect={handlePlan} userName={account?.name} showPayment={showPayment} />;
     if (screen === "onboarding") return <Onboarding onComplete={handleOnboarding} isPremium={isPremium} />;
+    if (screen === "feedback") return <Feedback goTo={goTo} stats={stats} profile={profile} />;
     if (screen === "upgrade") return <UpgradeScreen goTo={goTo} onUpgrade={handleUpgrade} userName={stats.userName} showPayment={showPayment} />;
     if (screen === "session") return <Session goTo={goTo} blockId={sessionTarget} dailyProgram={dailyProgram} sessions={sessions} onComplete={handleSessionComplete} isFromLibrary={isFromLibrary} />;
     if (screen === "library") return <Library goTo={goTo} sessions={sessions} isPremium={isPremium} />;
@@ -1283,10 +1484,10 @@ function App() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", background: phoneBg, fontFamily: "'Manrope','SF Pro Display',-apple-system,sans-serif", position: "relative", transition: "background 0.3s" }}>
-      <div style={{ flex: 1, overflowY: "auto", paddingTop: 8, paddingBottom: showNav ? 76 : 20, WebkitOverflowScrolling: "touch" }}>{render()}</div>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: phoneBg, fontFamily: "'Manrope','SF Pro Display',-apple-system,sans-serif", position: "relative", transition: "background 0.3s", overflow: "hidden" }}>
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: 8, paddingBottom: showNav ? 90 : 30, WebkitOverflowScrolling: "touch" }}>{render()}</div>
       {showNav && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: `${phoneBg}ee`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: `1px solid ${theme === "light" ? "#d0d5dd" : C.cardL}`, display: "flex", justifyContent: "space-around", alignItems: "center", paddingTop: 8, paddingBottom: "max(10px, env(safe-area-inset-bottom))", zIndex: 50 }}>
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: `${phoneBg}ee`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: `1px solid ${theme === "light" ? "#d0d5dd" : C.cardL}`, display: "flex", justifyContent: "space-around", alignItems: "center", paddingTop: 8, paddingBottom: "max(12px, env(safe-area-inset-bottom))", zIndex: 50 }}>
           {navItems.map(n => (<div key={n.id} onClick={() => goTo(n.id)} style={{ textAlign: "center", cursor: "pointer", opacity: screen === n.id ? 1 : 0.45, transition: "all 0.2s", padding: "4px 14px" }}><div style={{ fontSize: 22, marginBottom: 2 }}>{n.icon}</div><div style={{ fontSize: 10, fontWeight: 700, color: screen === n.id ? (isPremium ? C.gold : C.accent) : C.dim }}>{n.l}</div></div>))}
         </div>
       )}

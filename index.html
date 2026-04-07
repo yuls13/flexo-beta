@@ -8,85 +8,44 @@
 <meta name="apple-mobile-web-app-title" content="Flexo">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0B1219">
-<meta name="description" content="Micro-séances adaptées à votre métier — Flexo Beta">
-
 <title>Flexo Beta</title>
-
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; overflow: hidden; background: #0B1219; font-family: 'Manrope', -apple-system, sans-serif; }
-  body { overscroll-behavior: none; }
-  #root { height: 100%; }
-
-  /* Splash screen */
-  #splash {
-    position: fixed; inset: 0; z-index: 9999;
-    background: #0B1219;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    transition: opacity 0.4s ease-out;
-  }
-  #splash.hide { opacity: 0; pointer-events: none; }
-  #splash svg { width: 80px; height: 80px; margin-bottom: 16px; }
-  #splash .name { color: #E4EEF2; font-size: 28px; font-weight: 800; letter-spacing: -1.5px; font-family: 'Manrope', sans-serif; margin-bottom: 6px; }
-  #splash .sub { color: #6B8FA8; font-size: 12px; font-weight: 500; }
-  #splash .loader { width: 40px; height: 3px; background: #1E2D3D; border-radius: 2px; margin-top: 24px; overflow: hidden; }
-  #splash .loader-bar { width: 0%; height: 100%; background: #448AFF; border-radius: 2px; animation: load 1.5s ease-out forwards; }
-  @keyframes load { to { width: 100%; } }
-
-  /* Scrollbar */
-  ::-webkit-scrollbar { width: 0; }
-
-  /* Safe area */
-  @supports (padding: env(safe-area-inset-top)) {
-    body { padding-top: env(safe-area-inset-top); }
-  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{height:100%;background:#0B1219;font-family:'Manrope',-apple-system,sans-serif}
+  body{height:100%;overscroll-behavior:none;background:#0B1219}
+  #root{height:100%;display:flex;flex-direction:column;overflow:hidden}
+  ::-webkit-scrollbar{width:0}
+  #splash{position:fixed;inset:0;z-index:9999;background:#0B1219;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.4s}
+  #splash.hide{opacity:0;pointer-events:none}
+  #splash svg{width:80px;height:80px;margin-bottom:16px}
+  #splash .name{color:#E4EEF2;font-size:28px;font-weight:800;letter-spacing:-1.5px;margin-bottom:6px}
+  #splash .sub{color:#6B8FA8;font-size:12px}
+  #splash .loader{width:40px;height:3px;background:#1E2D3D;border-radius:2px;margin-top:24px;overflow:hidden}
+  #splash .bar{width:0%;height:100%;background:#448AFF;border-radius:2px;animation:load 1.5s ease-out forwards}
+  @keyframes load{to{width:100%}}
+  input{font-family:'Manrope',-apple-system,sans-serif}
 </style>
 </head>
 <body>
-
-<!-- Splash screen -->
 <div id="splash">
-  <svg viewBox="0 0 100 100">
-    <rect x="0" y="0" width="100" height="100" rx="24" fill="#111B26" stroke="#448AFF" stroke-width="2.5" opacity="0.6"/>
-    <path d="M32 76 L32 28 Q32 22 38 22L68 22" fill="none" stroke="#448AFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M32 48 L60 48" fill="none" stroke="#00E676" stroke-width="8" stroke-linecap="round"/>
-    <circle cx="68" cy="22" r="5.5" fill="#448AFF"/><circle cx="60" cy="48" r="5.5" fill="#00E676"/><circle cx="32" cy="76" r="5.5" fill="#448AFF"/>
-  </svg>
+  <svg viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" rx="24" fill="#111B26" stroke="#448AFF" stroke-width="2.5" opacity="0.6"/><path d="M32 76 L32 28 Q32 22 38 22L68 22" fill="none" stroke="#448AFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 48 L60 48" fill="none" stroke="#00E676" stroke-width="8" stroke-linecap="round"/><circle cx="68" cy="22" r="5.5" fill="#448AFF"/><circle cx="60" cy="48" r="5.5" fill="#00E676"/><circle cx="32" cy="76" r="5.5" fill="#448AFF"/></svg>
   <div class="name">flexo</div>
   <div class="sub">Version bêta</div>
-  <div class="loader"><div class="loader-bar"></div></div>
+  <div class="loader"><div class="bar"></div></div>
 </div>
-
 <div id="root"></div>
-
-<!-- React from CDN -->
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
 <script type="text/babel" src="app.jsx"></script>
-
 <script type="text/babel">
-  // Mount app and hide splash
-  const root = ReactDOM.createRoot(document.getElementById('root'));
-  root.render(React.createElement(App));
-
-  setTimeout(() => {
-    document.getElementById('splash').classList.add('hide');
-    setTimeout(() => document.getElementById('splash').remove(), 500);
-  }, 1800);
-
-  // Register service worker
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
-    });
-  }
+  ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  setTimeout(()=>{document.getElementById('splash').classList.add('hide');setTimeout(()=>document.getElementById('splash').remove(),500)},1800);
+  if('serviceWorker' in navigator) window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 </script>
 </body>
 </html>
