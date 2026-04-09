@@ -1485,9 +1485,9 @@ function App() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", background: phoneBg, fontFamily: "'Manrope','SF Pro Display',-apple-system,sans-serif", position: "relative", transition: "background 0.3s", overflow: "hidden" }}>
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: 8, paddingBottom: showNav ? 90 : 30, WebkitOverflowScrolling: "touch" }}>{render()}</div>
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: "max(12px, env(safe-area-inset-top, 12px))", paddingBottom: showNav ? "calc(64px + max(16px, env(safe-area-inset-bottom, 16px)))" : 30, WebkitOverflowScrolling: "touch" }}>{render()}</div>
       {showNav && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: `${phoneBg}ee`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: `1px solid ${theme === "light" ? "#d0d5dd" : C.cardL}`, display: "flex", justifyContent: "space-around", alignItems: "center", paddingTop: 8, paddingBottom: "max(12px, env(safe-area-inset-bottom))", zIndex: 50 }}>
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: `${phoneBg}ee`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: `1px solid ${theme === "light" ? "#d0d5dd" : C.cardL}`, display: "flex", justifyContent: "space-around", alignItems: "center", paddingTop: 8, paddingBottom: "max(8px, env(safe-area-inset-bottom, 8px))", zIndex: 50 }}>
           {navItems.map(n => (<div key={n.id} onClick={() => goTo(n.id)} style={{ textAlign: "center", cursor: "pointer", opacity: screen === n.id ? 1 : 0.45, transition: "all 0.2s", padding: "4px 14px" }}><div style={{ fontSize: 22, marginBottom: 2 }}>{n.icon}</div><div style={{ fontSize: 10, fontWeight: 700, color: screen === n.id ? (isPremium ? C.gold : C.accent) : C.dim }}>{n.l}</div></div>))}
         </div>
       )}
