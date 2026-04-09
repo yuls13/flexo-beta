@@ -364,9 +364,15 @@ const SignupScreen = ({ onComplete }) => {
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
-      const result = await firebase.auth().signInWithPopup(provider);
-      const user = result.user;
-      onComplete({ name: user.displayName || "Utilisateur", email: user.email, method: "google", photoURL: user.photoURL, uid: user.uid });
+      // Mobile standalone (PWA) blocks popups — use redirect
+      const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
+      if (isStandalone) {
+        await firebase.auth().signInWithRedirect(provider);
+      } else {
+        const result = await firebase.auth().signInWithPopup(provider);
+        const user = result.user;
+        onComplete({ name: user.displayName || "Utilisateur", email: user.email, method: "google", photoURL: user.photoURL, uid: user.uid });
+      }
     } catch (err) {
       console.error("Google sign-in error:", err);
       if (err.code === "auth/popup-closed-by-user") setGError("Connexion annulée");
@@ -375,6 +381,19 @@ const SignupScreen = ({ onComplete }) => {
       setGLoading(false);
     }
   };
+
+  // Handle redirect result (for mobile PWA)
+  useEffect(() => {
+    if (!window.firebase?.auth) return;
+    firebase.auth().getRedirectResult().then(result => {
+      if (result?.user) {
+        onComplete({ name: result.user.displayName || "Utilisateur", email: result.user.email, method: "google", photoURL: result.user.photoURL, uid: result.user.uid });
+      }
+    }).catch(err => {
+      console.error("Redirect result error:", err);
+      if (err.code !== "auth/popup-closed-by-user") setGError("Erreur : " + (err.message || "réessayez"));
+    });
+  }, []);
 
   if (!mode) return (
     <div style={{ padding: "20px 20px 40px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "80vh" }}>
