@@ -357,32 +357,45 @@ const SignupScreen = ({ onComplete }) => {
   const [pass, setPass] = useState("");
   const [gLoading, setGLoading] = useState(false);
   const [gError, setGError] = useState(null);
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
 
   const handleGoogleSignIn = async () => {
+    if (isStandalone) { setMode("google_quick"); return; }
     if (!window.firebase?.auth) { setGError("Firebase non configuré"); return; }
     setGLoading(true); setGError(null);
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: "select_account" });
-      // Mobile standalone (PWA) blocks popups — use redirect
-      const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
-      if (isStandalone) {
-        await firebase.auth().signInWithRedirect(provider);
-      } else {
-        const result = await firebase.auth().signInWithPopup(provider);
-        const user = result.user;
-        onComplete({ name: user.displayName || "Utilisateur", email: user.email, method: "google", photoURL: user.photoURL, uid: user.uid });
-      }
+      const result = await firebase.auth().signInWithPopup(provider);
+      const user = result.user;
+      onComplete({ name: user.displayName || "Utilisateur", email: user.email, method: "google", photoURL: user.photoURL, uid: user.uid });
     } catch (err) {
       console.error("Google sign-in error:", err);
       if (err.code === "auth/popup-closed-by-user") setGError("Connexion annulée");
       else if (err.code === "auth/unauthorized-domain") setGError("Domaine non autorisé dans Firebase");
-      else setGError("Erreur de connexion : " + (err.message || "réessayez"));
+      else setGError("Erreur : " + (err.message || "réessayez"));
       setGLoading(false);
     }
   };
 
-  // Redirect result handled in App via onAuthStateChanged
+  if (mode === "google_quick") {
+    const canGo = name.length > 1 && email.includes("@") && email.includes(".");
+    return (
+      <div style={{ padding: "20px 20px 40px", textAlign: "center" }}>
+        <div style={{ fontSize: 44, marginTop: 10, marginBottom: 8 }}>🔐</div>
+        <div style={{ color: C.text, fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Connexion rapide</div>
+        <div style={{ color: C.dim, fontSize: 12, marginBottom: 16 }}>Entrez vos informations Google</div>
+        <Input icon="👤" placeholder="Votre nom" value={name} onChange={setName} />
+        <Input icon="📧" placeholder="Votre email Google" type="email" value={email} onChange={setEmail} />
+        <div onClick={() => canGo && onComplete({ name, email, method: "google" })} style={{
+          padding: "14px 0", borderRadius: 14, marginTop: 8, cursor: canGo ? "pointer" : "default",
+          background: canGo ? C.accent : C.cardL, color: canGo ? "#0a0f14" : C.dim,
+          fontSize: 14, fontWeight: 800, opacity: canGo ? 1 : 0.5,
+        }}>Continuer</div>
+        <div onClick={() => setMode(null)} style={{ color: C.dim, fontSize: 12, marginTop: 12, cursor: "pointer" }}>← Retour</div>
+      </div>
+    );
+  }
 
   if (!mode) return (
     <div style={{ padding: "20px 20px 40px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "80vh" }}>
