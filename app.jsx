@@ -351,10 +351,30 @@ const Input = ({ placeholder, type = "text", value, onChange, icon }) => (
 
 // ─── SIGNUP ───────────────────────────────
 const SignupScreen = ({ onComplete }) => {
-  const [mode, setMode] = useState(null); // null | "gmail" | "gmail_custom" | "email"
+  const [mode, setMode] = useState(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
+  const [gLoading, setGLoading] = useState(false);
+  const [gError, setGError] = useState(null);
+
+  const handleGoogleSignIn = async () => {
+    if (!window.firebase?.auth) { setGError("Firebase non configuré"); return; }
+    setGLoading(true); setGError(null);
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      const result = await firebase.auth().signInWithPopup(provider);
+      const user = result.user;
+      onComplete({ name: user.displayName || "Utilisateur", email: user.email, method: "google", photoURL: user.photoURL, uid: user.uid });
+    } catch (err) {
+      console.error("Google sign-in error:", err);
+      if (err.code === "auth/popup-closed-by-user") setGError("Connexion annulée");
+      else if (err.code === "auth/unauthorized-domain") setGError("Domaine non autorisé dans Firebase");
+      else setGError("Erreur de connexion : " + (err.message || "réessayez"));
+      setGLoading(false);
+    }
+  };
 
   if (!mode) return (
     <div style={{ padding: "20px 20px 40px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "80vh" }}>
@@ -363,13 +383,25 @@ const SignupScreen = ({ onComplete }) => {
         Des micro-séances adaptées à votre métier pour prendre soin de votre corps au travail
       </div>
 
-      <div onClick={() => setMode("gmail")} style={{
-        display: "flex", alignItems: "center", gap: 10, padding: "14px 16px", borderRadius: 14,
-        background: "#fff", cursor: "pointer", marginBottom: 10,
+      <div onClick={handleGoogleSignIn} style={{
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "14px 16px", borderRadius: 14,
+        background: "#fff", cursor: gLoading ? "wait" : "pointer", marginBottom: 10, opacity: gLoading ? 0.7 : 1, transition: "opacity 0.2s",
       }}>
-        <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-        <span style={{ color: "#333", fontSize: 14, fontWeight: 700 }}>Continuer avec Google</span>
+        {gLoading ? (
+          <span style={{ color: "#333", fontSize: 14, fontWeight: 700 }}>Connexion en cours…</span>
+        ) : (
+          <>
+            <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+            <span style={{ color: "#333", fontSize: 14, fontWeight: 700 }}>Continuer avec Google</span>
+          </>
+        )}
       </div>
+
+      {gError && (
+        <div style={{ background: C.redDim, borderRadius: 10, padding: "8px 12px", marginBottom: 8, border: `1px solid ${C.red}30` }}>
+          <span style={{ color: C.red, fontSize: 11 }}>{gError}</span>
+        </div>
+      )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "6px 0 14px" }}>
         <div style={{ flex: 1, height: 1, background: C.cardL }} />
@@ -389,52 +421,6 @@ const SignupScreen = ({ onComplete }) => {
       </div>
     </div>
   );
-
-  if (mode === "gmail") return (
-    <div style={{ padding: "20px 20px 40px", textAlign: "center" }}>
-      <div style={{ fontSize: 44, marginBottom: 12 }}>🔐</div>
-      <div style={{ color: C.text, fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Connexion Google</div>
-      <div style={{ color: C.dim, fontSize: 12, marginBottom: 20 }}>Sélectionnez votre compte</div>
-
-      <div onClick={() => onComplete({ name: "Alex Martin", email: "alex.martin@gmail.com", method: "gmail" })} style={{
-        display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14,
-        background: C.card, border: `1px solid ${C.accent}44`, cursor: "pointer", marginBottom: 8, textAlign: "left",
-      }}>
-        <div style={{ width: 40, height: 40, borderRadius: 20, background: C.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>👨‍💻</div>
-        <div style={{ flex: 1 }}><div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>Alex Martin</div><div style={{ color: C.dim, fontSize: 11 }}>alex.martin@gmail.com</div></div>
-        <div style={{ background: C.accent, color: "#0a0f14", fontSize: 9, fontWeight: 800, padding: "2px 8px", borderRadius: 6 }}>TEST</div>
-      </div>
-
-      <div onClick={() => setMode("gmail_custom")} style={{
-        display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 14,
-        background: C.card, border: `1px solid ${C.cardL}`, cursor: "pointer", marginBottom: 8, textAlign: "left",
-      }}>
-        <div style={{ width: 40, height: 40, borderRadius: 20, background: C.cardL, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>➕</div>
-        <div><div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>Utiliser un autre compte</div><div style={{ color: C.dim, fontSize: 11 }}>Entrez vos informations</div></div>
-      </div>
-
-      <div onClick={() => setMode(null)} style={{ color: C.dim, fontSize: 12, marginTop: 12, cursor: "pointer" }}>← Retour</div>
-    </div>
-  );
-
-  if (mode === "gmail_custom") {
-    const canGo = name.length > 1 && email.includes("@") && email.includes(".");
-    return (
-      <div style={{ padding: "20px 20px 40px", textAlign: "center" }}>
-        <div style={{ fontSize: 44, marginTop: 10, marginBottom: 8 }}>🔐</div>
-        <div style={{ color: C.text, fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Votre compte Google</div>
-        <div style={{ color: C.dim, fontSize: 12, marginBottom: 16 }}>Entrez vos informations</div>
-        <Input icon="👤" placeholder="Votre nom" value={name} onChange={setName} />
-        <Input icon="📧" placeholder="Votre email Google" type="email" value={email} onChange={setEmail} />
-        <div onClick={() => canGo && onComplete({ name, email, method: "gmail" })} style={{
-          padding: "14px 0", borderRadius: 14, marginTop: 8, cursor: canGo ? "pointer" : "default",
-          background: canGo ? C.accent : C.cardL, color: canGo ? "#0a0f14" : C.dim,
-          fontSize: 14, fontWeight: 800, opacity: canGo ? 1 : 0.5,
-        }}>Continuer</div>
-        <div onClick={() => setMode("gmail")} style={{ color: C.dim, fontSize: 12, marginTop: 12, cursor: "pointer" }}>← Retour</div>
-      </div>
-    );
-  }
 
   // Email signup
   const canSubmit = name.length > 1 && email.includes("@") && pass.length >= 4;
@@ -1081,16 +1067,56 @@ const Stats = ({ stats, profile, isPremium }) => {
 };
 
 // ─── PROFILE ──────────────────────────────
-const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, theme, onUnsubscribe }) => {
+const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, theme, onUnsubscribe, onUpdateProfile, onUpdateName }) => {
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(profile.jobIcon);
   const [calendarSync, setCalendarSync] = useState(false);
+  const [editing, setEditing] = useState(null); // null | "name" | "sector" | "job" | "pain" | "level" | "space"
+  const [editName, setEditName] = useState(stats.userName);
+  const [editSector, setEditSector] = useState(profile.sectorId);
+  const [editJob, setEditJob] = useState(profile.jobId);
+  const [editPain, setEditPain] = useState([...profile.painZones]);
+  const [editLevel, setEditLevel] = useState(profile.level);
+  const [editSpace, setEditSpace] = useState(profile.space);
   const avatars = ["👨‍💻", "👩‍💻", "👨‍🔬", "👩‍🎨", "🧑‍🏫", "👷", "👩‍⚕️", "🧑‍🍳", "👨‍🚀", "🦸", "🧙", "🥷"];
+
+  const sector = SECTORS.find(s => s.id === editSector);
+  const allJobs = editSector ? (JOBS[editSector] || []) : [];
+  const jobs = isPremium ? allJobs : allJobs.filter(j => !j.pro);
+
+  const saveEdit = (type) => {
+    if (type === "name" && editName.length > 1) { onUpdateName(editName); }
+    else if (type === "sector" || type === "job") {
+      const s = SECTORS.find(x => x.id === editSector);
+      const j = (JOBS[editSector] || []).find(x => x.id === editJob);
+      if (s && j) onUpdateProfile({ ...profile, sectorId: editSector, sector: s.label, sectorIcon: s.icon, jobId: editJob, job: j.label, jobIcon: j.icon, riskZones: [...new Set([...(s.zones || []), ...editPain])] });
+    } else if (type === "pain") {
+      const s = SECTORS.find(x => x.id === profile.sectorId);
+      onUpdateProfile({ ...profile, painZones: editPain, riskZones: [...new Set([...(s?.zones || []), ...editPain])] });
+    } else if (type === "level") { onUpdateProfile({ ...profile, level: editLevel }); }
+    else if (type === "space") { onUpdateProfile({ ...profile, space: editSpace }); }
+    setEditing(null);
+  };
+
+  // Edit modal overlay
+  const EditModal = ({ title, children, onSave, type }) => (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setEditing(null)}>
+      <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 420, background: C.bg, borderRadius: "20px 20px 0 0", padding: "16px 16px 30px", maxHeight: "75vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <span style={{ color: C.text, fontSize: 16, fontWeight: 800 }}>{title}</span>
+          <span onClick={() => setEditing(null)} style={{ color: C.dim, fontSize: 14, cursor: "pointer", padding: "4px 8px" }}>✕</span>
+        </div>
+        {children}
+        <div onClick={() => saveEdit(type)} style={{ marginTop: 12, padding: "13px 0", borderRadius: 14, background: C.accent, color: "#0a0f14", fontSize: 14, fontWeight: 800, textAlign: "center", cursor: "pointer" }}>
+          Enregistrer
+        </div>
+      </div>
+    </div>
+  );
 
   return (
   <div style={{ padding: "10px 14px 30px" }}>
     <div style={{ padding: "10px 0 8px", display: "flex", alignItems: "center", gap: 10 }}>
-      {/* Avatar — clickable for premium */}
       <div onClick={() => isPremium && setAvatarOpen(!avatarOpen)} style={{
         width: 50, height: 50, borderRadius: 18, position: "relative",
         background: isPremium ? `linear-gradient(135deg,${C.gold}30,${C.orange}30)` : C.accentDim,
@@ -1104,12 +1130,16 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
         )}
       </div>
       <div style={{ flex: 1 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}><span style={{ color: C.text, fontSize: 16, fontWeight: 800 }}>{stats.userName}</span>{isPremium && <Bdg small />}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ color: C.text, fontSize: 16, fontWeight: 800 }}>{stats.userName}</span>
+          {isPremium && <Bdg small />}
+          <span onClick={() => { setEditName(stats.userName); setEditing("name"); }} style={{ color: C.dim, fontSize: 11, cursor: "pointer", marginLeft: 2 }}>✏️</span>
+        </div>
         <div style={{ color: C.dim, fontSize: 11 }}>{profile.jobIcon} {profile.job} · Niv. {Math.floor(stats.xp / 500) + 1}</div>
       </div>
     </div>
 
-    {/* Avatar picker — Premium */}
+    {/* Avatar picker */}
     {avatarOpen && isPremium && (
       <div style={{ background: C.card, borderRadius: 14, padding: 10, marginBottom: 10, border: `1px solid ${C.gold}33` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
@@ -1136,7 +1166,7 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
     {/* Plan */}
     {isPremium ? (
       <div style={{ background: `linear-gradient(135deg,${C.gold}18,${C.orange}18)`, borderRadius: 14, padding: "10px 12px", marginBottom: 10, border: `1px solid ${C.gold}40` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><span style={{ fontSize: 18 }}>👑</span><div style={{ flex: 1 }}><div style={{ color: C.gold, fontSize: 12, fontWeight: 800 }}>Flexo Premium — 4,90€/mois</div><div style={{ color: C.dim, fontSize: 10 }}>{stats.xp} XP · {stats.totalSessions} séances · Renouvellement le 15/04/2026</div></div></div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><span style={{ fontSize: 18 }}>👑</span><div style={{ flex: 1 }}><div style={{ color: C.gold, fontSize: 12, fontWeight: 800 }}>Flexo Premium — 4,90€/mois</div><div style={{ color: C.dim, fontSize: 10 }}>{stats.xp} XP · {stats.totalSessions} séances</div></div></div>
         <div onClick={onUnsubscribe} style={{ padding: "8px 0", borderRadius: 10, background: "rgba(0,0,0,0.15)", textAlign: "center", cursor: "pointer" }}>
           <span style={{ color: C.dim, fontSize: 11, fontWeight: 600 }}>Se désabonner</span>
         </div>
@@ -1153,35 +1183,43 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
       ))}
     </div>
 
-    {/* Professional profile */}
+    {/* Professional profile — EDITABLE */}
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
         <span style={{ color: C.dim, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8 }}>Profil professionnel</span>
         {isPremium && <span style={{ color: C.gold, fontSize: 9, fontWeight: 700 }}>40+ métiers</span>}
       </div>
       <div style={{ background: C.card, borderRadius: 14, overflow: "hidden", border: `1px solid ${C.cardL}` }}>
-        {[{ i: profile.sectorIcon, l: "Secteur", v: profile.sector }, { i: profile.jobIcon, l: "Métier", v: profile.job }, { i: "💪", l: "Niveau", v: profile.level }, { i: "🪑", l: "Espace", v: profile.space }].map((f, i) => (
-          <div key={i} style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 11px", borderBottom: i < 3 ? `1px solid ${C.cardL}` : "none" }}>
+        {[
+          { i: profile.sectorIcon, l: "Secteur", v: profile.sector, edit: "sector" },
+          { i: profile.jobIcon, l: "Métier", v: profile.job, edit: "job" },
+          { i: "💪", l: "Niveau", v: profile.level, edit: "level" },
+          { i: "🪑", l: "Espace", v: profile.space, edit: "space" },
+        ].map((f, i) => (
+          <div key={i} onClick={() => { setEditing(f.edit); if (f.edit === "sector") setEditSector(profile.sectorId); if (f.edit === "job") { setEditSector(profile.sectorId); setEditJob(profile.jobId); } }} style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 11px", borderBottom: i < 3 ? `1px solid ${C.cardL}` : "none", cursor: "pointer" }}>
             <span style={{ fontSize: 13 }}>{f.i}</span>
             <span style={{ color: C.dim, fontSize: 10, fontWeight: 600, width: 50 }}>{f.l}</span>
             <span style={{ color: C.text, fontSize: 11, fontWeight: 600, flex: 1 }}>{f.v}</span>
-            <span style={{ color: C.dim, fontSize: 10 }}>›</span>
+            <span style={{ color: C.accent, fontSize: 10 }}>✏️</span>
           </div>
         ))}
       </div>
-      {!isPremium && (
-        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 5 }}>
-          <span style={{ fontSize: 10 }}>🔒</span>
-          <span style={{ color: C.dim, fontSize: 10 }}>1 métier inclus · Premium pour accéder aux 40+ métiers</span>
-        </div>
-      )}
     </div>
 
-    {/* Settings with functional toggles */}
+    {/* Pain zones — editable */}
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
+        <span style={{ color: C.dim, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8 }}>Zones à risque</span>
+        <span onClick={() => { setEditPain([...profile.painZones]); setEditing("pain"); }} style={{ color: C.accent, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Modifier ✏️</span>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>{profile.riskZones.map(z => <Pill key={z} active color={C.orange}>{z}</Pill>)}</div>
+    </div>
+
+    {/* Settings */}
     <div style={{ marginBottom: 10 }}>
       <div style={{ color: C.dim, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 5 }}>Réglages</div>
       <div style={{ background: C.card, borderRadius: 14, overflow: "hidden", border: `1px solid ${C.cardL}` }}>
-        {/* Google Calendar Sync — Premium */}
+        {/* Google Calendar Sync */}
         <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 11px", borderBottom: `1px solid ${C.cardL}` }}>
           <span style={{ fontSize: 13 }}>📅</span>
           <div style={{ flex: 1 }}>
@@ -1200,7 +1238,7 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
           </div>
         </div>
 
-        {/* Theme toggle — Premium */}
+        {/* Theme toggle */}
         <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 11px", borderBottom: `1px solid ${C.cardL}` }}>
           <span style={{ fontSize: 13 }}>{theme === "dark" ? "🌙" : "☀️"}</span>
           <div style={{ flex: 1 }}>
@@ -1237,140 +1275,77 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
       </div>
     </div>
 
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ color: C.dim, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 5 }}>Zones à risque</div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>{profile.riskZones.map(z => <Pill key={z} active color={C.orange}>{z}</Pill>)}</div>
-    </div>
-    {/* Feedback Beta */}
+    {/* Feedback */}
     <div onClick={() => goTo("feedback")} style={{ padding: "12px 0", borderRadius: 14, background: `${C.accent}15`, color: C.accent, fontSize: 12, fontWeight: 700, textAlign: "center", cursor: "pointer", border: `1px solid ${C.accent}30`, marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
       💬 Donner mon avis (Beta)
     </div>
     <div onClick={onReset} style={{ padding: "12px 0", borderRadius: 14, background: C.redDim, color: C.red, fontSize: 12, fontWeight: 700, textAlign: "center", cursor: "pointer", border: `1px solid ${C.red}30`, marginBottom: 16 }}>🔄 Recommencer depuis le début</div>
-  </div>
-  );
-};
 
+    {/* ═══ EDIT MODALS ═══ */}
+    {editing === "name" && (
+      <EditModal title="Modifier le nom" type="name" onSave={() => saveEdit("name")}>
+        <Input icon="👤" placeholder="Votre nom" value={editName} onChange={setEditName} />
+      </EditModal>
+    )}
 
-// ─── FEEDBACK ─────────────────────────────
-const Feedback = ({ goTo, stats, profile }) => {
-  const [rating, setRating] = useState(0);
-  const [frequency, setFrequency] = useState(null);
-  const [useful, setUseful] = useState(null);
-  const [ideas, setIdeas] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  const freqOptions = ["Chaque jour", "3-4x/semaine", "1-2x/semaine", "Rarement"];
-  const usefulOptions = ["Très utile", "Plutôt utile", "Moyennement", "Pas assez"];
-
-  const handleSubmit = () => {
-    const data = { rating, frequency, useful, ideas, user: stats.userName, job: profile?.job, date: new Date().toISOString() };
-    console.log("📋 Feedback:", JSON.stringify(data));
-    // Future: send to webhook / Google Sheet
-    setSubmitted(true);
-  };
-
-  if (submitted) return (
-    <div style={{ padding: "40px 20px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
-      <div style={{ width: 80, height: 80, borderRadius: 40, background: C.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, marginBottom: 16, border: `3px solid ${C.accent}`, boxShadow: `0 0 30px ${C.accentGlow}` }}>💙</div>
-      <div style={{ color: C.text, fontSize: 20, fontWeight: 900, marginBottom: 6 }}>Merci pour ton retour !</div>
-      <div style={{ color: C.dim, fontSize: 13, lineHeight: 1.5, marginBottom: 24, maxWidth: 280 }}>Ton avis nous aide à construire la meilleure app de bien-être au travail.</div>
-      <div onClick={() => goTo("home")} style={{ width: "100%", maxWidth: 300, padding: "14px 0", borderRadius: 14, background: C.accent, color: "#0a0f14", fontSize: 15, fontWeight: 800, textAlign: "center", cursor: "pointer" }}>
-        Retour à l'accueil →
-      </div>
-    </div>
-  );
-
-  return (
-    <div style={{ padding: "10px 14px 40px" }}>
-      <div style={{ padding: "10px 0 6px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span onClick={() => goTo("profile")} style={{ color: C.dim, fontSize: 12, cursor: "pointer" }}>← Retour</span>
-        <span style={{ color: C.accent, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Beta Feedback</span>
-        <span style={{ width: 50 }} />
-      </div>
-
-      <div style={{ textAlign: "center", marginBottom: 14 }}>
-        <div style={{ fontSize: 28, marginBottom: 4 }}>💬</div>
-        <div style={{ color: C.text, fontSize: 17, fontWeight: 900 }}>Ton avis compte</div>
-        <div style={{ color: C.dim, fontSize: 11, marginTop: 2 }}>3 questions rapides + tes idées</div>
-      </div>
-
-      {/* Q1 — Rating */}
-      <div style={{ background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 10, border: `1px solid ${C.cardL}` }}>
-        <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>1. Comment notes-tu Flexo ?</div>
-        <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
-          {[1,2,3,4,5].map(n => (
-            <div key={n} onClick={() => setRating(n)} style={{
-              width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 22, cursor: "pointer", transition: "all 0.2s",
-              background: rating >= n ? `${C.gold}25` : C.cardL,
-              border: `2px solid ${rating >= n ? C.gold : "transparent"}`,
-              transform: rating >= n ? "scale(1.1)" : "scale(1)",
-            }}>
-              {rating >= n ? "⭐" : "☆"}
+    {editing === "sector" && (
+      <EditModal title="Changer de secteur" type="sector">
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {SECTORS.map(s => (
+            <div key={s.id} onClick={() => { setEditSector(s.id); setEditJob(null); }} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, background: editSector === s.id ? C.accentDim : C.card, border: `1.5px solid ${editSector === s.id ? C.accent : C.cardL}`, cursor: "pointer" }}>
+              <span style={{ fontSize: 20 }}>{s.icon}</span>
+              <div style={{ flex: 1 }}><div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>{s.label}</div><div style={{ color: C.dim, fontSize: 10 }}>{s.desc}</div></div>
+              {editSector === s.id && <span style={{ color: C.accent }}>✓</span>}
             </div>
           ))}
         </div>
-      </div>
+      </EditModal>
+    )}
 
-      {/* Q2 — Frequency */}
-      <div style={{ background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 10, border: `1px solid ${C.cardL}` }}>
-        <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>2. À quelle fréquence utiliserais-tu Flexo ?</div>
+    {editing === "job" && (
+      <EditModal title="Changer de métier" type="job">
+        <div style={{ color: C.accent, fontSize: 11, marginBottom: 8 }}>{sector?.icon} {sector?.label}</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-          {freqOptions.map(opt => (
-            <div key={opt} onClick={() => setFrequency(opt)} style={{
-              padding: "10px 8px", borderRadius: 10, textAlign: "center", cursor: "pointer",
-              background: frequency === opt ? `${C.accent}20` : C.cardL,
-              border: `1.5px solid ${frequency === opt ? C.accent : "transparent"}`,
-              color: frequency === opt ? C.accent : C.dim, fontSize: 11, fontWeight: 600,
-              transition: "all 0.2s",
-            }}>{opt}</div>
+          {jobs.map(j => (
+            <div key={j.id} onClick={() => setEditJob(j.id)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, padding: "12px 8px", borderRadius: 14, background: editJob === j.id ? C.accentDim : C.card, border: `1.5px solid ${editJob === j.id ? C.accent : C.cardL}`, cursor: "pointer" }}>
+              <span style={{ fontSize: 22 }}>{j.icon}</span>
+              <span style={{ color: editJob === j.id ? C.accent : C.text, fontSize: 11, fontWeight: 600 }}>{j.label}</span>
+            </div>
           ))}
         </div>
-      </div>
+      </EditModal>
+    )}
 
-      {/* Q3 — Usefulness */}
-      <div style={{ background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 10, border: `1px solid ${C.cardL}` }}>
-        <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>3. Les exercices te semblent-ils adaptés à ton métier ?</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
-          {usefulOptions.map(opt => (
-            <div key={opt} onClick={() => setUseful(opt)} style={{
-              padding: "10px 8px", borderRadius: 10, textAlign: "center", cursor: "pointer",
-              background: useful === opt ? `${C.accent}20` : C.cardL,
-              border: `1.5px solid ${useful === opt ? C.accent : "transparent"}`,
-              color: useful === opt ? C.accent : C.dim, fontSize: 11, fontWeight: 600,
-              transition: "all 0.2s",
-            }}>{opt}</div>
+    {editing === "level" && (
+      <EditModal title="Niveau d'activité" type="level">
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {["Peu actif", "Modéré", "Actif"].map(n => (
+            <div key={n} onClick={() => setEditLevel(n)} style={{ padding: "12px 14px", borderRadius: 14, background: editLevel === n ? C.accentDim : C.card, border: `1.5px solid ${editLevel === n ? C.accent : C.cardL}`, cursor: "pointer", color: editLevel === n ? C.accent : C.text, fontSize: 13, fontWeight: 600 }}>{n}</div>
           ))}
         </div>
-      </div>
+      </EditModal>
+    )}
 
-      {/* Q4 — Ideas (open) */}
-      <div style={{ background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 16, border: `1px solid ${C.cardL}` }}>
-        <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>💡 Une idée d'amélioration ?</div>
-        <textarea
-          value={ideas} onChange={e => setIdeas(e.target.value)}
-          placeholder="Ex : J'aimerais des séances plus courtes, un mode rappel…"
-          rows={3}
-          style={{
-            width: "100%", background: C.cardL, border: "none", borderRadius: 10,
-            padding: "10px 12px", color: C.text, fontSize: 12, fontFamily: "inherit",
-            resize: "none", outline: "none", lineHeight: 1.5,
-          }}
-        />
-      </div>
+    {editing === "space" && (
+      <EditModal title="Espace au travail" type="space">
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {["Assis seulement", "Debout possible", "Espace libre"].map(e => (
+            <div key={e} onClick={() => setEditSpace(e)} style={{ padding: "12px 14px", borderRadius: 14, background: editSpace === e ? C.accentDim : C.card, border: `1.5px solid ${editSpace === e ? C.accent : C.cardL}`, cursor: "pointer", color: editSpace === e ? C.accent : C.text, fontSize: 13, fontWeight: 600 }}>{e}</div>
+          ))}
+        </div>
+      </EditModal>
+    )}
 
-      {/* Submit */}
-      <div onClick={handleSubmit} style={{
-        width: "100%", padding: "14px 0", borderRadius: 14, textAlign: "center", cursor: "pointer",
-        background: (rating && frequency && useful) ? C.accent : C.cardL,
-        color: (rating && frequency && useful) ? "#0a0f14" : C.dim,
-        fontSize: 15, fontWeight: 800, transition: "all 0.3s",
-        opacity: (rating && frequency && useful) ? 1 : 0.5,
-        pointerEvents: (rating && frequency && useful) ? "auto" : "none",
-      }}>
-        Envoyer mon avis 🚀
-      </div>
-    </div>
+    {editing === "pain" && (
+      <EditModal title="Zones sensibles" type="pain">
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          {["Nuque", "Dos", "Poignets", "Épaules", "Genoux", "Yeux", "Jambes"].map(z => (
+            <div key={z} onClick={() => setEditPain(p => p.includes(z) ? p.filter(x => x !== z) : [...p, z])} style={{ padding: "10px 16px", borderRadius: 12, cursor: "pointer", background: editPain.includes(z) ? C.orangeDim : C.card, border: `1.5px solid ${editPain.includes(z) ? C.orange : C.cardL}`, color: editPain.includes(z) ? C.orange : C.text, fontSize: 12, fontWeight: 600 }}>{z}</div>
+          ))}
+        </div>
+      </EditModal>
+    )}
+  </div>
   );
 };
 
@@ -1436,7 +1411,7 @@ function App() {
   const [profile, setProfile] = useState(null);
   const [sessionTarget, setSessionTarget] = useState(null);
   const [isFromLibrary, setIsFromLibrary] = useState(false);
-  const [stats, setStats] = useState({ xp: 0, totalSessions: 0, streak: 1, score: 55, userName: "", userEmail: "" });
+  const [stats, setStats] = useState({ xp: 0, totalSessions: 0, streak: 1, score: 0, userName: "", userEmail: "" });
   const [sessions, setSessions] = useState([]);
   const [dailyProgram, setDailyProgram] = useState([]);
   const [completedBlocks, setCompletedBlocks] = useState([]);
@@ -1458,9 +1433,11 @@ function App() {
   }, []);
   const handleUpgrade = useCallback(() => { setIsPremium(true); setPaymentSheet(null); setScreen("home"); }, []);
   const handleUnsubscribe = useCallback(() => { setIsPremium(false); setScreen("home"); }, []);
+  const handleUpdateProfile = useCallback((newProfile) => { setProfile(newProfile); setSessions(buildSessions(newProfile.riskZones)); setDailyProgram(buildDailyProgram(newProfile.riskZones)); setCompletedBlocks([]); }, []);
+  const handleUpdateName = useCallback((newName) => { setStats(s => ({ ...s, userName: newName })); }, []);
   const showPayment = useCallback((plan, onDone) => { setPaymentSheet({ plan, onDone }); }, []);
   const handleToggleTheme = useCallback(() => { setTheme(t => t === "dark" ? "light" : "dark"); }, []);
-  const handleReset = useCallback(() => { setScreen("signup"); setAccount(null); setProfile(null); setIsPremium(false); setTheme("dark"); setStats({ xp: 0, totalSessions: 0, streak: 1, score: 55, userName: "", userEmail: "" }); setSessions([]); setDailyProgram([]); setCompletedBlocks([]); }, []);
+  const handleReset = useCallback(() => { setScreen("signup"); setAccount(null); setProfile(null); setIsPremium(false); setTheme("dark"); setStats({ xp: 0, totalSessions: 0, streak: 1, score: 0, userName: "", userEmail: "" }); setSessions([]); setDailyProgram([]); setCompletedBlocks([]); }, []);
 
   const navItems = [{ id: "home", icon: "🏠", l: "Accueil" }, { id: "library", icon: "📚", l: "Séances" }, { id: "stats", icon: "📊", l: "Stats" }, { id: "profile", icon: "👤", l: "Profil" }];
   const showNav = navItems.some(n => n.id === screen);
@@ -1479,7 +1456,7 @@ function App() {
     if (screen === "session") return <Session goTo={goTo} blockId={sessionTarget} dailyProgram={dailyProgram} sessions={sessions} onComplete={handleSessionComplete} isFromLibrary={isFromLibrary} />;
     if (screen === "library") return <Library goTo={goTo} sessions={sessions} isPremium={isPremium} />;
     if (screen === "stats") return <Stats stats={stats} profile={profile} isPremium={isPremium} />;
-    if (screen === "profile") return <Profile profile={profile} stats={stats} isPremium={isPremium} onReset={handleReset} goTo={goTo} onToggleTheme={handleToggleTheme} theme={theme} onUnsubscribe={handleUnsubscribe} />;
+    if (screen === "profile") return <Profile profile={profile} stats={stats} isPremium={isPremium} onReset={handleReset} goTo={goTo} onToggleTheme={handleToggleTheme} theme={theme} onUnsubscribe={handleUnsubscribe} onUpdateProfile={handleUpdateProfile} onUpdateName={handleUpdateName} />;
     return <Home goTo={goTo} profile={profile} stats={stats} dailyProgram={dailyProgram} completedBlocks={completedBlocks} isPremium={isPremium} sessions={sessions} />;
   };
 
