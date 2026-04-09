@@ -382,18 +382,7 @@ const SignupScreen = ({ onComplete }) => {
     }
   };
 
-  // Handle redirect result (for mobile PWA)
-  useEffect(() => {
-    if (!window.firebase?.auth) return;
-    firebase.auth().getRedirectResult().then(result => {
-      if (result?.user) {
-        onComplete({ name: result.user.displayName || "Utilisateur", email: result.user.email, method: "google", photoURL: result.user.photoURL, uid: result.user.uid });
-      }
-    }).catch(err => {
-      console.error("Redirect result error:", err);
-      if (err.code !== "auth/popup-closed-by-user") setGError("Erreur : " + (err.message || "réessayez"));
-    });
-  }, []);
+  // Redirect result handled in App via onAuthStateChanged
 
   if (!mode) return (
     <div style={{ padding: "20px 20px 40px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "80vh" }}>
@@ -1436,6 +1425,20 @@ function App() {
   const [completedBlocks, setCompletedBlocks] = useState([]);
   const [theme, setTheme] = useState("dark");
   const [paymentSheet, setPaymentSheet] = useState(null); // null | { plan, onConfirm }
+
+  // Firebase: detect Google redirect sign-in
+  useEffect(() => {
+    if (!window.firebase?.auth) return;
+    const unsub = firebase.auth().onAuthStateChanged(user => {
+      if (user && screen === "signup" && !account) {
+        const acc = { name: user.displayName || "Utilisateur", email: user.email, method: "google", photoURL: user.photoURL, uid: user.uid };
+        setAccount(acc);
+        setStats(s => ({ ...s, userName: acc.name, userEmail: acc.email }));
+        setScreen("plan");
+      }
+    });
+    return () => unsub();
+  }, [screen, account]);
 
   const goTo = useCallback((id, target) => {
     if (id === "session") { setSessionTarget(target); setIsFromLibrary(false); setScreen("session"); }
