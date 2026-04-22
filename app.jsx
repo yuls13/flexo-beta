@@ -268,7 +268,7 @@ const PaymentSheet = ({ plan, onConfirm, onCancel, userName }) => {
 
   return (
     <div style={{
-      position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 100,
+      position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 100,
       display: "flex", flexDirection: "column", justifyContent: "flex-end",
     }}>
       {/* Backdrop */}
@@ -277,8 +277,9 @@ const PaymentSheet = ({ plan, onConfirm, onCancel, userName }) => {
       {/* Sheet */}
       <div style={{
         position: "relative", background: "#1c1c1e", borderRadius: "20px 20px 0 0",
-        padding: "0 0 20px", overflow: "hidden",
+        overflow: "hidden", maxHeight: "75vh", display: "flex", flexDirection: "column",
         animation: "slideUp 0.35s ease-out",
+        paddingBottom: "max(20px, env(safe-area-inset-bottom, 20px))",
       }}>
         <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -1449,9 +1450,13 @@ function App() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100dvh", minHeight: "100vh", background: C.bg, fontFamily: "'Manrope','SF Pro Display',-apple-system,sans-serif", position: "relative", transition: "background 0.3s", overflow: "hidden" }}>
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: "max(12px, env(safe-area-inset-top, 12px))", paddingBottom: showNav ? "calc(64px + max(16px, env(safe-area-inset-bottom, 16px)))" : 30, WebkitOverflowScrolling: "touch" }}>{render()}</div>
+      {/* Fixed top safe area spacer */}
+      <div style={{ flexShrink: 0, height: "env(safe-area-inset-top, 0px)", background: C.bg, zIndex: 40 }} />
+      {/* Scrollable content */}
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingBottom: showNav ? 70 : 20, WebkitOverflowScrolling: "touch" }}>{render()}</div>
+      {/* Fixed bottom nav */}
       {showNav && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: `${C.bg}ee`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: `1px solid ${theme === "light" ? "#d0d5dd" : C.cardL}`, display: "flex", justifyContent: "space-around", alignItems: "center", paddingTop: 8, paddingBottom: "max(8px, env(safe-area-inset-bottom, 8px))", zIndex: 50 }}>
+        <div style={{ flexShrink: 0, background: C.bg, borderTop: `1px solid ${C.cardL}`, display: "flex", justifyContent: "space-around", alignItems: "center", paddingTop: 6, paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))", zIndex: 50 }}>
           {navItems.map(n => (<div key={n.id} onClick={() => goTo(n.id)} style={{ textAlign: "center", cursor: "pointer", opacity: screen === n.id ? 1 : 0.45, transition: "all 0.2s", padding: "4px 14px" }}><div style={{ fontSize: 22, marginBottom: 2 }}>{n.icon}</div><div style={{ fontSize: 10, fontWeight: 700, color: screen === n.id ? (isPremium ? C.gold : C.accent) : C.dim }}>{n.l}</div></div>))}
         </div>
       )}
