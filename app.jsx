@@ -1,6 +1,6 @@
 const { useState, useEffect, useRef, useCallback } = React;
 
-const C = {
+const DARK = {
   bg: "#0B1219", card: "#151F2B", cardL: "#1E2D3D",
   accent: "#00E676", accentDim: "rgba(0,230,118,0.12)", accentGlow: "rgba(0,230,118,0.25)",
   text: "#E4EEF2", dim: "#6B8FA8",
@@ -10,6 +10,18 @@ const C = {
   purple: "#B388FF", purpleDim: "rgba(179,136,255,0.12)",
   gold: "#FFD700", goldDim: "rgba(255,215,0,0.1)", goldGlow: "rgba(255,215,0,0.2)",
 };
+const LIGHT = {
+  bg: "#F2F4F7", card: "#FFFFFF", cardL: "#DDE1E8",
+  accent: "#00C853", accentDim: "rgba(0,200,83,0.10)", accentGlow: "rgba(0,200,83,0.15)",
+  text: "#1a1a2e", dim: "#5a6b7d",
+  orange: "#E68200", orangeDim: "rgba(230,130,0,0.10)",
+  red: "#D32F2F", redDim: "rgba(211,47,47,0.08)",
+  blue: "#1565C0", blueDim: "rgba(21,101,192,0.10)",
+  purple: "#7C4DFF", purpleDim: "rgba(124,77,255,0.10)",
+  gold: "#F9A825", goldDim: "rgba(249,168,37,0.10)", goldGlow: "rgba(249,168,37,0.15)",
+};
+const C = { ...DARK };
+const applyTheme = (t) => { const src = t === "light" ? LIGHT : DARK; Object.assign(C, src); };
 const tC = { flash: C.orange, standard: C.blue, deep: C.purple, sos: C.red };
 const tBg = { flash: C.orangeDim, standard: C.blueDim, deep: C.purpleDim, sos: C.redDim };
 const tL = { flash: "Flash", standard: "Standard", deep: "Deep", sos: "SOS" };
@@ -97,23 +109,57 @@ const JOBS = {
 };
 
 const EXERCISES = [
-  { id: "n1", name: "Rotation lente nuque", icon: "🔄", dur: 15, zone: "Nuque", xp: 10, inst: "Tournez lentement la tête de gauche à droite. 5s à chaque extrémité.", breath: "Inspirez au centre, expirez en tournant" },
-  { id: "n2", name: "Inclinaison latérale", icon: "↔️", dur: 12, zone: "Nuque", xp: 10, inst: "Oreille vers l'épaule, maintenez 5s. Changez.", breath: "Expirez en inclinant" },
-  { id: "n3", name: "Flexion avant douce", icon: "⬇️", dur: 10, zone: "Nuque", xp: 8, inst: "Menton vers poitrine, étirement arrière du cou.", breath: "Respirez profondément" },
-  { id: "d1", name: "Chat-vache assis", icon: "🐱", dur: 15, zone: "Dos", xp: 12, inst: "Alternez dos rond et dos creusé. Lent et fluide.", breath: "Inspirez creusé, expirez arrondi" },
-  { id: "d2", name: "Torsion vertébrale", icon: "🔄", dur: 12, zone: "Dos", xp: 10, inst: "Pivotez le buste, hanches face avant. 5s par côté.", breath: "Expirez en pivotant" },
-  { id: "d3", name: "Extension lombaire", icon: "⬆️", dur: 10, zone: "Dos", xp: 10, inst: "Mains sur lombaires, penchez en arrière doucement.", breath: "Inspirez en extension" },
-  { id: "e1", name: "Roulement d'épaules", icon: "🔃", dur: 12, zone: "Épaules", xp: 8, inst: "Grands cercles : 5 avant, 5 arrière.", breath: "Respirez naturellement" },
-  { id: "e2", name: "Étirement trapèzes", icon: "↕️", dur: 15, zone: "Épaules", xp: 10, inst: "Main sur tête, tirez vers la droite. 7s. Changez.", breath: "Expirez en étirant" },
-  { id: "p1", name: "Extension poignets", icon: "🤲", dur: 12, zone: "Poignets", xp: 10, inst: "Bras tendu, tirez doigts vers vous. 6s par côté.", breath: "Respirez calmement" },
-  { id: "p2", name: "Rotations poignets", icon: "🔁", dur: 10, zone: "Poignets", xp: 8, inst: "10 rotations par sens. Amples et lentes.", breath: "Respirez naturellement" },
-  { id: "y1", name: "Règle 20-20-20", icon: "👀", dur: 10, zone: "Yeux", xp: 8, inst: "Regardez à 6m pendant 10s. Clignez doucement.", breath: "Relâchez la mâchoire" },
-  { id: "y2", name: "Palming oculaire", icon: "🙌", dur: 15, zone: "Yeux", xp: 10, inst: "Paumes chaudes sur yeux fermés. 15s.", breath: "Inspirez 4s, expirez 6s" },
-  { id: "r1", name: "Respiration 4-7-8", icon: "🫁", dur: 19, zone: "Global", xp: 12, inst: "Inspirez 4s, bloquez 7s, expirez 8s.", breath: "4s — 7s — 8s" },
-  { id: "r2", name: "Respiration carrée", icon: "⬜", dur: 16, zone: "Global", xp: 10, inst: "Inspirez 4s, bloquez 4s, expirez 4s, bloquez 4s.", breath: "4 temps égaux" },
-  { id: "j1", name: "Flexion mollets", icon: "🦵", dur: 12, zone: "Jambes", xp: 10, inst: "Debout, montez sur pointe 10 fois.", breath: "Expirez en montant" },
-  { id: "j2", name: "Étirement quadriceps", icon: "🦿", dur: 15, zone: "Jambes", xp: 10, inst: "Pied vers fesse, 7s par jambe.", breath: "Respirez profondément" },
-  { id: "g1", name: "Genoux poitrine", icon: "🧎", dur: 12, zone: "Genoux", xp: 10, inst: "Assis, genou vers poitrine. 6s par côté.", breath: "Expirez en rapprochant" },
+  { id: "n1", name: "Rotation lente nuque", icon: "🔄", dur: 15, zone: "Nuque", xp: 10,
+    inst: "Position : assis, dos droit, épaules relâchées, mains sur les cuisses. Tournez lentement la tête vers la gauche jusqu'à sentir un léger étirement, maintenez 5s. Revenez au centre, puis tournez vers la droite 5s. Répétez le mouvement 3 fois de chaque côté sans forcer.",
+    breath: "Inspirez au centre, expirez en tournant" },
+  { id: "n2", name: "Inclinaison latérale", icon: "↔️", dur: 12, zone: "Nuque", xp: 10,
+    inst: "Position : assis ou debout, regard droit devant, bras le long du corps. Inclinez doucement l'oreille droite vers l'épaule droite sans lever l'épaule. Maintenez 5s en sentant l'étirement sur le côté gauche du cou. Revenez au centre et changez de côté.",
+    breath: "Expirez lentement en inclinant la tête" },
+  { id: "n3", name: "Flexion avant douce", icon: "⬇️", dur: 10, zone: "Nuque", xp: 8,
+    inst: "Position : assis, dos calé contre le dossier, pieds à plat au sol. Laissez tomber doucement le menton vers la poitrine. Sentez l'étirement à l'arrière du cou et entre les omoplates. Maintenez 10s sans forcer. Remontez lentement.",
+    breath: "Respirez profondément, relâchez les épaules à chaque expiration" },
+  { id: "d1", name: "Chat-vache assis", icon: "🐱", dur: 15, zone: "Dos", xp: 12,
+    inst: "Position : assis au bord de la chaise, pieds à plat, mains sur les genoux. Inspirez en creusant le dos et en ouvrant la poitrine (vache). Expirez en arrondissant le dos, menton vers poitrine (chat). Alternez lentement 5 fois. Le mouvement part du bassin et ondule vers la tête.",
+    breath: "Inspirez en creusant, expirez en arrondissant" },
+  { id: "d2", name: "Torsion vertébrale", icon: "🔄", dur: 12, zone: "Dos", xp: 10,
+    inst: "Position : assis, pieds à plat, dos droit. Placez la main droite sur le genou gauche et tournez le buste vers la gauche. L'autre main se pose sur le dossier. Gardez les hanches face à l'avant. Maintenez 5s puis changez de côté. Le regard suit la rotation.",
+    breath: "Expirez en pivotant pour aller plus loin" },
+  { id: "d3", name: "Extension lombaire", icon: "⬆️", dur: 10, zone: "Dos", xp: 10,
+    inst: "Position : debout, pieds écartés largeur des hanches. Placez les deux mains dans le bas du dos, doigts vers le bas. Penchez-vous doucement en arrière en poussant les hanches vers l'avant. Maintenez 5s. Ne forcez pas si vous ressentez une douleur.",
+    breath: "Inspirez en extension, expirez en revenant" },
+  { id: "e1", name: "Roulement d'épaules", icon: "🔃", dur: 12, zone: "Épaules", xp: 8,
+    inst: "Position : assis ou debout, bras relâchés le long du corps. Montez les épaules vers les oreilles, roulez-les vers l'arrière puis laissez-les retomber. Faites 5 rotations vers l'arrière, puis 5 vers l'avant. Mouvement ample et contrôlé.",
+    breath: "Respirez naturellement, relâchez la mâchoire" },
+  { id: "e2", name: "Étirement trapèzes", icon: "↕️", dur: 15, zone: "Épaules", xp: 10,
+    inst: "Position : assis, dos droit. Posez la main droite sur le dessus de la tête et tirez doucement vers la droite. Le bras gauche pend le long du corps ou se tient à la chaise. Sentez l'étirement du trapèze gauche. Maintenez 7s, puis changez de côté.",
+    breath: "Expirez en étirant, relâchez en inspirant" },
+  { id: "p1", name: "Extension poignets", icon: "🤲", dur: 12, zone: "Poignets", xp: 10,
+    inst: "Position : assis ou debout. Tendez le bras droit devant vous, paume vers le haut. Avec la main gauche, tirez doucement les doigts vers vous. Sentez l'étirement à l'intérieur de l'avant-bras. Maintenez 6s, puis changez de main.",
+    breath: "Respirez calmement, ne bloquez pas la respiration" },
+  { id: "p2", name: "Rotations poignets", icon: "🔁", dur: 10, zone: "Poignets", xp: 8,
+    inst: "Position : assis, coudes près du corps, avant-bras à l'horizontale. Fermez les poings et faites des cercles amples avec les poignets. 10 rotations dans un sens, puis 10 dans l'autre. Mouvement lent et contrôlé.",
+    breath: "Respirez naturellement" },
+  { id: "y1", name: "Règle 20-20-20", icon: "👀", dur: 10, zone: "Yeux", xp: 8,
+    inst: "Position : assis face à votre écran. Levez les yeux et fixez un objet situé à environ 6 mètres pendant 10s. Clignez doucement plusieurs fois. Cette pause permet aux muscles oculaires de se relâcher après un travail prolongé sur écran.",
+    breath: "Relâchez la mâchoire, desserrez les dents" },
+  { id: "y2", name: "Palming oculaire", icon: "🙌", dur: 15, zone: "Yeux", xp: 10,
+    inst: "Position : assis, coudes posés sur le bureau. Frottez vos paumes l'une contre l'autre pour les réchauffer. Posez-les en coupelle sur vos yeux fermés sans appuyer sur les globes. Restez dans le noir complet 15s. La chaleur détend les muscles orbitaires.",
+    breath: "Inspirez 4s par le nez, expirez 6s par la bouche" },
+  { id: "r1", name: "Respiration 4-7-8", icon: "🫁", dur: 19, zone: "Global", xp: 12,
+    inst: "Position : assis confortablement, dos droit, pieds au sol, mains sur les cuisses. Fermez les yeux. Inspirez par le nez pendant 4s, retenez l'air pendant 7s, puis expirez lentement par la bouche pendant 8s. Un cycle complet. Technique idéale pour réduire le stress.",
+    breath: "4s inspir — 7s blocage — 8s expir" },
+  { id: "r2", name: "Respiration carrée", icon: "⬜", dur: 16, zone: "Global", xp: 10,
+    inst: "Position : assis, dos droit, yeux fermés ou mi-clos. Inspirez 4s, retenez 4s, expirez 4s, retenez poumons vides 4s. Visualisez un carré : chaque côté = une phase. Répétez ce cycle. Technique utilisée par les forces spéciales pour le calme sous pression.",
+    breath: "4 temps égaux — régulier et contrôlé" },
+  { id: "j1", name: "Flexion mollets", icon: "🦵", dur: 12, zone: "Jambes", xp: 10,
+    inst: "Position : debout derrière votre chaise, mains posées sur le dossier pour l'équilibre. Montez sur la pointe des pieds en contractant les mollets, maintenez 2s en haut, redescendez lentement. Répétez 10 fois. Garde le dos droit.",
+    breath: "Expirez en montant, inspirez en descendant" },
+  { id: "j2", name: "Étirement quadriceps", icon: "🦿", dur: 15, zone: "Jambes", xp: 10,
+    inst: "Position : debout, une main sur la chaise ou le mur pour l'équilibre. Pliez le genou droit et attrapez votre pied droit avec la main droite, talon vers la fesse. Gardez les genoux serrés et le bassin neutre. Maintenez 7s, changez de jambe.",
+    breath: "Respirez profondément, gardez l'équilibre" },
+  { id: "g1", name: "Genoux poitrine", icon: "🧎", dur: 12, zone: "Genoux", xp: 10,
+    inst: "Position : assis au bord de la chaise, dos droit. Attrapez votre genou droit avec les deux mains et ramenez-le doucement vers la poitrine. Sentez l'étirement dans la hanche et le bas du dos. Maintenez 6s, reposez le pied, changez de côté.",
+    breath: "Expirez en rapprochant le genou" },
 ];
 const getEx = (id) => EXERCISES.find(e => e.id === id);
 
@@ -1385,10 +1431,9 @@ function App() {
   const showNav = navItems.some(n => n.id === screen);
 
   // Theme-dependent colors
-  const phoneBg = theme === "light" ? "#F2F4F7" : C.bg;
-  const phoneText = theme === "light" ? "#1a1a2e" : C.text;
-  const phoneDim = theme === "light" ? "#6b7b8d" : C.dim;
 
+
+  applyTheme(theme);
   const render = () => {
     if (screen === "signup") return <SignupScreen onComplete={handleSignup} />;
     if (screen === "plan") return <PlanScreen onSelect={handlePlan} userName={account?.name} showPayment={showPayment} />;
@@ -1403,10 +1448,10 @@ function App() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", minHeight: "100vh", background: phoneBg, fontFamily: "'Manrope','SF Pro Display',-apple-system,sans-serif", position: "relative", transition: "background 0.3s", overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", minHeight: "100vh", background: C.bg, fontFamily: "'Manrope','SF Pro Display',-apple-system,sans-serif", position: "relative", transition: "background 0.3s", overflow: "hidden" }}>
       <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: "max(12px, env(safe-area-inset-top, 12px))", paddingBottom: showNav ? "calc(64px + max(16px, env(safe-area-inset-bottom, 16px)))" : 30, WebkitOverflowScrolling: "touch" }}>{render()}</div>
       {showNav && (
-        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: `${phoneBg}ee`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: `1px solid ${theme === "light" ? "#d0d5dd" : C.cardL}`, display: "flex", justifyContent: "space-around", alignItems: "center", paddingTop: 8, paddingBottom: "max(8px, env(safe-area-inset-bottom, 8px))", zIndex: 50 }}>
+        <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: `${C.bg}ee`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: `1px solid ${theme === "light" ? "#d0d5dd" : C.cardL}`, display: "flex", justifyContent: "space-around", alignItems: "center", paddingTop: 8, paddingBottom: "max(8px, env(safe-area-inset-bottom, 8px))", zIndex: 50 }}>
           {navItems.map(n => (<div key={n.id} onClick={() => goTo(n.id)} style={{ textAlign: "center", cursor: "pointer", opacity: screen === n.id ? 1 : 0.45, transition: "all 0.2s", padding: "4px 14px" }}><div style={{ fontSize: 22, marginBottom: 2 }}>{n.icon}</div><div style={{ fontSize: 10, fontWeight: 700, color: screen === n.id ? (isPremium ? C.gold : C.accent) : C.dim }}>{n.l}</div></div>))}
         </div>
       )}
