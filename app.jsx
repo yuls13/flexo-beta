@@ -351,117 +351,38 @@ const Input = ({ placeholder, type = "text", value, onChange, icon }) => (
 
 // ─── SIGNUP ───────────────────────────────
 const SignupScreen = ({ onComplete }) => {
-  const [mode, setMode] = useState(null);
-  const [name, setName] = useState("");
+  const [pseudo, setPseudo] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [pass, setPass] = useState("");
-  const [gLoading, setGLoading] = useState(false);
-  const [gError, setGError] = useState(null);
-  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;
 
-  const handleGoogleSignIn = async () => {
-    if (isStandalone) { setMode("google_quick"); return; }
-    if (!window.firebase?.auth) { setGError("Firebase non configuré"); return; }
-    setGLoading(true); setGError(null);
-    try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: "select_account" });
-      const result = await firebase.auth().signInWithPopup(provider);
-      const user = result.user;
-      onComplete({ name: user.displayName || "Utilisateur", email: user.email, method: "google", photoURL: user.photoURL, uid: user.uid });
-    } catch (err) {
-      console.error("Google sign-in error:", err);
-      if (err.code === "auth/popup-closed-by-user") setGError("Connexion annulée");
-      else if (err.code === "auth/unauthorized-domain") setGError("Domaine non autorisé dans Firebase");
-      else setGError("Erreur : " + (err.message || "réessayez"));
-      setGLoading(false);
-    }
-  };
+  const canSubmit = pseudo.length > 1 && firstName.length > 1 && lastName.length > 1 && email.includes("@") && email.includes(".");
 
-  if (mode === "google_quick") {
-    const canGo = name.length > 1 && email.includes("@") && email.includes(".");
-    return (
-      <div style={{ padding: "20px 20px 40px", textAlign: "center" }}>
-        <div style={{ fontSize: 44, marginTop: 10, marginBottom: 8 }}>🔐</div>
-        <div style={{ color: C.text, fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Connexion rapide</div>
-        <div style={{ color: C.dim, fontSize: 12, marginBottom: 16 }}>Entrez vos informations Google</div>
-        <Input icon="👤" placeholder="Votre nom" value={name} onChange={setName} />
-        <Input icon="📧" placeholder="Votre email Google" type="email" value={email} onChange={setEmail} />
-        <div onClick={() => canGo && onComplete({ name, email, method: "google" })} style={{
-          padding: "14px 0", borderRadius: 14, marginTop: 8, cursor: canGo ? "pointer" : "default",
-          background: canGo ? C.accent : C.cardL, color: canGo ? "#0a0f14" : C.dim,
-          fontSize: 14, fontWeight: 800, opacity: canGo ? 1 : 0.5,
-        }}>Continuer</div>
-        <div onClick={() => setMode(null)} style={{ color: C.dim, fontSize: 12, marginTop: 12, cursor: "pointer" }}>← Retour</div>
+  return (
+    <div style={{ padding: "20px 20px 40px", display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "calc(100vh - 40px)" }}>
+      <div style={{ textAlign: "center", marginBottom: 20 }}>
+        <FlexoLogo size={80} />
       </div>
-    );
-  }
-
-  if (!mode) return (
-    <div style={{ padding: "20px 20px 40px", textAlign: "center", display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "80vh" }}>
-      <div style={{ marginBottom: 6 }}><FlexoLogo size={90} /></div>
-      <div style={{ color: C.dim, fontSize: 13, lineHeight: 1.5, marginBottom: 28, padding: "0 10px" }}>
+      <div style={{ color: C.dim, fontSize: 13, lineHeight: 1.5, marginBottom: 24, padding: "0 10px", textAlign: "center" }}>
         Des micro-séances adaptées à votre métier pour prendre soin de votre corps au travail
       </div>
 
-      <div onClick={handleGoogleSignIn} style={{
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "14px 16px", borderRadius: 14,
-        background: "#fff", cursor: gLoading ? "wait" : "pointer", marginBottom: 10, opacity: gLoading ? 0.7 : 1, transition: "opacity 0.2s",
-      }}>
-        {gLoading ? (
-          <span style={{ color: "#333", fontSize: 14, fontWeight: 700 }}>Connexion en cours…</span>
-        ) : (
-          <>
-            <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-            <span style={{ color: "#333", fontSize: 14, fontWeight: 700 }}>Continuer avec Google</span>
-          </>
-        )}
-      </div>
+      <div style={{ color: C.text, fontSize: 18, fontWeight: 800, textAlign: "center", marginBottom: 14 }}>Créer un compte</div>
 
-      {gError && (
-        <div style={{ background: C.redDim, borderRadius: 10, padding: "8px 12px", marginBottom: 8, border: `1px solid ${C.red}30` }}>
-          <span style={{ color: C.red, fontSize: 11 }}>{gError}</span>
-        </div>
-      )}
-
-      <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "6px 0 14px" }}>
-        <div style={{ flex: 1, height: 1, background: C.cardL }} />
-        <span style={{ color: C.dim, fontSize: 11 }}>ou</span>
-        <div style={{ flex: 1, height: 1, background: C.cardL }} />
-      </div>
-
-      <div onClick={() => setMode("email")} style={{
-        padding: "14px 16px", borderRadius: 14, background: C.card,
-        border: `1px solid ${C.cardL}`, cursor: "pointer", textAlign: "center",
-      }}>
-        <span style={{ color: C.text, fontSize: 14, fontWeight: 700 }}>📧 S'inscrire avec un email</span>
-      </div>
-
-      <div style={{ color: C.dim, fontSize: 10, marginTop: 16, lineHeight: 1.5 }}>
-        En continuant, vous acceptez les Conditions d'utilisation et la Politique de confidentialité
-      </div>
-    </div>
-  );
-
-  // Email signup
-  const canSubmit = name.length > 1 && email.includes("@") && pass.length >= 4;
-  return (
-    <div style={{ padding: "20px 20px 40px", textAlign: "center" }}>
-      <div style={{ fontSize: 44, marginTop: 20, marginBottom: 8 }}>📧</div>
-      <div style={{ color: C.text, fontSize: 20, fontWeight: 800, marginBottom: 4 }}>Créer un compte</div>
-      <div style={{ color: C.dim, fontSize: 12, marginBottom: 16 }}>Remplissez vos informations</div>
-
-      <Input icon="👤" placeholder="Votre nom" value={name} onChange={setName} />
+      <Input icon="🏷️" placeholder="Pseudo" value={pseudo} onChange={setPseudo} />
+      <Input icon="👤" placeholder="Prénom" value={firstName} onChange={setFirstName} />
+      <Input icon="👤" placeholder="Nom" value={lastName} onChange={setLastName} />
       <Input icon="📧" placeholder="Email" type="email" value={email} onChange={setEmail} />
-      <Input icon="🔒" placeholder="Mot de passe" type="password" value={pass} onChange={setPass} />
 
-      <div onClick={() => canSubmit && onComplete({ name, email, method: "email" })} style={{
-        padding: "14px 0", borderRadius: 14, marginTop: 8, cursor: canSubmit ? "pointer" : "default",
+      <div onClick={() => canSubmit && onComplete({ name: pseudo, firstName, lastName, fullName: firstName + " " + lastName, email, method: "email" })} style={{
+        padding: "14px 0", borderRadius: 14, marginTop: 10, cursor: canSubmit ? "pointer" : "default",
         background: canSubmit ? C.accent : C.cardL, color: canSubmit ? "#0a0f14" : C.dim,
-        fontSize: 14, fontWeight: 800, opacity: canSubmit ? 1 : 0.5, transition: "all 0.3s",
+        fontSize: 15, fontWeight: 800, textAlign: "center", opacity: canSubmit ? 1 : 0.5, transition: "all 0.3s",
       }}>Créer mon compte</div>
 
-      <div onClick={() => setMode(null)} style={{ color: C.dim, fontSize: 12, marginTop: 12, cursor: "pointer" }}>← Retour</div>
+      <div style={{ color: C.dim, fontSize: 10, marginTop: 16, lineHeight: 1.5, textAlign: "center" }}>
+        En continuant, vous acceptez les Conditions d'utilisation et la Politique de confidentialité
+      </div>
     </div>
   );
 };
@@ -687,7 +608,7 @@ const Home = ({ goTo, profile, stats, dailyProgram, completedBlocks, isPremium, 
   const [showStreak, setShowStreak] = useState(false);
 
   return (
-    <div style={{ padding: "10px 14px 30px" }}>
+    <div style={{ padding: "10px 4vw 30px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0 6px" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 1 }}>
@@ -912,7 +833,7 @@ const Session = ({ goTo, blockId, dailyProgram, sessions, onComplete, isFromLibr
   const skip = () => { setRunning(false); const nd = new Set(done); nd.add(step); setDone(nd); if (step < exercises.length - 1) setStep(step + 1); else { setFinished(true); onComplete(xp, block.id); } };
 
   if (finished) return (
-    <div style={{ padding: "20px 16px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "70vh" }}>
+    <div style={{ padding: "20px 16px 40px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "calc(100dvh - 120px)" }}>
       <div style={{ width: 90, height: 90, borderRadius: 45, background: C.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 42, marginBottom: 14, border: `3px solid ${C.accent}`, boxShadow: `0 0 30px ${C.accentGlow}` }}>✅</div>
       <div style={{ color: C.text, fontSize: 22, fontWeight: 900, marginBottom: 4 }}>Séance terminée !</div>
       <div style={{ color: C.dim, fontSize: 13, marginBottom: 6 }}>{block.name || block.zone}</div>
@@ -928,7 +849,7 @@ const Session = ({ goTo, blockId, dailyProgram, sessions, onComplete, isFromLibr
   );
 
   return (
-    <div style={{ padding: "10px 14px 30px", textAlign: "center" }}>
+    <div style={{ padding: "10px 4vw 30px", textAlign: "center" }}>
       <div style={{ padding: "10px 0 4px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span onClick={() => { setRunning(false); stopAudio(); goTo("home"); }} style={{ color: C.dim, fontSize: 12, cursor: "pointer" }}>✕ Quitter</span>
         <span style={{ color: C.dim, fontSize: 11 }}>{step + 1}/{exercises.length}</span>
@@ -986,7 +907,7 @@ const Library = ({ goTo, sessions, isPremium }) => {
   const filtered = sessions.filter(s => tf === "all" || s.type === tf);
   const freeLimit = 4;
   return (
-    <div style={{ padding: "10px 14px 30px" }}>
+    <div style={{ padding: "10px 4vw 30px" }}>
       <div style={{ padding: "10px 0 6px", display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: C.text, fontSize: 18, fontWeight: 800, flex: 1 }}>Bibliothèque</span>{isPremium && <Bdg />}</div>
       <div style={{ display: "flex", gap: 5, marginBottom: 8, overflowX: "auto" }}>{[{ k: "all", l: "Toutes" }, { k: "flash", l: "⚡ Flash" }, { k: "standard", l: "🎯 Standard" }, { k: "deep", l: "🧘 Deep" }, { k: "sos", l: "🆘 SOS" }].map(f => (<Pill key={f.k} active={tf === f.k} onClick={() => setTf(f.k)} color={isPremium ? C.gold : C.accent}>{f.l}</Pill>))}</div>
       {tf === "sos" && (
@@ -1031,7 +952,7 @@ const Stats = ({ stats, profile, isPremium }) => {
   const multiplier = period === "7j" ? 1 : period === "30j" ? 3.5 : 10;
 
   return (
-  <div style={{ padding: "10px 14px 30px" }}>
+  <div style={{ padding: "10px 4vw 30px" }}>
     <div style={{ padding: "10px 0 6px", display: "flex", alignItems: "center", gap: 8 }}><span style={{ color: C.text, fontSize: 18, fontWeight: 800, flex: 1 }}>Statistiques</span>{isPremium && <Bdg />}</div>
 
     {/* AI Motivation — Premium */}
@@ -1136,7 +1057,7 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
   );
 
   return (
-  <div style={{ padding: "10px 14px 30px" }}>
+  <div style={{ padding: "10px 4vw 30px" }}>
     <div style={{ padding: "10px 0 8px", display: "flex", alignItems: "center", gap: 10 }}>
       <div onClick={() => isPremium && setAvatarOpen(!avatarOpen)} style={{
         width: 50, height: 50, borderRadius: 18, position: "relative",
@@ -1439,20 +1360,6 @@ function App() {
   const [theme, setTheme] = useState("dark");
   const [paymentSheet, setPaymentSheet] = useState(null); // null | { plan, onConfirm }
 
-  // Firebase: detect Google redirect sign-in
-  useEffect(() => {
-    if (!window.firebase?.auth) return;
-    const unsub = firebase.auth().onAuthStateChanged(user => {
-      if (user && screen === "signup" && !account) {
-        const acc = { name: user.displayName || "Utilisateur", email: user.email, method: "google", photoURL: user.photoURL, uid: user.uid };
-        setAccount(acc);
-        setStats(s => ({ ...s, userName: acc.name, userEmail: acc.email }));
-        setScreen("plan");
-      }
-    });
-    return () => unsub();
-  }, [screen, account]);
-
   const goTo = useCallback((id, target) => {
     if (id === "session") { setSessionTarget(target); setIsFromLibrary(false); setScreen("session"); }
     else if (id === "session_free") { setSessionTarget(target); setIsFromLibrary(true); setScreen("session"); }
@@ -1496,7 +1403,7 @@ function App() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: phoneBg, fontFamily: "'Manrope','SF Pro Display',-apple-system,sans-serif", position: "relative", transition: "background 0.3s", overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", minHeight: "100vh", background: phoneBg, fontFamily: "'Manrope','SF Pro Display',-apple-system,sans-serif", position: "relative", transition: "background 0.3s", overflow: "hidden" }}>
       <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: "max(12px, env(safe-area-inset-top, 12px))", paddingBottom: showNav ? "calc(64px + max(16px, env(safe-area-inset-bottom, 16px)))" : 30, WebkitOverflowScrolling: "touch" }}>{render()}</div>
       {showNav && (
         <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: `${phoneBg}ee`, backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", borderTop: `1px solid ${theme === "light" ? "#d0d5dd" : C.cardL}`, display: "flex", justifyContent: "space-around", alignItems: "center", paddingTop: 8, paddingBottom: "max(8px, env(safe-area-inset-bottom, 8px))", zIndex: 50 }}>

@@ -15,10 +15,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-  html{height:100%;background:#0B1219;font-family:'Manrope',-apple-system,sans-serif}
-  body{height:100%;overscroll-behavior:none;background:#0B1219}
-  #root{height:100%;display:flex;flex-direction:column;overflow:hidden}
+  html{height:100%;height:100dvh;background:#0B1219;font-family:'Manrope',-apple-system,sans-serif}
+  body{height:100%;height:100dvh;overscroll-behavior:none;background:#0B1219;overflow:hidden}
+  #root{height:100%;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
   ::-webkit-scrollbar{width:0}
+  textarea{font-family:'Manrope',-apple-system,sans-serif}
   #splash{position:fixed;inset:0;z-index:9999;background:#0B1219;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.4s}
   #splash.hide{opacity:0;pointer-events:none}
   #splash svg{width:80px;height:80px;margin-bottom:16px}
@@ -38,18 +39,6 @@
   <div class="loader"><div class="bar"></div></div>
 </div>
 <div id="root"></div>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script>
-  // ⚠️ REMPLACE CES VALEURS PAR TA CONFIG FIREBASE
-  firebase.initializeApp({
-    apiKey: "AIzaSyANLzbOuFUozK_0VEENlW1QEcvwYrnx-ok",
-    authDomain: "flexo-app-ad882.firebaseapp.com",
-    projectId: "flexo-app-ad882",
-    appId: "1:592069641808:web:f690e3e83b7e7c98797355"
-  });
-</script>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
