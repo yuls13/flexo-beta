@@ -1570,11 +1570,11 @@ function App() {
       {/* Fixed top safe area spacer */}
       <div style={{ flexShrink: 0, height: "env(safe-area-inset-top, 0px)", background: C.bg, zIndex: 40 }} />
       {/* Scrollable content */}
-      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingBottom: showNav ? 70 : 20, WebkitOverflowScrolling: "touch" }}>{render()}</div>
+      <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingBottom: 10, WebkitOverflowScrolling: "touch" }}>{render()}</div>
       {/* Fixed bottom nav */}
       {showNav && (
-        <div style={{ flexShrink: 0, background: C.bg, borderTop: `1px solid ${C.cardL}`, display: "flex", justifyContent: "space-around", alignItems: "center", paddingTop: 6, paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))", zIndex: 50 }}>
-          {navItems.map(n => (<div key={n.id} onClick={() => goTo(n.id)} style={{ textAlign: "center", cursor: "pointer", opacity: screen === n.id ? 1 : 0.5, transition: "all 0.2s", padding: "4px 16px", flex: 1 }}><div style={{ fontSize: 20, marginBottom: 3 }}>{n.icon}</div><div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.3, color: screen === n.id ? (isPremium ? C.gold : C.accent) : C.dim }}>{n.l}</div></div>))}
+        <div style={{ flexShrink: 0, background: C.bg, borderTop: `1px solid ${C.cardL}`, display: "flex", justifyContent: "space-around", alignItems: "center", paddingTop: 8, paddingBottom: "calc(10px + env(safe-area-inset-bottom, 0px))", zIndex: 50 }}>
+          {navItems.map(n => (<div key={n.id} onClick={() => goTo(n.id)} style={{ textAlign: "center", cursor: "pointer", opacity: screen === n.id ? 1 : 0.5, transition: "all 0.2s", padding: "2px 16px", flex: 1 }}><div style={{ fontSize: 20, marginBottom: 4 }}>{n.icon}</div><div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.3, color: screen === n.id ? (isPremium ? C.gold : C.accent) : C.dim }}>{n.l}</div></div>))}
         </div>
       )}
       {paymentSheet && (
