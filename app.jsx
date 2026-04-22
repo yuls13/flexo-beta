@@ -109,55 +109,55 @@ const JOBS = {
 };
 
 const EXERCISES = [
-  { id: "n1", name: "Rotation lente nuque", icon: "🔄", dur: 15, zone: "Nuque", xp: 10,
+  { id: "n1", name: "Rotation lente nuque", icon: "🔄", dur: 35, zone: "Nuque", xp: 10,
     inst: "Position : assis, dos droit, épaules relâchées, mains sur les cuisses. Tournez lentement la tête vers la gauche jusqu'à sentir un léger étirement, maintenez 5s. Revenez au centre, puis tournez vers la droite 5s. Répétez le mouvement 3 fois de chaque côté sans forcer.",
     breath: "Inspirez au centre, expirez en tournant" },
-  { id: "n2", name: "Inclinaison latérale", icon: "↔️", dur: 12, zone: "Nuque", xp: 10,
+  { id: "n2", name: "Inclinaison latérale", icon: "↔️", dur: 25, zone: "Nuque", xp: 10,
     inst: "Position : assis ou debout, regard droit devant, bras le long du corps. Inclinez doucement l'oreille droite vers l'épaule droite sans lever l'épaule. Maintenez 5s en sentant l'étirement sur le côté gauche du cou. Revenez au centre et changez de côté.",
     breath: "Expirez lentement en inclinant la tête" },
-  { id: "n3", name: "Flexion avant douce", icon: "⬇️", dur: 10, zone: "Nuque", xp: 8,
+  { id: "n3", name: "Flexion avant douce", icon: "⬇️", dur: 15, zone: "Nuque", xp: 8,
     inst: "Position : assis, dos calé contre le dossier, pieds à plat au sol. Laissez tomber doucement le menton vers la poitrine. Sentez l'étirement à l'arrière du cou et entre les omoplates. Maintenez 10s sans forcer. Remontez lentement.",
     breath: "Respirez profondément, relâchez les épaules à chaque expiration" },
-  { id: "d1", name: "Chat-vache assis", icon: "🐱", dur: 15, zone: "Dos", xp: 12,
+  { id: "d1", name: "Chat-vache assis", icon: "🐱", dur: 30, zone: "Dos", xp: 12,
     inst: "Position : assis au bord de la chaise, pieds à plat, mains sur les genoux. Inspirez en creusant le dos et en ouvrant la poitrine (vache). Expirez en arrondissant le dos, menton vers poitrine (chat). Alternez lentement 5 fois. Le mouvement part du bassin et ondule vers la tête.",
     breath: "Inspirez en creusant, expirez en arrondissant" },
-  { id: "d2", name: "Torsion vertébrale", icon: "🔄", dur: 12, zone: "Dos", xp: 10,
+  { id: "d2", name: "Torsion vertébrale", icon: "🔄", dur: 25, zone: "Dos", xp: 10,
     inst: "Position : assis, pieds à plat, dos droit. Placez la main droite sur le genou gauche et tournez le buste vers la gauche. L'autre main se pose sur le dossier. Gardez les hanches face à l'avant. Maintenez 5s puis changez de côté. Le regard suit la rotation.",
     breath: "Expirez en pivotant pour aller plus loin" },
-  { id: "d3", name: "Extension lombaire", icon: "⬆️", dur: 10, zone: "Dos", xp: 10,
+  { id: "d3", name: "Extension lombaire", icon: "⬆️", dur: 20, zone: "Dos", xp: 10,
     inst: "Position : debout, pieds écartés largeur des hanches. Placez les deux mains dans le bas du dos, doigts vers le bas. Penchez-vous doucement en arrière en poussant les hanches vers l'avant. Maintenez 5s. Ne forcez pas si vous ressentez une douleur.",
     breath: "Inspirez en extension, expirez en revenant" },
-  { id: "e1", name: "Roulement d'épaules", icon: "🔃", dur: 12, zone: "Épaules", xp: 8,
+  { id: "e1", name: "Roulement d'épaules", icon: "🔃", dur: 30, zone: "Épaules", xp: 8,
     inst: "Position : assis ou debout, bras relâchés le long du corps. Montez les épaules vers les oreilles, roulez-les vers l'arrière puis laissez-les retomber. Faites 5 rotations vers l'arrière, puis 5 vers l'avant. Mouvement ample et contrôlé.",
     breath: "Respirez naturellement, relâchez la mâchoire" },
-  { id: "e2", name: "Étirement trapèzes", icon: "↕️", dur: 15, zone: "Épaules", xp: 10,
+  { id: "e2", name: "Étirement trapèzes", icon: "↕️", dur: 30, zone: "Épaules", xp: 10,
     inst: "Position : assis, dos droit. Posez la main droite sur le dessus de la tête et tirez doucement vers la droite. Le bras gauche pend le long du corps ou se tient à la chaise. Sentez l'étirement du trapèze gauche. Maintenez 7s, puis changez de côté.",
     breath: "Expirez en étirant, relâchez en inspirant" },
-  { id: "p1", name: "Extension poignets", icon: "🤲", dur: 12, zone: "Poignets", xp: 10,
+  { id: "p1", name: "Extension poignets", icon: "🤲", dur: 28, zone: "Poignets", xp: 10,
     inst: "Position : assis ou debout. Tendez le bras droit devant vous, paume vers le haut. Avec la main gauche, tirez doucement les doigts vers vous. Sentez l'étirement à l'intérieur de l'avant-bras. Maintenez 6s, puis changez de main.",
     breath: "Respirez calmement, ne bloquez pas la respiration" },
-  { id: "p2", name: "Rotations poignets", icon: "🔁", dur: 10, zone: "Poignets", xp: 8,
+  { id: "p2", name: "Rotations poignets", icon: "🔁", dur: 40, zone: "Poignets", xp: 8,
     inst: "Position : assis, coudes près du corps, avant-bras à l'horizontale. Fermez les poings et faites des cercles amples avec les poignets. 10 rotations dans un sens, puis 10 dans l'autre. Mouvement lent et contrôlé.",
     breath: "Respirez naturellement" },
-  { id: "y1", name: "Règle 20-20-20", icon: "👀", dur: 10, zone: "Yeux", xp: 8,
+  { id: "y1", name: "Règle 20-20-20", icon: "👀", dur: 20, zone: "Yeux", xp: 8,
     inst: "Position : assis face à votre écran. Levez les yeux et fixez un objet situé à environ 6 mètres pendant 10s. Clignez doucement plusieurs fois. Cette pause permet aux muscles oculaires de se relâcher après un travail prolongé sur écran.",
     breath: "Relâchez la mâchoire, desserrez les dents" },
-  { id: "y2", name: "Palming oculaire", icon: "🙌", dur: 15, zone: "Yeux", xp: 10,
+  { id: "y2", name: "Palming oculaire", icon: "🙌", dur: 25, zone: "Yeux", xp: 10,
     inst: "Position : assis, coudes posés sur le bureau. Frottez vos paumes l'une contre l'autre pour les réchauffer. Posez-les en coupelle sur vos yeux fermés sans appuyer sur les globes. Restez dans le noir complet 15s. La chaleur détend les muscles orbitaires.",
     breath: "Inspirez 4s par le nez, expirez 6s par la bouche" },
-  { id: "r1", name: "Respiration 4-7-8", icon: "🫁", dur: 19, zone: "Global", xp: 12,
-    inst: "Position : assis confortablement, dos droit, pieds au sol, mains sur les cuisses. Fermez les yeux. Inspirez par le nez pendant 4s, retenez l'air pendant 7s, puis expirez lentement par la bouche pendant 8s. Un cycle complet. Technique idéale pour réduire le stress.",
+  { id: "r1", name: "Respiration 4-7-8", icon: "🫁", dur: 40, zone: "Global", xp: 12,
+    inst: "Position : assis confortablement, dos droit, pieds au sol, mains sur les cuisses. Fermez les yeux. Inspirez par le nez pendant 4s, retenez l'air pendant 7s, puis expirez lentement par la bouche pendant 8s. Répétez 2 cycles complets. Technique idéale pour réduire le stress.",
     breath: "4s inspir — 7s blocage — 8s expir" },
-  { id: "r2", name: "Respiration carrée", icon: "⬜", dur: 16, zone: "Global", xp: 10,
-    inst: "Position : assis, dos droit, yeux fermés ou mi-clos. Inspirez 4s, retenez 4s, expirez 4s, retenez poumons vides 4s. Visualisez un carré : chaque côté = une phase. Répétez ce cycle. Technique utilisée par les forces spéciales pour le calme sous pression.",
+  { id: "r2", name: "Respiration carrée", icon: "⬜", dur: 50, zone: "Global", xp: 10,
+    inst: "Position : assis, dos droit, yeux fermés ou mi-clos. Inspirez 4s, retenez 4s, expirez 4s, retenez poumons vides 4s. Visualisez un carré : chaque côté = une phase. Répétez 3 cycles. Technique utilisée par les forces spéciales pour le calme sous pression.",
     breath: "4 temps égaux — régulier et contrôlé" },
-  { id: "j1", name: "Flexion mollets", icon: "🦵", dur: 12, zone: "Jambes", xp: 10,
-    inst: "Position : debout derrière votre chaise, mains posées sur le dossier pour l'équilibre. Montez sur la pointe des pieds en contractant les mollets, maintenez 2s en haut, redescendez lentement. Répétez 10 fois. Garde le dos droit.",
+  { id: "j1", name: "Flexion mollets", icon: "🦵", dur: 45, zone: "Jambes", xp: 10,
+    inst: "Position : debout derrière votre chaise, mains posées sur le dossier pour l'équilibre. Montez sur la pointe des pieds en contractant les mollets, maintenez 2s en haut, redescendez lentement. Répétez 10 fois. Gardez le dos droit.",
     breath: "Expirez en montant, inspirez en descendant" },
-  { id: "j2", name: "Étirement quadriceps", icon: "🦿", dur: 15, zone: "Jambes", xp: 10,
+  { id: "j2", name: "Étirement quadriceps", icon: "🦿", dur: 30, zone: "Jambes", xp: 10,
     inst: "Position : debout, une main sur la chaise ou le mur pour l'équilibre. Pliez le genou droit et attrapez votre pied droit avec la main droite, talon vers la fesse. Gardez les genoux serrés et le bassin neutre. Maintenez 7s, changez de jambe.",
     breath: "Respirez profondément, gardez l'équilibre" },
-  { id: "g1", name: "Genoux poitrine", icon: "🧎", dur: 12, zone: "Genoux", xp: 10,
+  { id: "g1", name: "Genoux poitrine", icon: "🧎", dur: 28, zone: "Genoux", xp: 10,
     inst: "Position : assis au bord de la chaise, dos droit. Attrapez votre genou droit avec les deux mains et ramenez-le doucement vers la poitrine. Sentez l'étirement dans la hanche et le bas du dos. Maintenez 6s, reposez le pied, changez de côté.",
     breath: "Expirez en rapprochant le genou" },
 ];
@@ -1338,6 +1338,123 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
   );
 };
 
+
+// ─── FEEDBACK ─────────────────────────────
+const Feedback = ({ goTo, stats, profile }) => {
+  const [rating, setRating] = useState(0);
+  const [frequency, setFrequency] = useState(null);
+  const [useful, setUseful] = useState(null);
+  const [ideas, setIdeas] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const freqOptions = ["Chaque jour", "3-4x/semaine", "1-2x/semaine", "Rarement"];
+  const usefulOptions = ["Très utile", "Plutôt utile", "Moyennement", "Pas assez"];
+
+  const handleSubmit = () => {
+    const data = { rating, frequency, useful, ideas, user: stats.userName, job: profile?.job, date: new Date().toISOString() };
+    console.log("Feedback:", JSON.stringify(data));
+    setSubmitted(true);
+  };
+
+  if (submitted) return (
+    <div style={{ padding: "40px 20px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
+      <div style={{ width: 80, height: 80, borderRadius: 40, background: C.accentDim, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, marginBottom: 16, border: `3px solid ${C.accent}`, boxShadow: `0 0 30px ${C.accentGlow}` }}>💙</div>
+      <div style={{ color: C.text, fontSize: 20, fontWeight: 900, marginBottom: 6 }}>Merci pour ton retour !</div>
+      <div style={{ color: C.dim, fontSize: 13, lineHeight: 1.5, marginBottom: 24, maxWidth: 280 }}>Ton avis nous aide à construire la meilleure app de bien-être au travail.</div>
+      <div onClick={() => goTo("home")} style={{ width: "100%", maxWidth: 300, padding: "14px 0", borderRadius: 14, background: C.accent, color: "#0a0f14", fontSize: 15, fontWeight: 800, textAlign: "center", cursor: "pointer" }}>
+        Retour à l'accueil
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ padding: "10px 4vw 40px" }}>
+      <div style={{ padding: "10px 0 6px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span onClick={() => goTo("profile")} style={{ color: C.dim, fontSize: 12, cursor: "pointer" }}>← Retour</span>
+        <span style={{ color: C.accent, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Beta Feedback</span>
+        <span style={{ width: 50 }} />
+      </div>
+
+      <div style={{ textAlign: "center", marginBottom: 14 }}>
+        <div style={{ fontSize: 28, marginBottom: 4 }}>💬</div>
+        <div style={{ color: C.text, fontSize: 17, fontWeight: 900 }}>Ton avis compte</div>
+        <div style={{ color: C.dim, fontSize: 11, marginTop: 2 }}>3 questions rapides + tes idées</div>
+      </div>
+
+      <div style={{ background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 10, border: `1px solid ${C.cardL}` }}>
+        <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>1. Comment notes-tu Flexo ?</div>
+        <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+          {[1,2,3,4,5].map(n => (
+            <div key={n} onClick={() => setRating(n)} style={{
+              width: 44, height: 44, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 22, cursor: "pointer", transition: "all 0.2s",
+              background: rating >= n ? `${C.gold}25` : C.cardL,
+              border: `2px solid ${rating >= n ? C.gold : "transparent"}`,
+              transform: rating >= n ? "scale(1.1)" : "scale(1)",
+            }}>
+              {rating >= n ? "⭐" : "☆"}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 10, border: `1px solid ${C.cardL}` }}>
+        <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>2. À quelle fréquence utiliserais-tu Flexo ?</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+          {freqOptions.map(opt => (
+            <div key={opt} onClick={() => setFrequency(opt)} style={{
+              padding: "10px 8px", borderRadius: 10, textAlign: "center", cursor: "pointer",
+              background: frequency === opt ? `${C.accent}20` : C.cardL,
+              border: `1.5px solid ${frequency === opt ? C.accent : "transparent"}`,
+              color: frequency === opt ? C.accent : C.dim, fontSize: 11, fontWeight: 600,
+              transition: "all 0.2s",
+            }}>{opt}</div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 10, border: `1px solid ${C.cardL}` }}>
+        <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>3. Les exercices te semblent-ils adaptés à ton métier ?</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+          {usefulOptions.map(opt => (
+            <div key={opt} onClick={() => setUseful(opt)} style={{
+              padding: "10px 8px", borderRadius: 10, textAlign: "center", cursor: "pointer",
+              background: useful === opt ? `${C.accent}20` : C.cardL,
+              border: `1.5px solid ${useful === opt ? C.accent : "transparent"}`,
+              color: useful === opt ? C.accent : C.dim, fontSize: 11, fontWeight: 600,
+              transition: "all 0.2s",
+            }}>{opt}</div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ background: C.card, borderRadius: 14, padding: "12px 14px", marginBottom: 16, border: `1px solid ${C.cardL}` }}>
+        <div style={{ color: C.text, fontSize: 13, fontWeight: 700, marginBottom: 8 }}>💡 Une idée d'amélioration ?</div>
+        <textarea
+          value={ideas} onChange={e => setIdeas(e.target.value)}
+          placeholder="Ex : J'aimerais des séances plus courtes, un mode rappel…"
+          rows={3}
+          style={{
+            width: "100%", background: C.cardL, border: "none", borderRadius: 10,
+            padding: "10px 12px", color: C.text, fontSize: 12, fontFamily: "inherit",
+            resize: "none", outline: "none", lineHeight: 1.5,
+          }}
+        />
+      </div>
+
+      <div onClick={() => (rating && frequency && useful) && handleSubmit()} style={{
+        width: "100%", padding: "14px 0", borderRadius: 14, textAlign: "center", cursor: (rating && frequency && useful) ? "pointer" : "default",
+        background: (rating && frequency && useful) ? C.accent : C.cardL,
+        color: (rating && frequency && useful) ? "#0a0f14" : C.dim,
+        fontSize: 15, fontWeight: 800, transition: "all 0.3s",
+        opacity: (rating && frequency && useful) ? 1 : 0.5,
+      }}>
+        Envoyer mon avis 🚀
+      </div>
+    </div>
+  );
+};
+
 // ─── UPGRADE SCREEN ───────────────────────
 const UpgradeScreen = ({ goTo, onUpgrade, userName, showPayment }) => {
   const [planType, setPlanType] = useState("monthly");
@@ -1457,7 +1574,7 @@ function App() {
       {/* Fixed bottom nav */}
       {showNav && (
         <div style={{ flexShrink: 0, background: C.bg, borderTop: `1px solid ${C.cardL}`, display: "flex", justifyContent: "space-around", alignItems: "center", paddingTop: 6, paddingBottom: "max(6px, env(safe-area-inset-bottom, 6px))", zIndex: 50 }}>
-          {navItems.map(n => (<div key={n.id} onClick={() => goTo(n.id)} style={{ textAlign: "center", cursor: "pointer", opacity: screen === n.id ? 1 : 0.45, transition: "all 0.2s", padding: "4px 14px" }}><div style={{ fontSize: 22, marginBottom: 2 }}>{n.icon}</div><div style={{ fontSize: 10, fontWeight: 700, color: screen === n.id ? (isPremium ? C.gold : C.accent) : C.dim }}>{n.l}</div></div>))}
+          {navItems.map(n => (<div key={n.id} onClick={() => goTo(n.id)} style={{ textAlign: "center", cursor: "pointer", opacity: screen === n.id ? 1 : 0.5, transition: "all 0.2s", padding: "4px 16px", flex: 1 }}><div style={{ fontSize: 20, marginBottom: 3 }}>{n.icon}</div><div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.3, color: screen === n.id ? (isPremium ? C.gold : C.accent) : C.dim }}>{n.l}</div></div>))}
         </div>
       )}
       {paymentSheet && (
