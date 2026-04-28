@@ -129,7 +129,7 @@ const EXERCISES = [
     breath: "Expirez en flexion, inspirez en extension" },
   { id: "n4", name: "Rétraction cervicale (double menton)", icon: "🎯", dur: 30, zone: "Nuque", xp: 12, pos: "assis", intensity: 1,
     sectors: ["bureau", "conduite"],
-    inst: "Position : assis, dos droit. Rentrez le menton en le poussant vers l'arrière comme pour vous faire un double menton. Gardez le regard à l'horizontale. Vous devez sentir un étirement à la base du crâne. Maintenez 5s, relâchez. Répétez 5 fois. Cet exercice corrige la posture "tête en avant" typique du travail sur écran.",
+    inst: "Position : assis, dos droit. Rentrez le menton en le poussant vers l'arrière comme pour vous faire un double menton. Gardez le regard à l'horizontale. Vous devez sentir un étirement à la base du crâne. Maintenez 5s, relâchez. Répétez 5 fois. Cet exercice corrige la posture 'tête en avant' typique du travail sur écran.",
     breath: "Expirez en rétractant, inspirez en relâchant" },
   { id: "n5", name: "Automassage sous-occipital", icon: "💆", dur: 40, zone: "Nuque", xp: 12, pos: "assis", intensity: 1,
     sectors: ["bureau", "conduite", "enseignement"],
