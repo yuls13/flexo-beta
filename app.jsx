@@ -108,83 +108,240 @@ const JOBS = {
   ],
 };
 
+// ════════════════════════════════════════════════════════════════
+// EXERCISE DATABASE — designed by movement specialist logic
+// Each exercise has: zone, position (assis/debout/sol), intensity,
+// sectors where it's most relevant, and detailed instructions
+// ════════════════════════════════════════════════════════════════
 const EXERCISES = [
-  { id: "n1", name: "Rotation lente nuque", icon: "🔄", dur: 35, zone: "Nuque", xp: 10,
-    inst: "Position : assis, dos droit, épaules relâchées, mains sur les cuisses. Tournez lentement la tête vers la gauche jusqu'à sentir un léger étirement, maintenez 5s. Revenez au centre, puis tournez vers la droite 5s. Répétez le mouvement 3 fois de chaque côté sans forcer.",
+  // ─── NUQUE (8 exercices) ─────────────────
+  { id: "n1", name: "Rotation cervicale lente", icon: "🔄", dur: 35, zone: "Nuque", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite", "enseignement"],
+    inst: "Position : assis, dos droit, épaules basses et relâchées, mains sur les cuisses. Tournez lentement la tête vers la gauche en gardant le menton parallèle au sol. Maintenez 5s en fin de course. Revenez au centre. Tournez vers la droite 5s. Répétez 3 fois de chaque côté. Le mouvement doit être fluide et sans douleur.",
     breath: "Inspirez au centre, expirez en tournant" },
-  { id: "n2", name: "Inclinaison latérale", icon: "↔️", dur: 25, zone: "Nuque", xp: 10,
-    inst: "Position : assis ou debout, regard droit devant, bras le long du corps. Inclinez doucement l'oreille droite vers l'épaule droite sans lever l'épaule. Maintenez 5s en sentant l'étirement sur le côté gauche du cou. Revenez au centre et changez de côté.",
-    breath: "Expirez lentement en inclinant la tête" },
-  { id: "n3", name: "Flexion avant douce", icon: "⬇️", dur: 15, zone: "Nuque", xp: 8,
-    inst: "Position : assis, dos calé contre le dossier, pieds à plat au sol. Laissez tomber doucement le menton vers la poitrine. Sentez l'étirement à l'arrière du cou et entre les omoplates. Maintenez 10s sans forcer. Remontez lentement.",
-    breath: "Respirez profondément, relâchez les épaules à chaque expiration" },
-  { id: "d1", name: "Chat-vache assis", icon: "🐱", dur: 30, zone: "Dos", xp: 12,
-    inst: "Position : assis au bord de la chaise, pieds à plat, mains sur les genoux. Inspirez en creusant le dos et en ouvrant la poitrine (vache). Expirez en arrondissant le dos, menton vers poitrine (chat). Alternez lentement 5 fois. Le mouvement part du bassin et ondule vers la tête.",
+  { id: "n2", name: "Inclinaison latérale", icon: "↔️", dur: 25, zone: "Nuque", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite", "enseignement"],
+    inst: "Position : assis, regard droit devant, bras relâchés. Inclinez l'oreille droite vers l'épaule droite sans lever l'épaule — c'est la tête qui descend, pas l'épaule qui monte. Maintenez 5s en sentant l'étirement du scalène et du trapèze supérieur gauche. Revenez au centre. Changez de côté. 3 répétitions par côté.",
+    breath: "Expirez lentement pendant l'inclinaison" },
+  { id: "n3", name: "Flexion-extension cervicale", icon: "⬇️", dur: 25, zone: "Nuque", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite", "sante"],
+    inst: "Position : assis, dos calé, pieds à plat. Phase 1 : laissez tomber le menton vers la poitrine, sentez l'étirement des muscles sous-occipitaux et du trapèze. Maintenez 5s. Phase 2 : levez le menton vers le plafond en ouvrant la gorge, 5s. Alternez doucement 3 fois. Ne forcez jamais en extension.",
+    breath: "Expirez en flexion, inspirez en extension" },
+  { id: "n4", name: "Rétraction cervicale (double menton)", icon: "🎯", dur: 30, zone: "Nuque", xp: 12, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite"],
+    inst: "Position : assis, dos droit. Rentrez le menton en le poussant vers l'arrière comme pour vous faire un double menton. Gardez le regard à l'horizontale. Vous devez sentir un étirement à la base du crâne. Maintenez 5s, relâchez. Répétez 5 fois. Cet exercice corrige la posture "tête en avant" typique du travail sur écran.",
+    breath: "Expirez en rétractant, inspirez en relâchant" },
+  { id: "n5", name: "Automassage sous-occipital", icon: "💆", dur: 40, zone: "Nuque", xp: 12, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite", "enseignement"],
+    inst: "Position : assis, coudes sur le bureau. Placez vos deux pouces à la base du crâne, dans les creux de chaque côté de la colonne. Appuyez fermement et faites de petits cercles pendant 10s. Descendez d'un centimètre et recommencez. Couvrez toute la zone sous-occipitale. Terminez en appuyant 5s sans bouger sur le point le plus tendu.",
+    breath: "Respirez lentement, relâchez les épaules" },
+
+  // ─── DOS (8 exercices) ───────────────────
+  { id: "d1", name: "Chat-vache assis", icon: "🐱", dur: 30, zone: "Dos", xp: 12, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite", "enseignement"],
+    inst: "Position : assis au bord de la chaise, pieds écartés largeur des hanches, mains sur les genoux. Inspirez en creusant le dos depuis le bassin : le ventre avance, la poitrine s'ouvre, le regard monte (vache). Expirez en arrondissant : le bassin bascule, le dos se courbe, le menton rentre (chat). Alternez 5 fois. Le mouvement doit être lent et ondulatoire.",
     breath: "Inspirez en creusant, expirez en arrondissant" },
-  { id: "d2", name: "Torsion vertébrale", icon: "🔄", dur: 25, zone: "Dos", xp: 10,
-    inst: "Position : assis, pieds à plat, dos droit. Placez la main droite sur le genou gauche et tournez le buste vers la gauche. L'autre main se pose sur le dossier. Gardez les hanches face à l'avant. Maintenez 5s puis changez de côté. Le regard suit la rotation.",
-    breath: "Expirez en pivotant pour aller plus loin" },
-  { id: "d3", name: "Extension lombaire", icon: "⬆️", dur: 20, zone: "Dos", xp: 10,
-    inst: "Position : debout, pieds écartés largeur des hanches. Placez les deux mains dans le bas du dos, doigts vers le bas. Penchez-vous doucement en arrière en poussant les hanches vers l'avant. Maintenez 5s. Ne forcez pas si vous ressentez une douleur.",
+  { id: "d2", name: "Torsion vertébrale assise", icon: "🔄", dur: 30, zone: "Dos", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite", "sante", "enseignement"],
+    inst: "Position : assis au milieu de la chaise, pieds à plat. Posez la main droite sur le genou gauche, la main gauche sur le dossier ou l'accoudoir. Pivotez le buste vers la gauche en gardant le bassin face à l'avant. Le regard suit la rotation. Maintenez 7s. Revenez et faites l'autre côté. 2 répétitions par côté. Excellent pour la mobilité thoracique.",
+    breath: "Grandissez-vous à l'inspiration, pivotez à l'expiration" },
+  { id: "d3", name: "Extension lombaire debout", icon: "⬆️", dur: 25, zone: "Dos", xp: 10, pos: "debout", intensity: 2,
+    sectors: ["terrain", "conduite", "commerce", "sante"],
+    inst: "Position : debout, pieds largeur des hanches. Placez les paumes dans le bas du dos, doigts vers le bas. Contractez légèrement les fessiers puis penchez-vous en arrière en poussant les hanches vers l'avant. Maintenez 5s. Revenez. Répétez 4 fois. Cet exercice décompresse les disques lombaires après une position assise ou penchée prolongée.",
     breath: "Inspirez en extension, expirez en revenant" },
-  { id: "e1", name: "Roulement d'épaules", icon: "🔃", dur: 30, zone: "Épaules", xp: 8,
-    inst: "Position : assis ou debout, bras relâchés le long du corps. Montez les épaules vers les oreilles, roulez-les vers l'arrière puis laissez-les retomber. Faites 5 rotations vers l'arrière, puis 5 vers l'avant. Mouvement ample et contrôlé.",
+  { id: "d4", name: "Étirement grand dorsal", icon: "🙆", dur: 30, zone: "Dos", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["bureau", "terrain", "sante"],
+    inst: "Position : assis, levez les deux bras au-dessus de la tête et attrapez le poignet droit avec la main gauche. Inclinez-vous vers la gauche en étirant tout le flanc droit. Sentez l'étirement du grand dorsal et des intercostaux. Maintenez 7s. Changez de côté. 2 répétitions par côté.",
+    breath: "Inspirez bras en l'air, expirez en inclinant" },
+  { id: "d5", name: "Décompression discale", icon: "🧘", dur: 35, zone: "Dos", xp: 14, pos: "assis", intensity: 1,
+    sectors: ["conduite", "terrain", "sante"],
+    inst: "Position : assis au bord de la chaise, pieds écartés. Laissez tomber le buste entre les genoux, tête lourde, bras pendants vers le sol. Laissez la gravité étirer toute la chaîne postérieure. Restez 15s. Remontez très lentement, vertèbre par vertèbre, la tête en dernier. Répétez 2 fois. Libère la pression des disques intervertébraux.",
+    breath: "Respirez dans le bas du dos, sentez-le s'ouvrir" },
+  { id: "d6", name: "Ouverture thoracique", icon: "🔓", dur: 30, zone: "Dos", xp: 12, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite"],
+    inst: "Position : assis, mains derrière la nuque, coudes ouverts. Poussez la poitrine vers le plafond en ouvrant les coudes au maximum. Sentez l'ouverture entre les omoplates. Maintenez 5s. Relâchez en rapprochant les coudes devant le visage. Répétez 5 fois. Combat directement la posture voûtée du travail sur écran.",
+    breath: "Inspirez en ouvrant, expirez en fermant" },
+
+  // ─── ÉPAULES (6 exercices) ───────────────
+  { id: "e1", name: "Roulement d'épaules", icon: "🔃", dur: 30, zone: "Épaules", xp: 8, pos: "assis", intensity: 1,
+    sectors: ["bureau", "terrain", "sante", "commerce"],
+    inst: "Position : assis ou debout, bras relâchés. Montez les épaules vers les oreilles, roulez-les vers l'arrière en serrant les omoplates, puis laissez-les retomber. Le mouvement est ample et contrôlé. 5 rotations vers l'arrière, puis 5 vers l'avant. Insistez sur la phase arrière pour ouvrir la poitrine.",
     breath: "Respirez naturellement, relâchez la mâchoire" },
-  { id: "e2", name: "Étirement trapèzes", icon: "↕️", dur: 30, zone: "Épaules", xp: 10,
-    inst: "Position : assis, dos droit. Posez la main droite sur le dessus de la tête et tirez doucement vers la droite. Le bras gauche pend le long du corps ou se tient à la chaise. Sentez l'étirement du trapèze gauche. Maintenez 7s, puis changez de côté.",
-    breath: "Expirez en étirant, relâchez en inspirant" },
-  { id: "p1", name: "Extension poignets", icon: "🤲", dur: 28, zone: "Poignets", xp: 10,
-    inst: "Position : assis ou debout. Tendez le bras droit devant vous, paume vers le haut. Avec la main gauche, tirez doucement les doigts vers vous. Sentez l'étirement à l'intérieur de l'avant-bras. Maintenez 6s, puis changez de main.",
-    breath: "Respirez calmement, ne bloquez pas la respiration" },
-  { id: "p2", name: "Rotations poignets", icon: "🔁", dur: 40, zone: "Poignets", xp: 8,
-    inst: "Position : assis, coudes près du corps, avant-bras à l'horizontale. Fermez les poings et faites des cercles amples avec les poignets. 10 rotations dans un sens, puis 10 dans l'autre. Mouvement lent et contrôlé.",
+  { id: "e2", name: "Étirement trapèze supérieur", icon: "↕️", dur: 35, zone: "Épaules", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite", "enseignement"],
+    inst: "Position : assis, main droite sur le dessus de la tête. Tirez doucement l'oreille vers l'épaule droite. Le bras gauche pend le long du corps ou s'accroche sous la chaise pour augmenter l'étirement. Sentez l'étirement du trapèze supérieur gauche. Maintenez 8s. Changez. 2 répétitions par côté.",
+    breath: "Expirez en étirant, relâchez sur l'inspiration" },
+  { id: "e3", name: "Ouverture pectorale en cadre de porte", icon: "🚪", dur: 35, zone: "Épaules", xp: 12, pos: "debout", intensity: 2,
+    sectors: ["bureau", "conduite"],
+    inst: "Position : debout dans un cadre de porte, avant-bras posés de chaque côté à 90°. Avancez un pied et laissez le poids du corps ouvrir la poitrine. Sentez l'étirement des pectoraux et du deltoïde antérieur. Maintenez 10s. Reculez. Répétez 3 fois. Essentiel pour corriger les épaules enroulées.",
+    breath: "Respirez profondément dans la poitrine ouverte" },
+  { id: "e4", name: "Élévation scapulaire isométrique", icon: "💪", dur: 25, zone: "Épaules", xp: 10, pos: "assis", intensity: 2,
+    sectors: ["terrain", "sante", "commerce"],
+    inst: "Position : assis, bras le long du corps. Serrez les omoplates l'une vers l'autre comme si vous vouliez coincer un crayon entre elles. Maintenez la contraction 5s. Relâchez complètement. Répétez 6 fois. Renforce les muscles stabilisateurs de l'épaule et corrige la posture arrondie.",
+    breath: "Inspirez en serrant, expirez en relâchant" },
+  { id: "e5", name: "Pendulaire de l'épaule", icon: "🔔", dur: 30, zone: "Épaules", xp: 10, pos: "debout", intensity: 1,
+    sectors: ["terrain", "sante", "commerce"],
+    inst: "Position : debout, penché en avant, une main sur le bureau. Laissez le bras libre pendre. Faites des petits cercles avec le bras relâché : 10 dans un sens, 10 dans l'autre. Changez de bras. Le mouvement vient du corps, pas de l'épaule. Décompresse l'articulation et soulage les tensions de port de charge.",
+    breath: "Respirez naturellement, relâchez tout le bras" },
+
+  // ─── POIGNETS (5 exercices) ──────────────
+  { id: "p1", name: "Extension fléchisseurs", icon: "🤲", dur: 28, zone: "Poignets", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["bureau", "sante"],
+    inst: "Position : assis ou debout. Tendez le bras droit, paume vers le haut. Avec la main gauche, tirez doucement les doigts vers vous jusqu'à sentir l'étirement à l'intérieur de l'avant-bras. Maintenez 8s. Changez. Puis paume vers le bas, tirez les doigts vers le bas : étire les extenseurs. 8s par position, chaque main.",
+    breath: "Respirez calmement, ne bloquez pas" },
+  { id: "p2", name: "Rotations articulaires", icon: "🔁", dur: 35, zone: "Poignets", xp: 8, pos: "assis", intensity: 1,
+    sectors: ["bureau", "sante", "commerce"],
+    inst: "Position : assis, coudes près du corps, avant-bras à l'horizontale. Fermez les poings. Faites des cercles amples et lents avec les poignets : 10 dans un sens, 10 dans l'autre. Puis ouvrez les doigts en éventail et refermez, 10 fois. Lubrifie les articulations et prévient le syndrome du canal carpien.",
     breath: "Respirez naturellement" },
-  { id: "y1", name: "Règle 20-20-20", icon: "👀", dur: 20, zone: "Yeux", xp: 8,
-    inst: "Position : assis face à votre écran. Levez les yeux et fixez un objet situé à environ 6 mètres pendant 10s. Clignez doucement plusieurs fois. Cette pause permet aux muscles oculaires de se relâcher après un travail prolongé sur écran.",
+  { id: "p3", name: "Pression paume contre paume", icon: "🙏", dur: 25, zone: "Poignets", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["bureau", "sante"],
+    inst: "Position : assis, paumes jointes devant la poitrine (position de prière). Descendez les mains vers le nombril en gardant les paumes collées. Sentez l'étirement des fléchisseurs. Maintenez 8s. Puis retournez : dos des mains joints, montez vers le menton. 8s. Répétez 3 fois chaque position.",
+    breath: "Respirez profondément pendant les maintiens" },
+  { id: "p4", name: "Étirement pouce et thénar", icon: "👍", dur: 25, zone: "Poignets", xp: 8, pos: "assis", intensity: 1,
+    sectors: ["bureau", "sante"],
+    inst: "Position : assis. Tendez le bras, pouce vers le haut. Avec l'autre main, tirez doucement le pouce vers l'arrière. Sentez l'étirement de l'éminence thénar (base du pouce). Maintenez 6s. Changez de main. Puis massez en cercles la zone charnue à la base de chaque pouce pendant 10s. Soulage les douleurs liées à la souris.",
+    breath: "Respirez calmement" },
+
+  // ─── YEUX (5 exercices) ──────────────────
+  { id: "y1", name: "Règle 20-20-20", icon: "👀", dur: 25, zone: "Yeux", xp: 8, pos: "assis", intensity: 1,
+    sectors: ["bureau", "enseignement"],
+    inst: "Position : assis face à l'écran. Levez les yeux et fixez un point situé à au moins 6 mètres pendant 20s. Clignez lentement 5 fois. Puis fermez les yeux 5s. Cette technique rompt le spasme d'accommodation du cristallin causé par la vision de près prolongée. À faire toutes les 20 minutes idéalement.",
     breath: "Relâchez la mâchoire, desserrez les dents" },
-  { id: "y2", name: "Palming oculaire", icon: "🙌", dur: 25, zone: "Yeux", xp: 10,
-    inst: "Position : assis, coudes posés sur le bureau. Frottez vos paumes l'une contre l'autre pour les réchauffer. Posez-les en coupelle sur vos yeux fermés sans appuyer sur les globes. Restez dans le noir complet 15s. La chaleur détend les muscles orbitaires.",
+  { id: "y2", name: "Palming oculaire", icon: "🙌", dur: 30, zone: "Yeux", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["bureau", "enseignement"],
+    inst: "Position : assis, coudes sur le bureau. Frottez vos paumes l'une contre l'autre vigoureusement pendant 5s pour les chauffer. Posez-les en coupole sur vos yeux fermés sans appuyer sur les globes. Restez dans le noir 20s. La chaleur détend les muscles ciliaires et oculomoteurs. L'obscurité permet à la rétine de se reposer.",
     breath: "Inspirez 4s par le nez, expirez 6s par la bouche" },
-  { id: "r1", name: "Respiration 4-7-8", icon: "🫁", dur: 40, zone: "Global", xp: 12,
-    inst: "Position : assis confortablement, dos droit, pieds au sol, mains sur les cuisses. Fermez les yeux. Inspirez par le nez pendant 4s, retenez l'air pendant 7s, puis expirez lentement par la bouche pendant 8s. Répétez 2 cycles complets. Technique idéale pour réduire le stress.",
-    breath: "4s inspir — 7s blocage — 8s expir" },
-  { id: "r2", name: "Respiration carrée", icon: "⬜", dur: 50, zone: "Global", xp: 10,
-    inst: "Position : assis, dos droit, yeux fermés ou mi-clos. Inspirez 4s, retenez 4s, expirez 4s, retenez poumons vides 4s. Visualisez un carré : chaque côté = une phase. Répétez 3 cycles. Technique utilisée par les forces spéciales pour le calme sous pression.",
-    breath: "4 temps égaux — régulier et contrôlé" },
-  { id: "j1", name: "Flexion mollets", icon: "🦵", dur: 45, zone: "Jambes", xp: 10,
-    inst: "Position : debout derrière votre chaise, mains posées sur le dossier pour l'équilibre. Montez sur la pointe des pieds en contractant les mollets, maintenez 2s en haut, redescendez lentement. Répétez 10 fois. Gardez le dos droit.",
+  { id: "y3", name: "Gymnastique oculaire", icon: "🎯", dur: 30, zone: "Yeux", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["bureau", "enseignement"],
+    inst: "Position : assis, tête immobile. Regardez le plus loin possible à droite 3s, puis à gauche 3s. Puis en haut 3s, en bas 3s. Faites un grand cercle des yeux dans un sens, puis dans l'autre. Terminez en fixant le bout de votre doigt à 20cm puis un objet au loin, alternez 5 fois. Entretient la mobilité des muscles oculomoteurs.",
+    breath: "Respirez naturellement, mâchoire détendue" },
+
+  // ─── JAMBES (6 exercices) ────────────────
+  { id: "j1", name: "Pompage des mollets", icon: "🦵", dur: 45, zone: "Jambes", xp: 10, pos: "debout", intensity: 2,
+    sectors: ["commerce", "conduite", "bureau"],
+    inst: "Position : debout derrière la chaise, mains sur le dossier. Montez sur la pointe des pieds en contractant les mollets, maintenez 2s, redescendez lentement en 3s. Répétez 10 fois. Puis tenez la position haute 10s. Active la pompe veineuse du mollet et relance la circulation dans les jambes.",
     breath: "Expirez en montant, inspirez en descendant" },
-  { id: "j2", name: "Étirement quadriceps", icon: "🦿", dur: 30, zone: "Jambes", xp: 10,
-    inst: "Position : debout, une main sur la chaise ou le mur pour l'équilibre. Pliez le genou droit et attrapez votre pied droit avec la main droite, talon vers la fesse. Gardez les genoux serrés et le bassin neutre. Maintenez 7s, changez de jambe.",
+  { id: "j2", name: "Étirement quadriceps debout", icon: "🦿", dur: 30, zone: "Jambes", xp: 10, pos: "debout", intensity: 2,
+    sectors: ["commerce", "terrain", "conduite"],
+    inst: "Position : debout, main gauche sur la chaise. Pliez le genou droit, attrapez le pied avec la main droite, talon vers la fesse. Gardez les genoux serrés, le bassin neutre (ne creusez pas le dos). Sentez l'étirement de la face avant de la cuisse. 10s par jambe, 2 répétitions.",
     breath: "Respirez profondément, gardez l'équilibre" },
-  { id: "g1", name: "Genoux poitrine", icon: "🧎", dur: 28, zone: "Genoux", xp: 10,
-    inst: "Position : assis au bord de la chaise, dos droit. Attrapez votre genou droit avec les deux mains et ramenez-le doucement vers la poitrine. Sentez l'étirement dans la hanche et le bas du dos. Maintenez 6s, reposez le pied, changez de côté.",
+  { id: "j3", name: "Étirement ischio-jambiers assis", icon: "🦵", dur: 30, zone: "Jambes", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite"],
+    inst: "Position : assis au bord de la chaise. Tendez la jambe droite devant vous, talon au sol, pointe de pied tirée vers vous. Penchez le buste en avant en gardant le dos droit. Sentez l'étirement à l'arrière de la cuisse. Maintenez 10s. Changez de jambe. 2 répétitions. Les ischio-jambiers se raccourcissent en position assise prolongée.",
+    breath: "Expirez en vous penchant, grandissez à l'inspiration" },
+  { id: "j4", name: "Ouverture des hanches", icon: "🦋", dur: 30, zone: "Jambes", xp: 12, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite"],
+    inst: "Position : assis, posez la cheville droite sur le genou gauche (figure en 4). Appuyez doucement sur le genou droit pour ouvrir la hanche. Penchez-vous légèrement en avant. Sentez l'étirement du piriforme et des rotateurs de la hanche. 10s par côté, 2 répétitions. Libère les tensions du bassin liées à la position assise.",
+    breath: "Expirez en appuyant, relâchez sur l'inspiration" },
+  { id: "j5", name: "Fente du psoas", icon: "🏃", dur: 35, zone: "Jambes", xp: 14, pos: "debout", intensity: 2,
+    sectors: ["bureau", "conduite", "enseignement"],
+    inst: "Position : debout, faites un grand pas en avant avec le pied droit. Fléchissez le genou avant à 90°, genou arrière descend vers le sol (sans toucher). Poussez les hanches vers l'avant. Sentez l'étirement profond du psoas-iliaque (devant de la hanche arrière). 10s par côté. Le psoas est LE muscle qui souffre le plus en position assise.",
+    breath: "Inspirez pour vous grandir, expirez pour approfondir" },
+
+  // ─── GENOUX (4 exercices) ────────────────
+  { id: "g1", name: "Genou-poitrine assis", icon: "🧎", dur: 28, zone: "Genoux", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["terrain", "commerce", "conduite"],
+    inst: "Position : assis au bord de la chaise, dos droit. Attrapez le genou droit avec les deux mains et ramenez-le vers la poitrine. Sentez l'étirement dans la hanche et le bas du dos. Maintenez 8s. Reposez. Changez de côté. 2 répétitions. Mobilise l'articulation du genou en douceur et étire le bas du dos.",
     breath: "Expirez en rapprochant le genou" },
+  { id: "g2", name: "Extension du genou assis", icon: "🦵", dur: 30, zone: "Genoux", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["terrain", "commerce", "sante"],
+    inst: "Position : assis, dos calé. Tendez la jambe droite à l'horizontale, pointe de pied vers vous. Contractez le quadriceps en verrouillant le genou pendant 5s. Redescendez lentement. 8 répétitions par jambe. Renforce le quadriceps qui protège et stabilise le genou. Essentiel pour les métiers avec port de charge.",
+    breath: "Expirez en tendant, inspirez en redescendant" },
+  { id: "g3", name: "Flexion-extension debout", icon: "🏋️", dur: 35, zone: "Genoux", xp: 12, pos: "debout", intensity: 2,
+    sectors: ["terrain", "commerce"],
+    inst: "Position : debout, pieds largeur des hanches, mains sur la chaise. Fléchissez les genoux comme pour vous asseoir, descendez sur 3s (ne dépassez pas 90°), remontez sur 3s. 8 répétitions. Le mouvement doit être contrôlé et indolore. Renforce toute la chaîne des membres inférieurs et protège les genoux.",
+    breath: "Inspirez en descendant, expirez en remontant" },
+
+  // ─── GLOBAL / RESPIRATION (4 exercices) ──
+  { id: "r1", name: "Respiration 4-7-8", icon: "🫁", dur: 40, zone: "Global", xp: 12, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite", "sante", "enseignement", "terrain", "commerce"],
+    inst: "Position : assis confortablement, dos droit, pieds au sol, mains sur les cuisses. Fermez les yeux. Inspirez par le nez en 4s, retenez l'air 7s, expirez lentement par la bouche en 8s en faisant un léger son. Répétez 2 cycles. Active le système nerveux parasympathique et fait baisser le cortisol en quelques minutes.",
+    breath: "4s inspir — 7s blocage — 8s expir" },
+  { id: "r2", name: "Respiration carrée", icon: "⬜", dur: 50, zone: "Global", xp: 10, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite", "sante", "enseignement", "terrain", "commerce"],
+    inst: "Position : assis, dos droit, yeux fermés ou mi-clos. Inspirez 4s, retenez 4s, expirez 4s, retenez poumons vides 4s. Visualisez un carré : chaque côté est une phase. Répétez 3 cycles. Technique utilisée par les militaires et les athlètes pour retrouver le calme sous pression.",
+    breath: "4 temps égaux — régulier et contrôlé" },
+  { id: "r3", name: "Cohérence cardiaque 5-5", icon: "❤️", dur: 60, zone: "Global", xp: 14, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite", "sante", "enseignement", "terrain", "commerce"],
+    inst: "Position : assis confortablement, une main sur le ventre. Inspirez par le nez en 5s en gonflant le ventre. Expirez par la bouche en 5s en laissant le ventre redescendre. Répétez pendant 1 minute sans pause (6 cycles). Synchronise le rythme cardiaque et respiratoire. Réduit l'anxiété et améliore la concentration.",
+    breath: "5s inspir — 5s expir — sans pause" },
+  { id: "r4", name: "Body scan express", icon: "🧠", dur: 45, zone: "Global", xp: 12, pos: "assis", intensity: 1,
+    sectors: ["bureau", "conduite", "sante", "enseignement", "terrain", "commerce"],
+    inst: "Position : assis, yeux fermés, mains sur les cuisses. Portez votre attention sur le sommet du crâne. Descendez mentalement en relâchant chaque zone : front, mâchoire (desserrez les dents), épaules (laissez-les tomber), bras, mains, ventre, cuisses, pieds. Chaque zone : 3s de conscience puis relâchement. Identifie et dénoue les tensions accumulées.",
+    breath: "Respirez lentement et naturellement" },
 ];
+
 const getEx = (id) => EXERCISES.find(e => e.id === id);
 
-// Build daily program: ordered sequence of zone-focused blocks
-const buildDailyProgram = (zones) => {
+// ════════════════════════════════════════════════════════════════
+// SMART PROGRAM BUILDER — builds personalized programs based on:
+// sector, painZones, activity level, workspace constraints
+// ════════════════════════════════════════════════════════════════
+
+const buildDailyProgram = (zones, profile) => {
+  const sectorId = profile?.sectorId || "bureau";
+  const level = profile?.level || "Modéré";
+  const space = profile?.space || "Debout possible";
+  const painZones = profile?.painZones || [];
+
+  // Filter exercises by workspace
+  const posAllowed = space === "Assis seulement" ? ["assis"] : space === "Debout possible" ? ["assis", "debout"] : ["assis", "debout", "sol"];
+  const maxIntensity = level === "Peu actif" ? 1 : level === "Actif" ? 3 : 2;
+
+  const eligible = EXERCISES.filter(e =>
+    posAllowed.includes(e.pos) && e.intensity <= maxIntensity
+  );
+
   const byZone = {};
-  EXERCISES.forEach(e => { if (!byZone[e.zone]) byZone[e.zone] = []; byZone[e.zone].push(e.id); });
-  const globals = byZone["Global"] || [];
+  eligible.forEach(e => { if (!byZone[e.zone]) byZone[e.zone] = []; byZone[e.zone].push(e); });
 
-  // Each zone gets its own block + a closing global block
-  const blocks = zones.map((z, i) => ({
-    id: `block_${i}`,
-    zone: z,
-    name: `${z}`,
-    exercises: [...(byZone[z] || []).slice(0, 3), globals[i % globals.length]].filter(Boolean),
-    xp: 40 + i * 5,
-    icon: { Nuque: "🔄", Dos: "🐱", Épaules: "🔃", Poignets: "🤲", Yeux: "👀", Jambes: "🦵", Genoux: "🧎" }[z] || "🧘",
-  }));
+  // Score each exercise: higher = more relevant for this user
+  const score = (ex) => {
+    let s = 0;
+    if (ex.sectors.includes(sectorId)) s += 10; // sector match
+    if (painZones.includes(ex.zone)) s += 8; // user-selected pain zone
+    if (zones.includes(ex.zone)) s += 5; // in risk zones
+    s += Math.random() * 2; // slight randomization
+    return s;
+  };
 
-  // Add a final "global" deep block
+  // Priority: pain zones first, then sector zones, then others
+  const zonePriority = [
+    ...painZones,
+    ...zones.filter(z => !painZones.includes(z)),
+  ].filter((z, i, a) => a.indexOf(z) === i); // deduplicate
+
+  // Build blocks per zone, with best exercises first
+  const blocks = zonePriority.map((z, i) => {
+    const pool = (byZone[z] || []).sort((a, b) => score(b) - score(a));
+    const exCount = z === painZones[0] ? 4 : 3; // more exercises for primary pain zone
+    const selected = pool.slice(0, exCount);
+    // Add a breathing exercise to longer blocks
+    const globals = byZone["Global"] || [];
+    const breathEx = globals.sort((a, b) => score(b) - score(a))[i % globals.length];
+    const exercises = [...selected.map(e => e.id), breathEx?.id].filter(Boolean);
+
+    return {
+      id: "block_" + i,
+      zone: z,
+      name: z,
+      exercises,
+      xp: 35 + selected.length * 5 + (painZones.includes(z) ? 10 : 0),
+      icon: { Nuque: "🔄", Dos: "🐱", Épaules: "🔃", Poignets: "🤲", Yeux: "👀", Jambes: "🦵", Genoux: "🧎" }[z] || "🧘",
+    };
+  });
+
+  // Add "Décompression complète" block: 1 best exercise per zone + all globals
+  const deepExercises = zonePriority
+    .map(z => (byZone[z] || []).sort((a, b) => score(b) - score(a))[0]?.id)
+    .filter(Boolean);
+  const globalIds = (byZone["Global"] || []).map(e => e.id);
+
   blocks.push({
     id: "block_deep",
     zone: "Global",
     name: "Décompression complète",
-    exercises: [...zones.flatMap(z => (byZone[z] || []).slice(0, 1)), ...globals],
+    exercises: [...deepExercises, ...globalIds],
     xp: 80,
     icon: "🧘",
   });
@@ -192,26 +349,66 @@ const buildDailyProgram = (zones) => {
   return blocks;
 };
 
-const buildSessions = (zones) => {
-  const byZone = {};
-  EXERCISES.forEach(e => { if (!byZone[e.zone]) byZone[e.zone] = []; byZone[e.zone].push(e.id); });
-  const pool = [...new Set([...zones.flatMap(z => byZone[z] || []), ...(byZone["Global"] || [])])];
-  const pick = (n) => [...pool].sort(() => Math.random() - 0.5).slice(0, n);
+const buildSessions = (zones, profile) => {
+  const sectorId = profile?.sectorId || "bureau";
+  const level = profile?.level || "Modéré";
+  const space = profile?.space || "Debout possible";
+  const painZones = profile?.painZones || [];
+
+  const posAllowed = space === "Assis seulement" ? ["assis"] : space === "Debout possible" ? ["assis", "debout"] : ["assis", "debout", "sol"];
+  const maxIntensity = level === "Peu actif" ? 1 : level === "Actif" ? 3 : 2;
+
+  const eligible = EXERCISES.filter(e =>
+    posAllowed.includes(e.pos) && e.intensity <= maxIntensity
+  );
+
+  // Sector-relevant exercises
+  const sectorExs = eligible.filter(e => e.sectors.includes(sectorId));
+  // Zone-targeted exercises
+  const zoneExs = (z) => eligible.filter(e => e.zone === z);
+
+  const pickBest = (pool, n) => pool.sort(() => Math.random() - 0.3).slice(0, n).map(e => e.id);
+
+  // Primary pain zone session
+  const mainZone = painZones[0] || zones[0] || "Dos";
+  const secondZone = painZones[1] || zones[1] || "Nuque";
+
   return [
-    { id: "s1", name: `Détente ${zones[0]}`, type: "standard", dur: 5, exercises: pick(4), icon: "🧘", xp: 50, desc: `Cible : ${zones.slice(0, 2).join(" & ")}` },
-    { id: "s2", name: `SOS ${zones[0]}`, type: "sos", dur: 3, exercises: pick(3), icon: "🆘", xp: 30, desc: `Soulagement rapide` },
-    { id: "s3", name: "Flash express", type: "flash", dur: 3, exercises: pick(3), icon: "⚡", xp: 30, desc: "Déblocage 3 min" },
-    { id: "s4", name: "Repos oculaire", type: "flash", dur: 3, exercises: ["y1", "y2", "r2"], icon: "👀", xp: 30, desc: "Pause yeux" },
-    { id: "s5", name: `Mobilité ${zones[1] || ""}`, type: "standard", dur: 5, exercises: pick(4), icon: "🤲", xp: 50, desc: `Focus ${zones[1] || "mobilité"}` },
-    { id: "s6", name: "Décompression", type: "deep", dur: 10, exercises: pick(6), icon: "🧘", xp: 80, desc: "Séance complète" },
-    { id: "s7", name: "Activation matinale", type: "standard", dur: 5, exercises: pick(4), icon: "☀️", xp: 50, desc: "Bien démarrer" },
-    { id: "s8", name: "SOS Migraine", type: "sos", dur: 3, exercises: ["n2", "y2", "r1"], icon: "🆘", xp: 30, desc: "Maux de tête" },
-    { id: "s9", name: "Anti coup de barre", type: "flash", dur: 3, exercises: pick(3), icon: "⚡", xp: 30, desc: "Relance 14h" },
-    { id: "s10", name: "Anti-stress", type: "standard", dur: 5, exercises: ["r1", "r2", "y2", "n3"], icon: "🫁", xp: 50, desc: "Calme et recentrage" },
+    { id: "s1", name: "Focus " + mainZone, type: "standard", dur: 5,
+      exercises: [...pickBest(zoneExs(mainZone), 3), ...pickBest(zoneExs("Global"), 1)],
+      icon: { Nuque: "🔄", Dos: "🐱", Épaules: "🔃", Poignets: "🤲", Yeux: "👀", Jambes: "🦵", Genoux: "🧎" }[mainZone] || "🧘",
+      xp: 50, desc: "Programme ciblé " + mainZone },
+    { id: "s2", name: "SOS " + mainZone, type: "sos", dur: 3,
+      exercises: pickBest(zoneExs(mainZone), 3),
+      icon: "🆘", xp: 30, desc: "Soulagement rapide " + mainZone },
+    { id: "s3", name: "Flash express", type: "flash", dur: 3,
+      exercises: pickBest(sectorExs, 3),
+      icon: "⚡", xp: 30, desc: "Déblocage adapté " + (profile?.sector || "votre métier") },
+    { id: "s4", name: "Focus " + secondZone, type: "standard", dur: 5,
+      exercises: [...pickBest(zoneExs(secondZone), 3), ...pickBest(zoneExs("Global"), 1)],
+      icon: { Nuque: "🔄", Dos: "🐱", Épaules: "🔃", Poignets: "🤲", Yeux: "👀", Jambes: "🦵", Genoux: "🧎" }[secondZone] || "🧘",
+      xp: 50, desc: "Programme ciblé " + secondZone },
+    { id: "s5", name: "Repos oculaire", type: "flash", dur: 3,
+      exercises: pickBest(zoneExs("Yeux"), 3),
+      icon: "👀", xp: 30, desc: "Pause yeux" },
+    { id: "s6", name: "Décompression totale", type: "deep", dur: 10,
+      exercises: [...pickBest(sectorExs, 4), ...pickBest(zoneExs("Global"), 2)],
+      icon: "🧘", xp: 80, desc: "Séance complète " + (profile?.sector || "") },
+    { id: "s7", name: "Activation matinale", type: "standard", dur: 5,
+      exercises: [...pickBest(eligible.filter(e => e.intensity <= 1), 3), ...pickBest(zoneExs("Global"), 1)],
+      icon: "☀️", xp: 50, desc: "Réveil musculaire en douceur" },
+    { id: "s8", name: "SOS Migraine", type: "sos", dur: 3,
+      exercises: [...pickBest(zoneExs("Nuque"), 1), ...pickBest(zoneExs("Yeux"), 1), ...pickBest(zoneExs("Global"), 1)],
+      icon: "🆘", xp: 30, desc: "Nuque + yeux + respiration" },
+    { id: "s9", name: "Anti coup de barre", type: "flash", dur: 3,
+      exercises: pickBest(eligible.filter(e => e.intensity >= 1 && e.zone !== "Yeux" && e.zone !== "Global"), 3),
+      icon: "⚡", xp: 30, desc: "Relance énergétique" },
+    { id: "s10", name: "Anti-stress", type: "standard", dur: 5,
+      exercises: [...pickBest(zoneExs("Global"), 3), ...pickBest(zoneExs("Nuque"), 1)],
+      icon: "🫁", xp: 50, desc: "Calme et recentrage" },
   ];
 };
 
-// ─── UI COMPONENTS ────────────────────────
 const Pill = ({ children, active, color = C.accent, onClick, s = {} }) => (
   <div onClick={onClick} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: onClick ? "pointer" : "default", background: active ? color : C.card, color: active ? "#0a0f14" : C.dim, border: `1px solid ${active ? color : C.cardL}`, transition: "all 0.2s", whiteSpace: "nowrap", userSelect: "none", ...s }}>{children}</div>
 );
@@ -1606,14 +1803,14 @@ function App() {
 
   const handleSignup = useCallback((acc) => { setAccount(acc); setStats(s => ({ ...s, userName: acc.name, userEmail: acc.email })); setScreen("plan"); }, []);
   const handlePlan = useCallback((plan) => { setIsPremium(plan === "premium"); setScreen("onboarding"); }, []);
-  const handleOnboarding = useCallback((p) => { setProfile(p); setSessions(buildSessions(p.riskZones)); setDailyProgram(buildDailyProgram(p.riskZones)); setCompletedBlocks([]); setScreen("home"); }, []);
+  const handleOnboarding = useCallback((p) => { setProfile(p); setSessions(buildSessions(p.riskZones, p)); setDailyProgram(buildDailyProgram(p.riskZones, p)); setCompletedBlocks([]); setScreen("home"); }, []);
   const handleSessionComplete = useCallback((xp, blockId) => {
     setStats(prev => ({ ...prev, xp: prev.xp + xp, totalSessions: prev.totalSessions + 1, streak: prev.streak + ((prev.totalSessions + 1) % 3 === 0 ? 1 : 0), score: Math.min(99, prev.score + Math.floor(Math.random() * 3) + 1) }));
     if (blockId && !blockId.startsWith("s")) setCompletedBlocks(prev => prev.includes(blockId) ? prev : [...prev, blockId]);
   }, []);
   const handleUpgrade = useCallback(() => { setIsPremium(true); setPaymentSheet(null); setScreen("home"); }, []);
   const handleUnsubscribe = useCallback(() => { setIsPremium(false); setScreen("home"); }, []);
-  const handleUpdateProfile = useCallback((newProfile) => { setProfile(newProfile); setSessions(buildSessions(newProfile.riskZones)); setDailyProgram(buildDailyProgram(newProfile.riskZones)); setCompletedBlocks([]); }, []);
+  const handleUpdateProfile = useCallback((newProfile) => { setProfile(newProfile); setSessions(buildSessions(newProfile.riskZones, newProfile)); setDailyProgram(buildDailyProgram(newProfile.riskZones, newProfile)); setCompletedBlocks([]); }, []);
   const handleUpdateName = useCallback((newName) => { setStats(s => ({ ...s, userName: newName })); }, []);
   const showPayment = useCallback((plan, onDone) => { setPaymentSheet({ plan, onDone }); }, []);
   const handleToggleTheme = useCallback(() => { setTheme(t => t === "dark" ? "light" : "dark"); }, []);
