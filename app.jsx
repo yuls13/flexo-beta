@@ -1060,6 +1060,7 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState(profile.jobIcon);
   const [calendarSync, setCalendarSync] = useState(false);
+  const [reminderFreq, setReminderFreq] = useState(null); // "1h" | "2h" | "4h"
   const [editing, setEditing] = useState(null); // null | "name" | "sector" | "job" | "pain" | "level" | "space"
   const [editName, setEditName] = useState(stats.userName);
   const [editSector, setEditSector] = useState(profile.sectorId);
@@ -1195,13 +1196,24 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
       </div>
     </div>
 
-    {/* Pain zones — editable */}
+    {/* Pain zones — user-selected only */}
     <div style={{ marginBottom: 10 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 5 }}>
-        <span style={{ color: C.dim, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8 }}>Zones à risque</span>
+        <span style={{ color: C.dim, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8 }}>Zones sensibles (perso)</span>
         <span onClick={() => { setEditPain([...profile.painZones]); setEditing("pain"); }} style={{ color: C.accent, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>Modifier ✏️</span>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>{profile.riskZones.map(z => <Pill key={z} active color={C.orange}>{z}</Pill>)}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+        {profile.painZones && profile.painZones.length > 0
+          ? profile.painZones.map(z => <Pill key={z} active color={C.orange}>{z}</Pill>)
+          : <span style={{ color: C.dim, fontSize: 11 }}>Aucune zone ajoutée</span>
+        }
+      </div>
+      {(() => { const s = SECTORS.find(x => x.id === profile.sectorId); const sectorOnly = (s?.zones || []).filter(z => !(profile.painZones || []).includes(z)); return sectorOnly.length > 0 ? (
+        <div style={{ marginTop: 6 }}>
+          <span style={{ color: C.dim, fontSize: 9, fontWeight: 600 }}>Zones liées au métier :</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 3 }}>{sectorOnly.map(z => <Pill key={z} active color={C.blue}>{z}</Pill>)}</div>
+        </div>
+      ) : null; })()}
     </div>
 
     {/* Settings */}
@@ -1216,9 +1228,9 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
               <span style={{ color: C.text, fontSize: 11, fontWeight: 600 }}>Google Agenda</span>
               {!isPremium && <span style={{ fontSize: 8, color: C.dim }}>🔒</span>}
             </div>
-            <span style={{ color: C.dim, fontSize: 9 }}>{isPremium ? (calendarSync ? "Synchronisé" : "Non connecté") : "Premium requis"}</span>
+            <span style={{ color: C.dim, fontSize: 9 }}>{!isPremium ? "Premium requis" : calendarSync ? ("Synchronisé" + (reminderFreq ? " · Rappel " + reminderFreq : "")) : "Non connecté"}</span>
           </div>
-          <div onClick={() => isPremium && setCalendarSync(!calendarSync)} style={{
+          <div onClick={() => { if (!isPremium) return; if (!calendarSync) setEditing("calendar_confirm"); else { setCalendarSync(false); setReminderFreq(null); } }} style={{
             width: 40, height: 22, borderRadius: 11, cursor: isPremium ? "pointer" : "default",
             background: calendarSync && isPremium ? C.accent : C.cardL,
             opacity: isPremium ? 1 : 0.4, transition: "all 0.3s", position: "relative",
@@ -1226,6 +1238,18 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
             <div style={{ width: 18, height: 18, borderRadius: 9, background: "#fff", position: "absolute", top: 2, left: calendarSync && isPremium ? 20 : 2, transition: "left 0.3s", boxShadow: "0 1px 3px rgba(0,0,0,0.3)" }} />
           </div>
         </div>
+
+        {/* Rappels — only visible if calendar synced */}
+        {calendarSync && (
+          <div onClick={() => setEditing("reminders")} style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 11px", borderBottom: `1px solid ${C.cardL}`, cursor: "pointer" }}>
+            <span style={{ fontSize: 13 }}>🔔</span>
+            <div style={{ flex: 1 }}>
+              <span style={{ color: C.text, fontSize: 11, fontWeight: 600 }}>Rappels exercices</span>
+              <div style={{ color: C.dim, fontSize: 9 }}>{reminderFreq ? "Toutes les " + reminderFreq + " · créneaux de 15 min" : "Non configuré — appuyez pour choisir"}</div>
+            </div>
+            <span style={{ color: C.accent, fontSize: 10 }}>✏️</span>
+          </div>
+        )}
 
         {/* Theme toggle */}
         <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 11px", borderBottom: `1px solid ${C.cardL}` }}>
@@ -1246,20 +1270,11 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
           </div>
         </div>
 
-        {/* Notifications */}
-        <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 11px", borderBottom: `1px solid ${C.cardL}` }}>
-          <span style={{ fontSize: 13 }}>🔔</span>
-          <span style={{ color: C.dim, fontSize: 10, fontWeight: 600, width: 50 }}>Rappels</span>
-          <span style={{ color: C.text, fontSize: 11, fontWeight: 600, flex: 1 }}>{isPremium ? "IA + calendrier" : "Timer simple"}</span>
-          <span style={{ color: C.dim, fontSize: 10 }}>›</span>
-        </div>
-
         {/* Account */}
         <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "9px 11px" }}>
           <span style={{ fontSize: 13 }}>📧</span>
           <span style={{ color: C.dim, fontSize: 10, fontWeight: 600, width: 50 }}>Compte</span>
           <span style={{ color: C.text, fontSize: 11, fontWeight: 600, flex: 1 }}>{stats.userEmail}</span>
-          <span style={{ color: C.dim, fontSize: 10 }}>›</span>
         </div>
       </div>
     </div>
@@ -1333,6 +1348,65 @@ const Profile = ({ profile, stats, isPremium, onReset, goTo, onToggleTheme, them
           ))}
         </div>
       </EditModal>
+    )}
+
+    {/* Calendar confirmation modal */}
+    {editing === "calendar_confirm" && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setEditing(null)}>
+        <div onClick={e => e.stopPropagation()} style={{ background: C.bg, borderRadius: 20, padding: 20, maxWidth: 340, width: "100%", textAlign: "center" }}>
+          <div style={{ fontSize: 40, marginBottom: 10 }}>📅</div>
+          <div style={{ color: C.text, fontSize: 16, fontWeight: 800, marginBottom: 6 }}>Synchroniser Google Agenda ?</div>
+          <div style={{ color: C.dim, fontSize: 12, lineHeight: 1.5, marginBottom: 16 }}>
+            Flexo ajoutera automatiquement des créneaux de 15 min sur votre agenda pour vos exercices. Vous pourrez configurer la fréquence des rappels ensuite.
+          </div>
+          <div onClick={() => { setCalendarSync(true); setEditing("reminders"); }} style={{
+            padding: "13px 0", borderRadius: 14, background: C.accent, color: "#0a0f14",
+            fontSize: 14, fontWeight: 800, cursor: "pointer", marginBottom: 8,
+          }}>Oui, synchroniser</div>
+          <div onClick={() => setEditing(null)} style={{
+            padding: "13px 0", borderRadius: 14, background: C.cardL, color: C.dim,
+            fontSize: 14, fontWeight: 600, cursor: "pointer",
+          }}>Annuler</div>
+        </div>
+      </div>
+    )}
+
+    {/* Reminders frequency modal */}
+    {editing === "reminders" && (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }} onClick={() => setEditing(null)}>
+        <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 420, background: C.bg, borderRadius: "20px 20px 0 0", padding: "16px 16px 30px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <span style={{ color: C.text, fontSize: 16, fontWeight: 800 }}>Fréquence des rappels</span>
+            <span onClick={() => setEditing(null)} style={{ color: C.dim, fontSize: 14, cursor: "pointer", padding: "4px 8px" }}>✕</span>
+          </div>
+          <div style={{ color: C.dim, fontSize: 11, marginBottom: 12, lineHeight: 1.4 }}>
+            Un créneau de 15 min "Flexo - Exercices quotidien" sera ajouté à votre agenda à la fréquence choisie.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {[{ id: "1h", label: "Toutes les heures", desc: "8 rappels/jour (9h-17h)" },
+              { id: "2h", label: "Toutes les 2 heures", desc: "4 rappels/jour (9h-17h)" },
+              { id: "4h", label: "Toutes les 4 heures", desc: "2 rappels/jour (9h-17h)" }
+            ].map(opt => (
+              <div key={opt.id} onClick={() => setReminderFreq(opt.id)} style={{
+                padding: "12px 14px", borderRadius: 14, cursor: "pointer",
+                background: reminderFreq === opt.id ? C.accentDim : C.card,
+                border: `1.5px solid ${reminderFreq === opt.id ? C.accent : C.cardL}`,
+              }}>
+                <div style={{ color: reminderFreq === opt.id ? C.accent : C.text, fontSize: 13, fontWeight: 700 }}>{opt.label}</div>
+                <div style={{ color: C.dim, fontSize: 10 }}>{opt.desc}</div>
+              </div>
+            ))}
+          </div>
+          <div onClick={() => { if (reminderFreq) { console.log("Calendar sync:", { freq: reminderFreq, title: "Flexo - Exercices quotidien", duration: 15 }); setEditing(null); } }} style={{
+            marginTop: 12, padding: "13px 0", borderRadius: 14, textAlign: "center", cursor: reminderFreq ? "pointer" : "default",
+            background: reminderFreq ? C.accent : C.cardL,
+            color: reminderFreq ? "#0a0f14" : C.dim,
+            fontSize: 14, fontWeight: 800, opacity: reminderFreq ? 1 : 0.5,
+          }}>
+            Activer les rappels
+          </div>
+        </div>
+      </div>
     )}
   </div>
   );
