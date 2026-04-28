@@ -844,6 +844,51 @@ const Onboarding = ({ onComplete, isPremium }) => {
   );
 };
 
+
+// ─── AD BANNER (affiliate) ────────────────
+const AdBanner = () => {
+  const [ad, setAd] = useState(null);
+
+  useEffect(() => {
+    fetch("./ads.json?" + Date.now())
+      .then(r => r.json())
+      .then(data => {
+        if (!data.active) return;
+        const actives = data.ads.filter(a => a.active);
+        if (actives.length > 0) setAd(actives[Math.floor(Math.random() * actives.length)]);
+      })
+      .catch(() => {});
+  }, []);
+
+  if (!ad) return null;
+
+  return (
+    <div onClick={() => { if (ad.link) window.open(ad.link, "_blank"); }} style={{
+      background: ad.bgColor || C.card, borderRadius: 14, padding: "10px 12px",
+      marginBottom: 8, cursor: ad.link ? "pointer" : "default",
+      border: `1px solid ${ad.borderColor || C.cardL}30`,
+      display: "flex", alignItems: "center", gap: 10, overflow: "hidden",
+      position: "relative",
+    }}>
+      {ad.image ? (
+        <img src={ad.image} alt="" style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
+      ) : (
+        <div style={{ width: 42, height: 42, borderRadius: 10, background: `${ad.borderColor || C.accent}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+          {ad.icon || "📢"}
+        </div>
+      )}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ color: C.text, fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ad.title}</div>
+        <div style={{ color: C.dim, fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{ad.subtitle}</div>
+      </div>
+      <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
+        {ad.link && <span style={{ color: ad.borderColor || C.accent, fontSize: 12, fontWeight: 700 }}>→</span>}
+        <span style={{ color: C.dim, fontSize: 7, textTransform: "uppercase", letterSpacing: 0.5 }}>Sponsorisé</span>
+      </div>
+    </div>
+  );
+};
+
 // ─── HOME ─────────────────────────────────
 const Home = ({ goTo, profile, stats, dailyProgram, completedBlocks, isPremium, sessions }) => {
   const nextBlockIdx = completedBlocks.length;
@@ -968,6 +1013,9 @@ const Home = ({ goTo, profile, stats, dailyProgram, completedBlocks, isPremium, 
         <span style={{ fontSize: 12 }}>💡</span>
         <span style={{ color: C.dim, fontSize: 10, lineHeight: 1.4 }}>Utilisez <span style={{ color: C.red, fontWeight: 700 }}>SOS</span> en cas de douleur soudaine au dos, nuque ou tête. Exercices doux de soulagement immédiat.</span>
       </div>
+
+      {/* Affiliate ad */}
+      <AdBanner />
 
       {/* Upgrade banner for free users */}
       {!isPremium && (

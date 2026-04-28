@@ -1,0 +1,16 @@
+{
+  "active": true,
+  "ads": [
+    {
+      "id": "1",
+      "image": "",
+      "icon": "🎯",
+      "title": "Votre pub ici",
+      "subtitle": "Remplacez ce texte par votre publicité d'affiliation",
+      "link": "https://example.com",
+      "bgColor": "#1a2a3a",
+      "borderColor": "#448AFF",
+      "active": true
+    }
+  ]
+}
