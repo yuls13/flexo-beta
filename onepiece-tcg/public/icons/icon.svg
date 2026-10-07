@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <rect width="128" height="128" rx="28" fill="#0b1f3a"/>
+  <path d="M0 96 Q16 88 32 96 T64 96 T96 96 T128 96 V128 H0Z" fill="#12457a"/>
+  <!-- os croisés -->
+  <g stroke="#f4e4c1" stroke-width="9" stroke-linecap="round">
+    <path d="M30 104 98 66"/><path d="M98 104 30 66"/>
+  </g>
+  <g fill="#f4e4c1">
+    <circle cx="26" cy="100" r="7"/><circle cx="32" cy="108" r="7"/>
+    <circle cx="102" cy="100" r="7"/><circle cx="96" cy="108" r="7"/>
+    <circle cx="26" cy="70" r="7"/><circle cx="32" cy="62" r="7"/>
+    <circle cx="102" cy="70" r="7"/><circle cx="96" cy="62" r="7"/>
+  </g>
+  <!-- crâne -->
+  <path d="M64 34c-19 0-32 12-32 29 0 9 4 15 10 19v9c0 3 2 5 5 5h34c3 0 5-2 5-5v-9c6-4 10-10 10-19 0-17-13-29-32-29Z" fill="#fff"/>
+  <ellipse cx="52" cy="66" rx="7.5" ry="8.5" fill="#0b1f3a"/>
+  <ellipse cx="76" cy="66" rx="7.5" ry="8.5" fill="#0b1f3a"/>
+  <path d="M64 75l-4 7h8Z" fill="#0b1f3a"/>
+  <path d="M52 90v6M58 90v6M64 90v6M70 90v6M76 90v6" stroke="#0b1f3a" stroke-width="2.5"/>
+  <!-- chapeau de paille -->
+  <ellipse cx="64" cy="42" rx="46" ry="11" fill="#f2c14e"/>
+  <path d="M38 41c0-15 11-25 26-25s26 10 26 25c-8 3-17 4-26 4s-18-1-26-4Z" fill="#f2c14e"/>
+  <path d="M38.5 36c8 3 16.5 4.2 25.5 4.2S81.5 39 89.5 36l.5 5.2c-8 3-17 4-26 4s-18-1-26-4Z" fill="#c8102e"/>
+  <path d="M30 44c10 4 22 6 34 6s24-2 34-6" fill="none" stroke="#d9a227" stroke-width="2"/>
+</svg>

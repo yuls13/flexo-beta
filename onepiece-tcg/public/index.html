@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Grand Line Prix</title>
+  <meta name="description" content="Comparateur de prix One Piece Card Game : displays, boosters, double packs, starters et coffrets parmi des boutiques vérifiées." />
+  <meta name="theme-color" content="#0b1f3a" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="#" aria-label="Grand Line Prix">
+        <img src="icons/icon.svg" alt="" width="48" height="48" />
+        <div>
+          <h1>Grand Line Prix</h1>
+          <p>Le trésor au meilleur prix · One Piece Card Game</p>
+        </div>
+      </a>
+      <div class="top-actions">
+        <button id="checkBtn" class="btn btn-ghost" type="button" title="Vérifier si un site est fiable">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.5 8 11 4.6-1.5 8-6 8-11V5l-8-3Zm-1 14-4-4 1.4-1.4 2.6 2.6 5.6-5.6L18 9l-7 7Z"/></svg>
+          <span>Vérifier un site</span>
+        </button>
+        <button id="refreshBtn" class="btn btn-red" type="button">
+          <svg class="wheel" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"><circle cx="32" cy="32" r="16"/><circle cx="32" cy="32" r="5" fill="currentColor"/><path d="M32 4v12M32 48v12M4 32h12M48 32h12M12.2 12.2l8.5 8.5M43.3 43.3l8.5 8.5M12.2 51.8l8.5-8.5M43.3 20.7l8.5-8.5"/></g></svg>
+          <span>Actualiser</span>
+        </button>
+      </div>
+    </div>
+    <nav id="tabs" class="tabs" aria-label="Séries"></nav>
+    <svg class="waves" viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 20 Q 75 0 150 20 T 300 20 T 450 20 T 600 20 T 750 20 T 900 20 T 1050 20 T 1200 20 V40 H0Z"/></svg>
+  </header>
+
+  <div id="demoBanner" class="demo-banner" hidden>⚠️ MODE DÉMO : prix fictifs générés pour tester l’interface. Lancez le serveur sans DEMO=1 pour les vrais prix.</div>
+
+  <main>
+    <section id="seriesHead" class="series-head"></section>
+
+    <section class="filters" aria-label="Filtres">
+      <div class="seg" id="langFilter" role="group" aria-label="Langue">
+        <button data-v="all" class="on">Toutes</button>
+        <button data-v="FR">🇫🇷 FR</button>
+        <button data-v="EN">🇬🇧 EN</button>
+        <button data-v="JP">🇯🇵 JP</button>
+      </div>
+      <div class="seg" id="typeFilter" role="group" aria-label="Produit"></div>
+      <label class="toggle"><input type="checkbox" id="stockOnly" checked /> <span>En stock / précommande</span></label>
+    </section>
+
+    <p id="status" class="status" role="status"></p>
+
+    <section id="best" class="best" aria-label="Meilleurs prix"></section>
+    <section id="offers" class="offers"></section>
+
+    <section class="panel">
+      <h2>Vérifier aussi sur</h2>
+      <p class="muted">Ces sites ne peuvent pas être lus automatiquement (protection anti-robots). Liens directs vers la recherche :</p>
+      <div id="links" class="chips"></div>
+    </section>
+
+    <details class="panel" id="shopPanel">
+      <summary>Boutiques interrogées <span id="shopSummary" class="muted"></span></summary>
+      <div id="shopList" class="shop-list"></div>
+    </details>
+
+    <section class="panel note">
+      <h2>Comment lire les résultats</h2>
+      <ul>
+        <li><b>Total</b> = prix + port <em>estimé</em> vers la France (le port réel dépend de la boutique et du panier).</li>
+        <li><b>Score de confiance</b> : liste blanche, ancienneté du domaine, avis Trustpilot, HTTPS, mentions légales/SIRET. Cliquez un badge pour le détail.</li>
+        <li><b>⚠ Prix suspect</b> : nettement sous le prix médian ou sous un prix plancher réaliste. C’est souvent un signe d’arnaque, de produit d’occasion ou d’erreur.</li>
+        <li>Toujours payer par carte bancaire ou PayPal (jamais par virement), et vérifier la langue du produit sur la fiche.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Grand Line Prix — outil personnel non affilié à Bandai, Toei Animation ni aux boutiques citées. Prix indicatifs, à confirmer sur le site marchand.</p>
+  </footer>
+
+  <dialog id="dlg" class="dlg">
+    <form method="dialog" class="dlg-close"><button aria-label="Fermer">✕</button></form>
+    <div id="dlgBody"></div>
+  </dialog>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>

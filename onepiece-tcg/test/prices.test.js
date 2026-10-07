@@ -1,0 +1,57 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { compileSeries } from '../server/classify.js';
+import { createPriceService, flagPrices, shippingFor } from '../server/prices.js';
+
+const defaults = { FR: { small: 4.9, large: 7.9 }, EU: { small: 9.9, large: 14.9 } };
+
+test('port estimé et livraison offerte', () => {
+  assert.equal(shippingFor({ country: 'FR' }, 'display', 120, defaults), 7.9);
+  assert.equal(shippingFor({ country: 'EU' }, 'booster', 5, defaults), 9.9);
+  assert.equal(shippingFor({ country: 'FR', shipping: { freeFrom: 100 } }, 'display', 120, defaults), 0);
+});
+
+test('alerte prix suspect sous la médiane et sous le plancher', () => {
+  const mk = (price) => ({ type: 'display', lang: 'FR', price, quantity: 1, flags: [] });
+  const offers = [mk(130), mk(135), mk(140), mk(150), mk(70)];
+  flagPrices(offers);
+  assert.equal(offers[4].flags[0].kind, 'suspect');
+  assert.equal(offers[0].flags.length, 0);
+  const lone = [mk(95), mk(100), mk(105), { ...mk(0), price: 40, flags: [] }];
+  flagPrices(lone);
+  assert.match(lone[3].flags[0].text, /anormalement bas/);
+});
+
+test('service : classement, déduplication, statut des boutiques, liste noire', async () => {
+  const series = compileSeries([{ id: 'OP16', code: 'OP-16', names: {}, queries: ['OP16'], match: ['\\bOP-?16\\b'] }]);
+  const shops = [
+    { id: 'a', name: 'A', domain: 'a.fr', base: 'https://a.fr', platform: 'woocommerce', country: 'FR' },
+    { id: 'b', name: 'B', domain: 'b.fr', base: 'https://b.fr', platform: 'woocommerce', country: 'FR' },
+    { id: 'bad', name: 'Bad', domain: 'bad.fr', base: 'https://bad.fr', platform: 'woocommerce', country: 'FR' },
+  ];
+  const calls = [];
+  const searchImpl = async (shop) => {
+    calls.push(shop.id);
+    if (shop.id === 'b') {
+      const e = new Error('HTTP 403');
+      e.status = 403;
+      throw e;
+    }
+    return [
+      { title: 'Display OP16 FR', price: 140, url: 'https://a.fr/p/1', available: true },
+      { title: 'Display OP16 FR', price: 140, url: 'https://a.fr/p/1?ref=x', available: true },
+      { title: 'Display OP16 FR (épuisé)', price: 120, url: 'https://a.fr/p/2', available: false },
+      { title: 'Sleeves OP16', price: 10, url: 'https://a.fr/p/3', available: true },
+    ];
+  };
+  const svc = createPriceService({ shops, shippingDefaults: defaults, blacklist: [{ domain: 'bad.fr' }], series, searchImpl });
+  const data = await svc.getSeries('OP16');
+  assert.ok(!calls.includes('bad'));
+  assert.equal(data.offers.length, 2);
+  assert.equal(data.offers[0].available, true); // en stock d'abord, même si plus cher
+  assert.equal(data.offers[0].total, 147.9);
+  assert.equal(data.shops.find((s) => s.id === 'b').status, 'error');
+  assert.equal(data.best.length, 1);
+  const again = await svc.getSeries('OP16', { force: true });
+  assert.equal(again.cached, true); // « Actualiser » trop rapproché → cache
+});
