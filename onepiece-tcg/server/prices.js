@@ -64,7 +64,7 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
         const cls = classify(item.title, s);
         if (!cls) continue;
         matched++;
-        offers.push(buildOffer(shop, item, cls, shippingDefaults));
+        offers.push(buildOffer(shop, item, cls, shippingDefaults, s));
       }
       shopStatus.push({
         id: shop.id,
@@ -122,10 +122,29 @@ function round2(n) {
   return Math.round(n * 100) / 100;
 }
 
-export function buildOffer(shop, item, cls, shippingDefaults) {
+export const PREORDER_RE = /pr[ée][- ]?commande|pre-?order|pr[ée]-?vente|disponible le|sortie (le|pr[ée]vue)|available on/i;
+
+// Date de sortie applicable à une offre : celle de sa langue ; une version FR sans date
+// prend la date EN (sorties FR/EN simultanées depuis OP-15) ; langue inconnue → première date.
+export function releaseFor(s, lang) {
+  const r = s?.release || {};
+  const l = lang?.toLowerCase();
+  if (l && r[l]) return r[l];
+  if (l === 'fr' && r.en) return r.en;
+  const dates = Object.values(r).sort();
+  return l ? null : dates[0] || null;
+}
+
+export function buildOffer(shop, item, cls, shippingDefaults, s, today = new Date().toISOString().slice(0, 10)) {
   const shipping = shippingFor(shop, cls.type, item.price, shippingDefaults);
   const total = round2(item.price + shipping);
   const boosters = PRODUCT_TYPES[cls.type].boosters * (cls.quantity || 1);
+  const release = releaseFor(s, cls.lang);
+  const upcoming = !!release && release > today;
+  // Précommande : signalée par la boutique, écrite dans le titre, ou produit commandable
+  // (en stock / sur commande) d'une série pas encore sortie dans cette langue.
+  const preorder =
+    !!item.preorder || PREORDER_RE.test(item.title) || (upcoming && (item.available !== false || !!item.backorder));
   return {
     shopId: shop.id,
     shopName: shop.name,
@@ -140,8 +159,10 @@ export function buildOffer(shop, item, cls, shippingDefaults) {
     shipping,
     total,
     perBooster: boosters ? round2(item.price / boosters) : null,
-    available: item.available,
-    preorder: !!item.preorder,
+    available: item.backorder && item.available === false ? null : item.available,
+    preorder,
+    upcoming,
+    releaseDate: upcoming ? release : null,
     flags: [],
   };
 }

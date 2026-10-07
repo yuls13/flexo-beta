@@ -52,7 +52,11 @@
         <button data-v="JP">🇯🇵 JP</button>
       </div>
       <div class="seg" id="typeFilter" role="group" aria-label="Produit"></div>
-      <label class="toggle"><input type="checkbox" id="stockOnly" checked /> <span>En stock / précommande</span></label>
+      <div class="seg" id="stockFilter" role="group" aria-label="Disponibilité">
+        <button data-v="buyable" class="on">En stock + précos</button>
+        <button data-v="preorder">🗓️ Précommandes</button>
+        <button data-v="all">Tout</button>
+      </div>
     </section>
 
     <p id="status" class="status" role="status"></p>
@@ -77,6 +81,7 @@
         <li><b>Total</b> = prix + port <em>estimé</em> vers la France (le port réel dépend de la boutique et du panier).</li>
         <li><b>Score de confiance</b> : liste blanche, ancienneté du domaine, avis Trustpilot, HTTPS, mentions légales/SIRET. Cliquez un badge pour le détail.</li>
         <li><b>⚠ Prix suspect</b> : nettement sous le prix médian ou sous un prix plancher réaliste. C’est souvent un signe d’arnaque, de produit d’occasion ou d’erreur.</li>
+        <li><b>🗓️ Précommande</b> : série pas encore sortie dans cette langue (ou annoncée comme telle par la boutique). La date de sortie est indiquée ; les précommandes sont classées après le stock disponible pour les séries déjà sorties.</li>
         <li>Toujours payer par carte bancaire ou PayPal (jamais par virement), et vérifier la langue du produit sur la fiche.</li>
       </ul>
     </section>

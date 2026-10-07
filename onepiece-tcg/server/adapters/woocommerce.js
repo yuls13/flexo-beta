@@ -13,6 +13,7 @@ export function parseWoo(json) {
       url: p.permalink,
       available: typeof p.is_in_stock === 'boolean' ? p.is_in_stock : null,
       preorder: /pr[ée]-?commande|pre-?order/i.test(`${p.name} ${p.stock_availability?.text || ''}`) || undefined,
+      backorder: p.is_on_backorder || undefined,
       image: p.images?.[0]?.thumbnail || p.images?.[0]?.src || null,
     };
   });

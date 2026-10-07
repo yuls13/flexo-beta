@@ -4,6 +4,7 @@ Application web (installable sur téléphone) qui compare en direct les prix des
 
 - Séries suivies : OP-13 à OP-18 (OP-18 et EB-05 à venir), EB-03, EB-04, PRB-02, plus un onglet *Starters & coffrets*.
 - Langues : 🇫🇷 FR, 🇬🇧 EN, 🇯🇵 JP (détectées dans le titre du produit).
+- **Précommandes** : pour une série (ou une langue) pas encore sortie, les offres commandables sont signalées 🗓️ *Précommande* avec la date de sortie. Elles sont aussi détectées partout via la mention « précommande / pre-order » ou le statut « sur commande ». Un filtre *En stock + précos / Précommandes / Tout* permet de les isoler. Une version FR sans date annoncée prend la date EN, car les sorties FR et EN sont simultanées depuis OP-15.
 - Total = prix + **port estimé** vers la France, tri par total (et par prix au booster pour les boosters).
 - Bouton **Actualiser** : relance la recherche à tout moment. Les résultats sont gardés 10 min côté serveur, et une nouvelle recherche est possible toutes les 45 s par série.
 

@@ -14,7 +14,7 @@ const state = {
   data: {}, // seriesId -> réponse /api/prices
   lang: 'all',
   type: 'all',
-  stockOnly: true,
+  stock: 'buyable', // buyable = en stock + précommandes | preorder | all
   loading: false,
 };
 
@@ -85,7 +85,7 @@ async function init() {
   $('#demoBanner').hidden = !state.config.demo;
   state.data = store.get('prices', {});
   const prefs = store.get('prefs', {});
-  Object.assign(state, { lang: prefs.lang || 'all', type: prefs.type || 'all', stockOnly: prefs.stockOnly ?? true });
+  Object.assign(state, { lang: prefs.lang || 'all', type: prefs.type || 'all', stock: ['buyable', 'preorder', 'all'].includes(prefs.stock) ? prefs.stock : 'buyable' });
 
   renderTabs();
   renderTypeFilter();
@@ -175,7 +175,7 @@ function renderTypeFilter() {
 
 function syncFilters() {
   document.querySelectorAll('#langFilter button').forEach((b) => b.classList.toggle('on', b.dataset.v === state.lang));
-  $('#stockOnly').checked = state.stockOnly;
+  document.querySelectorAll('#stockFilter button').forEach((b) => b.classList.toggle('on', b.dataset.v === state.stock));
 }
 
 function renderHead() {
@@ -187,8 +187,14 @@ function renderHead() {
       return `<span class="date ${d > today() ? 'future' : ''}">${LANG_FLAGS[L] || ''} ${L} · ${d > today() ? 'sortie ' : ''}${dateFmt.format(new Date(d))}</span>`;
     })
     .join('');
+  const future = Object.entries(s.release || {}).filter(([, d]) => d > today());
+  const banner = future.length
+    ? `<div class="preo-banner">🗓️ ${
+        isUpcoming(s) ? 'Série pas encore sortie' : `Pas encore sortie en ${future.map(([l]) => l.toUpperCase()).join(', ')}`
+      } : les offres commandables sont des <b>précommandes</b>. Préférez les boutiques bien notées, payez par CB/PayPal et méfiez-vous des précommandes sans date ni délai.</div>`
+    : '';
   $('#seriesHead').innerHTML = `<div><h2>${esc(s.special ? 'Starter decks & coffrets' : s.code)}</h2>
-    <p class="names">${esc(names.join(' · '))}</p></div><div class="dates">${dates}</div>`;
+    <p class="names">${esc(names.join(' · '))}</p></div><div class="dates">${dates}</div>${banner}`;
 }
 
 function trustBadge(shopId) {
@@ -198,9 +204,16 @@ function trustBadge(shopId) {
   return `<button class="trust ${t.level}" data-trust="${esc(shopId)}" type="button" title="Score de confiance : cliquer pour le détail">🛡 ${txt}</button>`;
 }
 
+function shortDate(d) {
+  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(new Date(d));
+}
+
 function stockTag(o) {
-  if (o.preorder) return '<span class="tag pre">Précommande</span>';
+  const when = o.releaseDate ? ` · sortie ${shortDate(o.releaseDate)}` : '';
+  if (o.preorder && o.available === false) return `<span class="tag out">Précommandes complètes${when}</span>`;
+  if (o.preorder) return `<span class="tag pre">🗓️ Précommande${when}</span>`;
   if (o.available === true) return '<span class="tag in">En stock</span>';
+  if (o.available === false && o.upcoming) return `<span class="tag out">Pas encore en vente${when}</span>`;
   if (o.available === false) return '<span class="tag out">Rupture</span>';
   return '<span class="tag">Stock ?</span>';
 }
@@ -210,7 +223,9 @@ function filtered(offers) {
     (o) =>
       (state.lang === 'all' || o.lang === state.lang) &&
       (state.type === 'all' || o.type === state.type) &&
-      (!state.stockOnly || o.available !== false)
+      (state.stock === 'all' ||
+        (state.stock === 'buyable' && o.available !== false) ||
+        (state.stock === 'preorder' && o.preorder && o.available !== false))
   );
 }
 
@@ -228,11 +243,12 @@ function renderBest(data) {
       (o) => `<a class="wanted" href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener noreferrer">
         <span class="pin"></span>
         <div class="w-title">WANTED</div>
-        <div class="w-sub">Meilleur prix</div>
+        <div class="w-sub">${o.preorder ? 'Meilleure préco' : 'Meilleur prix'}</div>
         <div class="w-product">${esc(productLabel(o))} ${o.lang ? LANG_FLAGS[o.lang] : ''}</div>
         <div class="w-price">${esc(eur.format(o.total).replace(/\s?€/, ''))}<small> €</small></div>
         <div class="w-detail">${esc(eur.format(o.price))} + port ~${esc(eur.format(o.shipping))}${o.perBooster ? ` · ${esc(eur.format(o.perBooster))}/booster` : ''}</div>
         <div class="w-shop">chez ${esc(o.shopName)}</div>
+        ${o.preorder ? `<div class="w-detail">Précommande${o.releaseDate ? ` · sortie ${esc(shortDate(o.releaseDate))}` : ''}</div>` : ''}
       </a>`
     )
     .join('');
@@ -274,7 +290,10 @@ function render() {
   }
   if (!state.loading) {
     const okShops = data.shops.filter((s) => s.status === 'ok').length;
-    $('#status').innerHTML = `Mis à jour ${esc(ago(data.fetchedAt))} · ${data.offers.length} offre${data.offers.length > 1 ? 's' : ''} dans ${okShops} boutique${okShops > 1 ? 's' : ''}${data.cached ? ' (résultat récent réutilisé)' : ''}${data.demo ? ' · <b>données fictives (démo)</b>' : ''}`;
+    $('#status').innerHTML = `Mis à jour ${esc(ago(data.fetchedAt))} · ${data.offers.length} offre${data.offers.length > 1 ? 's' : ''}${(() => {
+      const n = data.offers.filter((o) => o.preorder && o.available !== false).length;
+      return n ? ` dont ${n} précommande${n > 1 ? 's' : ''}` : '';
+    })()} dans ${okShops} boutique${okShops > 1 ? 's' : ''}${data.cached ? ' (résultat récent réutilisé)' : ''}${data.demo ? ' · <b>données fictives (démo)</b>' : ''}`;
   }
   renderBest(data);
 
@@ -287,7 +306,7 @@ function render() {
           ${list.map((o, i) => offerRow(o, i === 0 && o.available !== false && !o.flags.some((f) => f.kind === 'suspect'))).join('')}</section>`
         )
         .join('')
-    : `<div class="empty">Aucune offre trouvée avec ces filtres.${state.stockOnly ? ' Essayez de décocher « En stock / précommande ».' : ''}<br>Pensez aussi aux liens « Vérifier aussi sur » ci-dessous.</div>`;
+    : `<div class="empty">Aucune offre trouvée avec ces filtres.${state.stock !== 'all' ? ' Essayez le filtre « Tout » (inclut les ruptures).' : ''}<br>Pensez aussi aux liens « Vérifier aussi sur » ci-dessous.</div>`;
 
   const st = { ok: '✔ offres trouvées', empty: '○ rien pour cette série', error: '✖ injoignable' };
   $('#shopList').innerHTML = data.shops
@@ -389,9 +408,12 @@ $('#typeFilter').addEventListener('click', (e) => {
   renderTypeFilter();
   render();
 });
-$('#stockOnly').addEventListener('change', (e) => {
-  state.stockOnly = e.target.checked;
+$('#stockFilter').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  state.stock = b.dataset.v;
   savePrefs();
+  syncFilters();
   render();
 });
 $('#dlg').addEventListener('click', (e) => {
@@ -399,7 +421,7 @@ $('#dlg').addEventListener('click', (e) => {
 });
 
 function savePrefs() {
-  store.set('prefs', { lang: state.lang, type: state.type, stockOnly: state.stockOnly });
+  store.set('prefs', { lang: state.lang, type: state.type, stock: state.stock });
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

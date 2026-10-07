@@ -55,3 +55,35 @@ test('service : classement, déduplication, statut des boutiques, liste noire', 
   const again = await svc.getSeries('OP16', { force: true });
   assert.equal(again.cached, true); // « Actualiser » trop rapproché → cache
 });
+
+test('précommandes : série à venir, mention dans le titre, FR sans date → date EN', async () => {
+  const { buildOffer, releaseFor } = await import('../server/prices.js');
+  const s = { release: { en: '2026-11-20', jp: '2026-11-21' } };
+  const shop = { id: 'x', name: 'X', country: 'FR' };
+  const cls = (lang) => ({ type: 'display', lang, quantity: 1 });
+  const today = '2026-10-07';
+
+  assert.equal(releaseFor(s, 'FR'), '2026-11-20');
+  assert.equal(releaseFor(s, null), '2026-11-20');
+
+  const o = buildOffer(shop, { title: 'Display OP18 FR', price: 130, url: 'u', available: true }, cls('FR'), defaults, s, today);
+  assert.equal(o.preorder, true);
+  assert.equal(o.releaseDate, '2026-11-20');
+
+  // Produit affiché mais pas encore commandable (liste d'attente) : pas une précommande.
+  const wait = buildOffer(shop, { title: 'Display OP18 JP', price: 90, url: 'u', available: false }, cls('JP'), defaults, s, today);
+  assert.equal(wait.preorder, false);
+  assert.equal(wait.upcoming, true);
+
+  // Sur commande (WooCommerce backorder) : précommande commandable.
+  const back = buildOffer(shop, { title: 'Display OP18 EN', price: 130, url: 'u', available: false, backorder: true }, cls('EN'), defaults, s, today);
+  assert.equal(back.preorder, true);
+  assert.equal(back.available, null);
+
+  // Série sortie, mais mention « précommande » dans le titre.
+  const old = { release: { fr: '2026-06-12' } };
+  const pre = buildOffer(shop, { title: '[Précommande] Display OP16 FR', price: 130, url: 'u', available: true }, cls('FR'), defaults, old, today);
+  assert.equal(pre.preorder, true);
+  const inStock = buildOffer(shop, { title: 'Display OP16 FR', price: 130, url: 'u', available: true }, cls('FR'), defaults, old, today);
+  assert.equal(inStock.preorder, false);
+});
