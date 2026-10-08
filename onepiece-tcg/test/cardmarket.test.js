@@ -59,3 +59,30 @@ test('looksLikeOnePiece', () => {
   assert.equal(looksLikeOnePiece(op), true);
   assert.equal(looksLikeOnePiece([{ name: 'Pikachu' }]), false);
 });
+
+test('photo Cardmarket : adresses (extension -JP puis standard) et langue déduite', async () => {
+  const { cardmarketImageUrls, languageFromSource } = await import('../server/cardImages.js');
+  const urls = cardmarketImageUrls(18, 'OP16', 812345);
+  assert.equal(urls[0], 'https://product-images.s3.cardmarket.com/18/OP16-JP/812345/812345.jpg');
+  assert.ok(urls.includes('https://product-images.s3.cardmarket.com/18/OP16/812345/812345.jpg'));
+  assert.deepEqual(cardmarketImageUrls(null, 'OP16', 1), []);
+  assert.equal(languageFromSource(urls[0], 'OP16'), 'JP');
+  assert.equal(languageFromSource('https://product-images.s3.cardmarket.com/18/OP16/1/1.jpg', 'OP16'), 'EN');
+  assert.equal(languageFromSource('https://optcgapi.com/img/OP16-065.jpg', 'OP16'), null);
+});
+
+test('expansionPrefixes et topCards : extension et lien d’image avec id', async () => {
+  const { expansionPrefixes } = await import('../server/cardmarket.js');
+  const products = [
+    { idProduct: 1, name: 'Sakazuki (OP16-065) (V.1)', idExpansion: 70 },
+    { idProduct: 2, name: 'Sakazuki (OP16-065) (V.1)', idExpansion: 71 },
+    { idProduct: 3, name: 'Luffy (EB04-061)', idExpansion: 70 },
+    { idProduct: 4, name: 'Kuzan (OP16-063)', idExpansion: 70 },
+  ];
+  const pre = expansionPrefixes(products);
+  assert.equal(pre.get(70), 'OP16');
+  const top = topCards(products, [{ idProduct: 1, avg7: 900 }, { idProduct: 2, avg7: 1300 }, { idProduct: 3, avg7: 50 }], 'OP16', 5, pre);
+  assert.deepEqual(top.map((c) => c.idProduct), [2, 1, 3]);
+  assert.equal(top[2].expansion, 'OP16'); // EB04-061 imprimée dans l'extension OP16
+  assert.equal(top[0].images[0], '/api/card-image?code=OP16-065&v=1&id=2&exp=OP16');
+});

@@ -456,3 +456,10 @@ a.diag-btn { text-decoration: none; }
 .flag svg { height: 0.95em; width: auto; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
 #langFilter .flag svg { height: 1.05em; }
 .w-product .flag svg { height: 0.85em; }
+
+/* Top cartes : langue et illustration indicative */
+.tcg-meta { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.flag-pair { display: inline-flex; gap: 2px; line-height: 0; }
+.flag-pair svg { height: 0.95em; width: auto; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
+.tcg-img { position: relative; }
+.tcg-note { position: absolute; left: 6px; right: 6px; bottom: 6px; background: rgba(11, 31, 58, 0.82); color: #fff; font-size: 0.68rem; font-weight: 700; text-align: center; border-radius: 6px; padding: 2px 4px; }

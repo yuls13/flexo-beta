@@ -33,15 +33,32 @@ export function parseCardName(name) {
   return { code, variant, base };
 }
 
-// Visuel servi par le serveur de l'app (voir cardImages.js).
-export function cardImages(code, variant) {
+// Visuel servi par le serveur de l'app (voir cardImages.js) ; id + extension pour la photo Cardmarket.
+export function cardImages(code, variant, idProduct, exp) {
   if (!code) return [];
-  return [`/api/card-image?code=${encodeURIComponent(code)}&v=${variant || 1}`];
+  const extra = idProduct && exp ? `&id=${encodeURIComponent(idProduct)}&exp=${encodeURIComponent(exp)}` : '';
+  return [`/api/card-image?code=${encodeURIComponent(code)}&v=${variant || 1}${extra}`];
+}
+
+// Préfixe de code majoritaire de chaque extension Cardmarket (ex. OP16), utilisé dans l'adresse des photos.
+export function expansionPrefixes(products) {
+  const counts = new Map(); // idExpansion -> Map(prefix -> n)
+  for (const p of products) {
+    const code = parseCardName(p.name || '').code;
+    if (!code) continue;
+    const prefix = code.split('-')[0];
+    const m = counts.get(p.idExpansion) || new Map();
+    m.set(prefix, (m.get(prefix) || 0) + 1);
+    counts.set(p.idExpansion, m);
+  }
+  const out = new Map();
+  for (const [exp, m] of counts) out.set(exp, [...m.entries()].sort((a, b) => b[1] - a[1])[0][0]);
+  return out;
 }
 
 // Sélection des cartes d'une série : code de carte de la série + toutes les cartes de
 // l'extension Cardmarket majoritaire (utile pour les rééditions PRB qui gardent leurs anciens codes).
-export function topCards(products, guides, seriesId, limit = 5) {
+export function topCards(products, guides, seriesId, limit = 5, prefixes = expansionPrefixes(products)) {
   const prefix = seriesId.toUpperCase();
   const byId = new Map(guides.map((g) => [g.idProduct, g]));
   const matched = products.filter((p) => parseCardName(p.name || '').code?.startsWith(`${prefix}-`));
@@ -57,8 +74,11 @@ export function topCards(products, guides, seriesId, limit = 5) {
       const g = byId.get(p.idProduct) || {};
       const price = g.avg7 ?? g.trend ?? null;
       const { code, variant, base } = parseCardName(p.name);
+      const exp = prefixes.get(p.idExpansion) || code?.split('-')[0] || null;
       return {
         idProduct: p.idProduct,
+        idExpansion: p.idExpansion,
+        expansion: exp,
         name: base,
         fullName: p.name,
         code,
@@ -67,7 +87,7 @@ export function topCards(products, guides, seriesId, limit = 5) {
         trend: g.trend ?? null,
         low: g.low ?? null,
         price,
-        images: cardImages(code, variant),
+        images: cardImages(code, variant, p.idProduct, exp),
         url: `https://www.cardmarket.com/fr/OnePiece/Products/Search?searchString=${encodeURIComponent(`${base} ${code || ''}`.trim())}`,
       };
     })
@@ -76,7 +96,7 @@ export function topCards(products, guides, seriesId, limit = 5) {
     .slice(0, limit);
 }
 
-export function createCardmarketService({ gameId = process.env.CARDMARKET_GAME_ID } = {}) {
+export function createCardmarketService({ gameId = process.env.CARDMARKET_GAME_ID, imageService = null } = {}) {
   let data = null; // { products, guides, createdAt, at, gameId }
   let loading = null;
   let lastError = null;
@@ -98,7 +118,7 @@ export function createCardmarketService({ gameId = process.env.CARDMARKET_GAME_I
   async function load() {
     const { id, products } = data?.gameId ? await reloadProducts(data.gameId) : await detectGameId();
     const { json } = await fetchJson(guideUrl(id), { timeoutMs: 30000 });
-    data = { products, guides: arrayIn(json, 'priceGuides'), createdAt: json?.createdAt || null, at: Date.now(), gameId: id };
+    data = { products, guides: arrayIn(json, 'priceGuides'), createdAt: json?.createdAt || null, at: Date.now(), gameId: id, prefixes: expansionPrefixes(products) };
     lastError = null;
   }
 
@@ -123,8 +143,29 @@ export function createCardmarketService({ gameId = process.env.CARDMARKET_GAME_I
   async function getTop(seriesId) {
     await ensure();
     if (!data) return { available: false, error: lastError || 'données Cardmarket indisponibles', cards: [] };
-    return { available: true, source: 'cardmarket', updatedAt: data.createdAt, cards: topCards(data.products, data.guides, seriesId) };
+    const cards = topCards(data.products, data.guides, seriesId, 5, data.prefixes);
+    await annotate(cards);
+    return { available: true, source: 'cardmarket', updatedAt: data.createdAt, cards };
   }
 
-  return { getTop };
+  // Langue et exactitude de l'illustration : la photo Cardmarket qui répond (extension « -JP » ou non)
+  // indique la langue ; le résultat vaut pour toute l'extension. Les images restent en cache pour l'affichage.
+  const expansionLang = new Map(); // idExpansion -> 'JP' | 'EN'
+  async function annotate(cards) {
+    if (!imageService) return;
+    const timeout = new Promise((r) => setTimeout(r, 15000));
+    await Promise.race([
+      timeout,
+      Promise.all(
+        cards.map(async (c) => {
+          const img = await imageService.get({ code: c.code, variant: c.variant, idProduct: c.idProduct, exp: c.expansion, gameId: data.gameId }).catch(() => null);
+          if (img?.lang) expansionLang.set(c.idExpansion, img.lang);
+          c.artExact = !!img?.exact;
+        })
+      ),
+    ]);
+    for (const c of cards) c.lang = expansionLang.get(c.idExpansion) || null;
+  }
+
+  return { getTop, gameId: () => data?.gameId || null };
 }

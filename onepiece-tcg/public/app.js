@@ -107,7 +107,7 @@ async function init() {
   state.data = store.get('prices', {});
   state.customShops = store.get('customShops', []);
   state.owned = store.get('owned', {});
-  state.cards = store.get('cards-v2', {});
+  state.cards = store.get('cards-v3', {});
   for (const c of state.customShops) if (c.trust) state.trust[c.id] = c.trust;
   renderMyShops();
   const prefs = store.get('prefs', {});
@@ -533,7 +533,7 @@ async function loadCards() {
   try {
     const data = await api(`/api/cards?series=${encodeURIComponent(s.id)}`);
     state.cards[s.id] = { ...data, fetchedAt: new Date().toISOString() };
-    if (data.available) store.set('cards-v2', state.cards);
+    if (data.available) store.set('cards-v3', state.cards);
   } catch (err) {
     state.cards[s.id] = { available: false, error: err.message, cards: [] };
   }
@@ -580,10 +580,11 @@ function renderCards() {
                 : ''
             }
             <span class="tcg-ph" ${first ? 'hidden' : ''}>${esc(c.code || '?')}</span>
+            ${first && c.artExact === false ? '<span class="tcg-note" title="Photo exacte de la fiche Cardmarket indisponible : illustration officielle de la carte, la version (alternative, manga…) peut différer.">illustration indicative</span>' : ''}
           </a>
           <figcaption>
             <b>${esc(c.name)}</b>
-            <span class="muted">${esc(c.code || '')}${c.variant > 1 ? ` · version ${c.variant} (alt.)` : ''}</span>
+            <span class="muted tcg-meta">${cardLang(c.lang)}${esc(c.code || '')}${c.variant > 1 ? ` · V.${c.variant}` : ''}</span>
             <span class="tcg-price">${c.avg7 != null ? esc(eur.format(c.avg7)) : '—'}<small> moy. 7 j</small></span>
             ${c.trend != null ? `<span class="muted">Tendance ${esc(eur.format(c.trend))}</span>` : ''}
             <label class="have-box"><input type="checkbox" data-own="${esc(c.idProduct)}" ${have ? 'checked' : ''} /> Je l’ai</label>
@@ -591,7 +592,14 @@ function renderCards() {
         </figure>`;
       })
       .join('')}</div>
-    <p class="muted">${owned.length ? `✅ Vous en possédez ${owned.length}/${data.cards.length} · valeur estimée ≈ <b>${esc(eur.format(value))}</b>` : state.user ? 'Cochez « Je l’ai » pour suivre votre collection (synchronisé avec votre compte).' : 'Cochez « Je l’ai » pour suivre votre collection (enregistré sur cet appareil ; connectez-vous pour le retrouver partout).'} · Prix Cardmarket toutes langues confondues.</p>`;
+    <p class="muted">${owned.length ? `✅ Vous en possédez ${owned.length}/${data.cards.length} · valeur estimée ≈ <b>${esc(eur.format(value))}</b>` : state.user ? 'Cochez « Je l’ai » pour suivre votre collection (synchronisé avec votre compte).' : 'Cochez « Je l’ai » pour suivre votre collection (enregistré sur cet appareil ; connectez-vous pour le retrouver partout).'} · Prix Cardmarket par fiche : version japonaise ou version occidentale (anglais, français… réunis).</p>`;
+}
+
+// Langue d'une carte Cardmarket : extension japonaise (JP) ou occidentale (anglais, français… réunis).
+function cardLang(lang) {
+  if (lang === 'JP') return `<span class="flag" role="img" aria-label="Version japonaise" title="Version japonaise (extension -JP sur Cardmarket)">${FLAG_SVG.JP}</span>`;
+  if (lang === 'EN') return `<span class="flag-pair" role="img" aria-label="Version anglaise ou française" title="Version occidentale : Cardmarket réunit les cartes anglaises, françaises et des autres langues occidentales sur la même fiche, avec un prix commun">${FLAG_SVG.EN}${FLAG_SVG.FR}</span>`;
+  return '<span class="lang-unknown" title="Langue non déterminée">🌐</span>';
 }
 
 // Image officielle introuvable : on essaie les adresses suivantes, puis on affiche le code de la carte.

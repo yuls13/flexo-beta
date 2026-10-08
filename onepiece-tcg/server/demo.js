@@ -71,7 +71,7 @@ export function demoCards(series) {
     .map((name, i) => {
       const price = Math.round((40 + r() * 600) * 100) / 100;
       const code = `${series.id}-${String(100 + i * 3).padStart(3, '0')}`;
-      return { idProduct: `demo-${series.id}-${i}`, name, code, variant: 1 + (i % 3), avg7: price, trend: price * (0.9 + r() * 0.2), price, images: [], url: '#' };
+      return { idProduct: `demo-${series.id}-${i}`, name, code, variant: 1 + (i % 3), lang: i % 2 ? 'JP' : 'EN', avg7: price, trend: price * (0.9 + r() * 0.2), price, images: [], url: '#' };
     })
     .sort((a, b) => b.price - a.price)
     .slice(0, 5);

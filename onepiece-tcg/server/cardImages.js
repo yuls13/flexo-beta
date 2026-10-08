@@ -28,13 +28,26 @@ export function pickOptcgImage(json, ids) {
   return list.find((c) => c.card_image)?.card_image || null;
 }
 
+// Photo de la fiche Cardmarket : product-images.s3.cardmarket.com/<jeu>/<extension>/<id>/<id>.jpg.
+// L'extension japonaise porte le suffixe « -JP » (ex. OP16-JP) : l'adresse qui répond donne la langue.
+export function cardmarketImageUrls(gameId, exp, idProduct) {
+  if (!gameId || !exp || !idProduct) return [];
+  const base = 'https://product-images.s3.cardmarket.com';
+  return [`${exp}-JP`, exp].flatMap((abbr) => [`${base}/${gameId}/${abbr}/${idProduct}/${idProduct}.jpg`, `${base}/${gameId}/${abbr}/${idProduct}/${idProduct}.png`]);
+}
+
+export function languageFromSource(source, exp) {
+  if (!source || !/cardmarket\.com/.test(source)) return null;
+  return new RegExp(`/${exp}-JP/`, 'i').test(source) ? 'JP' : 'EN';
+}
+
 export function createCardImageService() {
-  const cache = new Map(); // clé -> { buf, type, source, at } | { fail, tried, at }
+  const cache = new Map(); // clé -> { buf, type, source, lang, exact, at } | { fail, tried, at }
   const inflight = new Map();
 
-  async function candidates(code, variant) {
+  async function candidates({ code, variant, idProduct, exp, gameId }) {
+    const urls = [...cardmarketImageUrls(gameId, exp, idProduct)];
     const ids = imageIds(code, variant);
-    const urls = [];
     const kind = /^ST/i.test(code) ? 'decks' : 'sets';
     try {
       const { json } = await fetchJson(`https://optcgapi.com/api/${kind}/card/${code.toUpperCase()}/`, { timeoutMs: 8000 });
@@ -47,12 +60,16 @@ export function createCardImageService() {
     return [...new Set(urls)];
   }
 
-  async function resolve(code, variant) {
+  async function resolve(params) {
     const tried = [];
-    for (const url of await candidates(code, variant)) {
+    for (const url of await candidates(params)) {
       try {
         const img = await fetchBinary(url, { timeoutMs: 10000, maxBytes: 3 * 1024 * 1024 });
-        if (/^image\//.test(img.type) && img.buf.length > 1000) return { buf: img.buf, type: img.type, source: url };
+        if (/^image\//.test(img.type) && img.buf.length > 1000) {
+          const lang = languageFromSource(url, params.exp);
+          // Photo Cardmarket = illustration exacte de la fiche ; sinon illustration indicative (version de base possible).
+          return { buf: img.buf, type: img.type, source: url, lang, exact: !!lang, tried };
+        }
         tried.push(`${url} → pas une image (${img.type || 'type inconnu'})`);
       } catch (err) {
         tried.push(`${url} → ${err.message}`);
@@ -61,12 +78,14 @@ export function createCardImageService() {
     return { fail: true, tried };
   }
 
-  async function get(code, variant) {
-    const key = `${code.toUpperCase()}|${variant}`;
+  // params : { code, variant, idProduct?, exp?, gameId? }
+  async function get(params) {
+    const code = String(params.code).toUpperCase();
+    const key = params.idProduct ? `p${params.idProduct}` : `${code}|${params.variant}`;
     const hit = cache.get(key);
     if (hit && Date.now() - hit.at < (hit.fail ? FAIL_TTL_MS : TTL_MS)) return hit;
     if (inflight.has(key)) return inflight.get(key);
-    const p = resolve(code.toUpperCase(), variant)
+    const p = resolve({ ...params, code })
       .then((r) => {
         const entry = { ...r, at: Date.now() };
         cache.delete(key);
