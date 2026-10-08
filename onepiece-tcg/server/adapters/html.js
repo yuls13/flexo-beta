@@ -105,3 +105,59 @@ export function parseShopifyProductJs(json, base) {
     image: json.featured_image ? new URL(json.featured_image, base).href : null,
   };
 }
+
+// Lecteur générique de vignettes, indépendant du thème : repère les liens vers des fiches produit,
+// prend le titre du lien (attribut title, texte ou image) et le prix trouvé dans le bloc qui suit.
+const PRODUCT_LINK = /\/\d+-[^"'\/?#]+\.html(?:[?#][^"']*)?$|\/products\/[^"'\/?#]+|\/(?:produit|product)\/[^"'?#]+\/?/i;
+
+function priceIn(segment) {
+  const meta = segment.match(/itemprop=["']price["'][^>]*content=["']([\d.,]+)["']|content=["']([\d.,]+)["'][^>]*itemprop=["']price["']/i);
+  if (meta) return parsePrice(meta[1] || meta[2]);
+  const data = segment.match(/data-price(?:-amount)?=["']([\d.,]+)["']/i);
+  if (data) return parsePrice(data[1]);
+  // Prix affiché, en ignorant le prix barré (<del>, .old-price, .regular-price).
+  const visible = segment.replace(/<del[\s\S]*?<\/del>|<[^>]+class=["'][^"']*(?:old-price|regular-price|price-old|was-price)[^"']*["'][^>]*>[\s\S]*?<\/[a-z]+>/gi, ' ');
+  const text = clean(visible);
+  const m = text.match(/(\d{1,4}(?:[ .]\d{3})*[.,]\d{2})\s?€|€\s?(\d{1,4}(?:[.,]\d{2}))/);
+  return m ? parsePrice(m[1] || m[2]) : null;
+}
+
+export function parseProductCards(html, baseUrl) {
+  const byUrl = new Map();
+  for (const m of html.matchAll(/<a\b([^>]*?)href=["']([^"']+)["']([^>]*)>([\s\S]*?)<\/a>/gi)) {
+    let url;
+    try {
+      url = new URL(m[2].replace(/&amp;/g, '&'), baseUrl);
+    } catch {
+      continue;
+    }
+    if (!PRODUCT_LINK.test(url.pathname + url.search)) continue;
+    const key = url.origin + url.pathname;
+    const attrs = `${m[1]} ${m[3]}`;
+    const candidates = [
+      attrs.match(/title=["']([^"']{4,200})["']/i)?.[1],
+      m[4].match(/<img[^>]+alt=["']([^"']{4,200})["']/i)?.[1],
+      clean(m[4]),
+    ].map((t) => clean(t || '')).filter((t) => t.length >= 4 && t.length <= 200 && !/^(voir|ajouter|acheter|d[ée]tails?|en savoir plus|add to cart|view)/i.test(t));
+    const entry = byUrl.get(key) || { url: key, index: m.index, titles: [] };
+    entry.titles.push(...candidates);
+    byUrl.set(key, entry);
+  }
+  const entries = [...byUrl.values()].sort((a, b) => a.index - b.index);
+  return entries
+    .map((e, i) => {
+      const end = Math.min(entries[i + 1]?.index ?? html.length, e.index + 4000);
+      const segment = html.slice(e.index, end);
+      const title = e.titles.sort((a, b) => b.length - a.length)[0];
+      if (!title) return null;
+      return {
+        title,
+        price: priceIn(segment),
+        url: e.url,
+        available: /out-of-stock|rupture|[ée]puis[ée]|indisponible|sold ?out/i.test(segment) ? false : /en stock|in stock|disponible/i.test(segment) ? true : null,
+        preorder: /pr[ée]-?commande|pre-?order/i.test(segment) || undefined,
+        image: segment.match(/<img[^>]+(?:data-src|src)=["']([^"']+)["']/i)?.[1] || null,
+      };
+    })
+    .filter(Boolean);
+}

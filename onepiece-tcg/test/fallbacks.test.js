@@ -124,3 +124,31 @@ test('diagnostic : contenu et serveur d’une réponse en erreur', async () => {
     globalThis.fetch = realFetch;
   }
 });
+
+test('parseProductCards : thème PrestaShop 1.6 (prix barré, lien image, rupture)', async () => {
+  const { parseProductCards } = await import('../server/adapters/html.js');
+  const html = `
+  <ul class="product_list grid row">
+   <li class="ajax_block_product col-xs-12">
+    <div class="product-container" itemscope itemtype="https://schema.org/Product">
+     <a class="product_img_link" href="https://www.philibertnet.com/fr/bandai/140123-one-piece-display-op17-fr-4582770058710.html" title="One Piece - Display 24 boosters OP17 - Les Guerriers les plus puissants (FR)"><img src="/img/a.jpg" alt="Display OP17"></a>
+     <h5 itemprop="name"><a class="product-name" href="https://www.philibertnet.com/fr/bandai/140123-one-piece-display-op17-fr-4582770058710.html">One Piece - Display 24 boosters OP17…</a></h5>
+     <div class="content_price"><span class="price product-price">139,90 €</span><span class="old-price product-price">149,90 €</span></div>
+     <a class="button ajax_add_to_cart_button" href="https://www.philibertnet.com/fr/panier?add=1&id_product=140123" title="Ajouter au panier"><span>Ajouter au panier</span></a>
+    </div>
+   </li>
+   <li class="ajax_block_product">
+    <div class="product-container">
+     <a class="product_img_link" href="/fr/bandai/140124-one-piece-booster-op17-fr.html"><img src="/img/b.jpg" alt="One Piece - Booster OP17 (FR)"></a>
+     <span class="price product-price">5,99&nbsp;€</span><span class="availability out-of-stock">Rupture de stock</span>
+    </div>
+   </li>
+  </ul>`;
+  const [a, b] = parseProductCards(html, 'https://www.philibertnet.com/fr/recherche?s=OP17');
+  assert.equal(a.title, 'One Piece - Display 24 boosters OP17 - Les Guerriers les plus puissants (FR)');
+  assert.equal(a.price, 139.9);
+  assert.equal(a.url, 'https://www.philibertnet.com/fr/bandai/140123-one-piece-display-op17-fr-4582770058710.html');
+  assert.equal(b.title, 'One Piece - Booster OP17 (FR)');
+  assert.equal(b.price, 5.99);
+  assert.equal(b.available, false);
+});

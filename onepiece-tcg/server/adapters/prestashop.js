@@ -2,7 +2,7 @@
 import { fetchJson, fetchText } from '../http.js';
 import { parsePrice } from '../classify.js';
 import { decodeEntities } from './woocommerce.js';
-import { parseJsonLd } from './html.js';
+import { parseJsonLd, parseProductCards } from './html.js';
 
 export function parsePresta(json) {
   const products = json?.products || [];
@@ -72,6 +72,9 @@ export async function prestaAjax(shop, query) {
 // Méthode 2 : page de recherche HTML (vignettes produits, sinon données JSON-LD).
 export async function prestaHtml(shop, query) {
   const { text, url } = await fetchText(searchUrl(shop, query, false));
-  const items = parsePrestaHtml(text, url);
-  return items.length ? items : parseJsonLd(text, url);
+  for (const parse of [parsePrestaHtml, parseJsonLd, parseProductCards]) {
+    const items = parse(text, url);
+    if (items.length) return items;
+  }
+  return [];
 }

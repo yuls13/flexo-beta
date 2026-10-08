@@ -4,7 +4,7 @@
 import { searchShopify } from './shopify.js';
 import { searchWoo } from './woocommerce.js';
 import { prestaAjax, prestaHtml } from './prestashop.js';
-import { parseJsonLd, parseWooHtml, shopifyHandles, parseShopifyProductJs } from './html.js';
+import { parseJsonLd, parseWooHtml, shopifyHandles, parseShopifyProductJs, parseProductCards } from './html.js';
 import { fetchJson, fetchText, pool } from '../http.js';
 
 async function wooHtml(shop, query) {
@@ -13,8 +13,11 @@ async function wooHtml(shop, query) {
   u.searchParams.set('post_type', 'product');
   const { text, url } = await fetchText(u.href);
   // Un seul résultat : WooCommerce redirige directement vers la fiche produit (JSON-LD).
-  const items = parseWooHtml(text, url);
-  return items.length ? items : parseJsonLd(text, url);
+  for (const parse of [parseWooHtml, parseJsonLd, parseProductCards]) {
+    const items = parse(text, url);
+    if (items.length) return items;
+  }
+  return [];
 }
 
 async function shopifyHtml(shop, query) {
@@ -39,8 +42,10 @@ async function genericSearch(shop, query) {
   for (const path of [`/search?q=${encodeURIComponent(query)}`, `/recherche?s=${encodeURIComponent(query)}`]) {
     try {
       const { text, url } = await fetchText(new URL(path, shop.base).href);
-      const items = parseJsonLd(text, url);
-      if (items.length) return items;
+      for (const parse of [parseJsonLd, parseProductCards]) {
+        const items = parse(text, url);
+        if (items.length) return items;
+      }
     } catch {
       /* chemin suivant */
     }
