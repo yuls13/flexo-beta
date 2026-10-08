@@ -108,7 +108,7 @@ async function init() {
   state.data = store.get('prices', {});
   state.customShops = store.get('customShops', []);
   state.owned = store.get('owned', {});
-  state.cards = store.get('cards-v4', {});
+  state.cards = store.get('cards-v5', {});
   for (const c of state.customShops) if (c.trust) state.trust[c.id] = c.trust;
   renderMyShops();
   const prefs = store.get('prefs', {});
@@ -535,7 +535,7 @@ async function loadCards() {
   try {
     const data = await api(`/api/cards?series=${encodeURIComponent(s.id)}`);
     state.cards[s.id] = { ...data, fetchedAt: new Date().toISOString() };
-    if (data.available) store.set('cards-v4', state.cards);
+    if (data.available) store.set('cards-v5', state.cards);
   } catch (err) {
     state.cards[s.id] = { available: false, error: err.message, cards: [] };
   }
@@ -543,6 +543,14 @@ async function loadCards() {
 }
 
 const CHASE_PREVIEW = 12;
+const usd = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' });
+
+// Prix d'une chase card : moyenne 7 jours Cardmarket (EN/FR) ; à défaut, prix TCGplayer (marché anglais, en dollars).
+function chasePrice(c) {
+  if (c.avg7 != null || c.eur != null) return `<span class="chase-price" title="Prix moyen de vente sur 7 jours, version EN/FR, Cardmarket">${esc(eur.format(c.avg7 ?? c.eur))}</span>`;
+  if (c.usd != null) return `<span class="chase-price usd" title="Prix TCGplayer (cartes anglaises, marché américain) : version introuvable sur Cardmarket">${esc(usd.format(c.usd))} <small>TCGplayer</small></span>`;
+  return '<span class="chase-price">—</span>';
+}
 
 function renderCards() {
   const box = $('#cards');
@@ -555,7 +563,7 @@ function renderCards() {
   const data = state.cards[s.id];
   const langFlags = `<span class="flag-pair" role="img" aria-label="Version anglaise ou française" title="Prix de la version occidentale (anglais, français…) sur Cardmarket ; les cartes japonaises sont exclues">${FLAG_SVG.EN}${FLAG_SVG.FR}</span>`;
   const head = (n) => `<div class="cards-head"><h2>💎 Chase cards ${esc(s.id)}</h2>
-    <span class="muted">${n ? `${n} version${n > 1 ? 's' : ''} alternative${n > 1 ? 's' : ''} · ` : ''}prix moyen de vente sur 7 jours · ${langFlags} Cardmarket${data?.updatedAt ? ` · données du ${esc(dateFmt.format(new Date(data.updatedAt)))}` : ''}</span></div>`;
+    <span class="muted">${n ? `${n} version${n > 1 ? 's' : ''} alternative${n > 1 ? 's' : ''} · ` : ''}prix moyen de vente sur 7 jours · ${langFlags} Cardmarket (sinon TCGplayer, en $)${data?.updatedAt ? ` · données du ${esc(dateFmt.format(new Date(data.updatedAt)))}` : ''}</span></div>`;
   if (!data) {
     box.innerHTML = `${head()}<p class="muted">⚓ Chargement des prix Cardmarket…</p>`;
     return;
@@ -572,7 +580,7 @@ function renderCards() {
   const all = data.cards;
   const shown = state.showAllChase ? all : all.slice(0, CHASE_PREVIEW);
   const owned = all.filter((c) => state.owned[c.idProduct]);
-  const value = owned.reduce((sum, c) => sum + (c.price || 0), 0);
+  const value = owned.reduce((sum, c) => sum + (c.avg7 ?? c.eur ?? 0), 0);
   box.innerHTML = `${head(all.length)}
     <div class="chase-grid">${shown
       .map((c) => {
@@ -585,15 +593,15 @@ function renderCards() {
           </a>
           <figcaption>
             <b title="${esc(c.fullName || c.name)}">${esc(c.name)}</b>
-            <span class="muted">${esc(c.code)} · V.${c.variant}</span>
-            <span class="chase-price">${c.avg7 != null ? esc(eur.format(c.avg7)) : c.price != null ? esc(eur.format(c.price)) : '—'}</span>
+            <span class="muted">${esc(c.code)} · V.${c.variant}${c.rarity ? ` · ${esc(c.rarity)}` : ''}</span>
+            ${chasePrice(c)}
             <label class="have-box"><input type="checkbox" data-own="${esc(c.idProduct)}" ${have ? 'checked' : ''} /> Je l’ai</label>
           </figcaption>
         </figure>`;
       })
       .join('')}</div>
     ${all.length > CHASE_PREVIEW ? `<button class="btn btn-ghost-dark chase-more" type="button" id="chaseMore">${state.showAllChase ? 'Réduire' : `Voir les ${all.length} chase cards`}</button>` : ''}
-    <p class="muted">${owned.length ? `✅ Vous en possédez ${owned.length}/${all.length} · valeur estimée ≈ <b>${esc(eur.format(value))}</b>` : state.user ? 'Cochez « Je l’ai » pour suivre votre collection (synchronisé avec votre compte).' : 'Cochez « Je l’ai » pour suivre votre collection (enregistré sur cet appareil ; connectez-vous pour le retrouver partout).'} · Visuels : base OPTCG API (illustrations officielles, marquées « SAMPLE »).</p>`;
+    <p class="muted">${owned.length ? `✅ Vous en possédez ${owned.length}/${all.length} · valeur estimée ≈ <b>${esc(eur.format(value))}</b>` : state.user ? 'Cochez « Je l’ai » pour suivre votre collection (synchronisé avec votre compte).' : 'Cochez « Je l’ai » pour suivre votre collection (enregistré sur cet appareil ; connectez-vous pour le retrouver partout).'} · Versions et visuels : base OPTCG API (illustrations officielles, marquées « SAMPLE »).</p>`;
   $('#chaseMore')?.addEventListener('click', () => {
     state.showAllChase = !state.showAllChase;
     renderCards();

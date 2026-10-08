@@ -9,6 +9,7 @@ import { createTrustService, computeScore, sanitizeDomain, rootDomain, LEVEL_LAB
 import { demoSearch, demoTrust, demoCards } from './demo.js';
 import { inspectShop, parseCustomParam, customShopId, MAX_CUSTOM_SHOPS } from './customShops.js';
 import { createCardmarketService } from './cardmarket.js';
+import { createChaseService } from './chase.js';
 import { createLogoService, googleFavicon } from './logos.js';
 import { createCardImageService, validCode } from './cardImages.js';
 
@@ -57,7 +58,10 @@ const trustService = DEMO
 const cardImageService = createCardImageService();
 const cardService = DEMO
   ? { getChase: async (id) => demoCards(rawSeries.find((s) => s.id === id)), gameId: () => null }
-  : createCardmarketService();
+  : (() => {
+      const cardmarket = createCardmarketService();
+      return { ...createChaseService({ cardmarket }), gameId: cardmarket.gameId };
+    })();
 const knownDomains = new Set(shops.map((s) => rootDomain(s.domain)));
 const logoService = createLogoService();
 const diagnoseTimes = new Map();

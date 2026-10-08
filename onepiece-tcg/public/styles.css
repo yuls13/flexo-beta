@@ -475,6 +475,8 @@ a.diag-btn { text-decoration: none; }
 .chase figcaption b { font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chase figcaption .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.7rem; }
 .chase-price { font-weight: 800; color: var(--red); font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+.chase-price.usd { color: var(--warn); }
+.chase-price small { font-size: 0.6rem; font-weight: 700; color: var(--muted); }
 .chase .have-box { font-size: 0.74rem; margin-top: 2px; }
 .chase .have-box input { width: 16px; height: 16px; }
 .chase-more { margin: 12px auto 0; display: flex; }

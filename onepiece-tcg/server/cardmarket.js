@@ -220,5 +220,24 @@ export function createCardmarketService({ gameId = process.env.CARDMARKET_GAME_I
     };
   }
 
-  return { getChase, gameId: () => data?.gameId || null };
+  // Fiches de l'extension occidentale (EN/FR) d'une série, regroupées par code et classées par création.
+  async function westernByCode(seriesId) {
+    await ensure();
+    if (!data) return { byCode: new Map(), error: lastError || 'données Cardmarket indisponibles' };
+    const { western, method, expansions } = westernExpansion(data.products, data.guides, seriesId.toUpperCase(), data.prefixes);
+    const guide = new Map(data.guides.map((g) => [g.idProduct, g]));
+    const byCode = new Map();
+    for (const p of data.products) {
+      if (p.idExpansion !== western) continue;
+      const { code, base } = parseCardName(p.name || '');
+      if (!code) continue;
+      const g = guide.get(p.idProduct) || {};
+      if (!byCode.has(code)) byCode.set(code, []);
+      byCode.get(code).push({ idProduct: p.idProduct, name: base, avg7: g.avg7 ?? null, trend: g.trend ?? null });
+    }
+    for (const list of byCode.values()) list.sort((a, b) => a.idProduct - b.idProduct);
+    return { byCode, western, method, expansions, updatedAt: data.createdAt };
+  }
+
+  return { getChase, westernByCode, gameId: () => data?.gameId || null };
 }
