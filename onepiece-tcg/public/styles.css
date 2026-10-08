@@ -269,7 +269,22 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 .foot { text-align: center; color: var(--muted); font-size: 0.78rem; padding: 0 16px 32px; max-width: 800px; margin: 0 auto; }
 
 /* ---------- Boîte de dialogue ---------- */
-.dlg { border: 0; border-radius: 16px; padding: 18px; width: min(520px, calc(100vw - 32px)); background: var(--card); color: var(--text); box-shadow: 0 20px 60px #0008; }
+.dlg {
+  border: 0;
+  border-radius: 16px;
+  padding: 18px;
+  /* Taille relative à l'écran visible (pas 100vw, faussé sur iOS dans certains affichages intégrés). */
+  width: calc(100% - 32px);
+  max-width: 520px;
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: auto;
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 20px 60px #0008;
+}
+.dlg * { min-width: 0; }
 .dlg::backdrop { background: rgba(11, 31, 58, 0.6); }
 .dlg-close { position: absolute; right: 10px; top: 8px; }
 .dlg-close button { border: 0; background: transparent; font-size: 1.2rem; color: var(--muted); }
@@ -283,8 +298,9 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 .checks .pts.neg { color: var(--bad); }
 .checks .pts.pos { color: var(--ok); }
 .checks small { display: block; color: var(--muted); }
-.check-form { display: flex; gap: 8px; margin: 10px 0; }
-.check-form input { flex: 1; min-width: 0; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
+.check-form { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.check-form .btn { flex: none; justify-content: center; }
+.check-form input { flex: 1 1 180px; min-width: 0; font-size: max(16px, 1rem) !important; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
 
 @media (max-width: 640px) {
   .brand h1 { font-size: 1.5rem; }
@@ -310,7 +326,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 .icon-btn.armed { background: var(--bad); color: #fff; font-size: 0.8rem; font-weight: 800; padding: 4px 8px; }
 .tag.mine { background: var(--straw); color: var(--navy); }
 .field { display: grid; gap: 4px; font-weight: 700; font-size: 0.85rem; margin: 8px 0 12px; }
-.field input { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
+.field input { font-size: max(16px, 1rem) !important; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
 
 /* ---------- Top cartes ---------- */
 .cards { margin: 0 0 22px; }
@@ -331,3 +347,10 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 .have-box input { width: 18px; height: 18px; accent-color: var(--ok); }
 @media (max-width: 900px) { .card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 520px) { .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Écrans étroits : le bouton passe sous le champ, sur toute la largeur. */
+@media (max-width: 480px) {
+  .check-form .btn { flex: 1 1 100%; }
+  .dlg { padding: 16px; }
+  .dlg h2 { font-size: 1.4rem; }
+}
