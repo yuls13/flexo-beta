@@ -5,8 +5,17 @@ import { fetchJson, fetchText } from './http.js';
 import { sanitizeDomain, rootDomain } from './trust.js';
 import { decodeEntities } from './adapters/woocommerce.js';
 
+import { PLATFORMS } from './adapters/index.js';
+
 export const MAX_CUSTOM_SHOPS = 10;
-const PLATFORMS = ['shopify', 'woocommerce', 'prestashop'];
+
+// Empreintes de plateforme visibles dans le code de la page d'accueil.
+export function fingerprint(html) {
+  if (/cdn\.shopify\.com|Shopify\.theme|shopify-section/i.test(html)) return 'shopify';
+  if (/woocommerce|wc-block|\/wp-content\/plugins\/woocommerce/i.test(html)) return 'woocommerce';
+  if (/var prestashop\s*=|prestashop|\/modules\/ps_|\/themes\/[^"']+\/assets\/cache/i.test(html)) return 'prestashop';
+  return null;
+}
 
 async function probe(fn) {
   try {
@@ -58,14 +67,18 @@ export async function inspectShop(input) {
   if (clean.unresolved) return { error: 'Ce site est introuvable (le nom de domaine ne répond pas)' };
   const base = `https://${clean.host}`;
   let name = rootDomain(clean.host);
+  let print = null;
   try {
     const { text } = await fetchText(`${base}/`, { timeoutMs: 8000 });
     name = guessName(text, name);
+    print = fingerprint(text);
   } catch {
     /* le nom par défaut suffit */
   }
-  const platform = await detectPlatform(base);
-  return { domain: clean.host, base, name, platform };
+  // Plateforme confirmée par son API, sinon empreinte de la page, sinon détection automatique
+  // (toutes les méthodes de lecture seront essayées à chaque recherche).
+  const platform = (await detectPlatform(base)) || print || 'auto';
+  return { domain: clean.host, base, name, platform, confirmed: platform !== 'auto' };
 }
 
 export function customShopId(domain) {
@@ -73,22 +86,41 @@ export function customShopId(domain) {
 }
 
 // Paramètre `custom` de /api/prices : « domaine|plateforme|nom » séparés par des virgules.
+// Renvoie les boutiques valides et celles écartées (avec la raison, affichée dans l'interface).
 // `resolve` vérifie qu'un domaine est public (remplaçable dans les tests, sans réseau).
 export async function parseCustomParam(param, { knownDomains, blacklist, resolve = sanitizeDomain }) {
-  if (!param) return [];
+  const shops = [];
+  const rejected = [];
+  if (!param) return { shops, rejected };
   const entries = String(param).split(',').slice(0, MAX_CUSTOM_SHOPS);
   const black = new Set(blacklist.map((b) => rootDomain(b.domain)));
-  const out = [];
   for (const entry of entries) {
-    const [domainRaw, platform, nameRaw] = entry.split('|').map((x) => decodeURIComponent(x || ''));
-    if (!PLATFORMS.includes(platform)) continue;
+    const [domainRaw, platformRaw, nameRaw] = entry.split('|').map((x) => decodeURIComponent(x || ''));
+    const platform = platformRaw === 'link' ? 'auto' : platformRaw;
+    const name = (nameRaw || domainRaw).replace(/[<>]/g, '').slice(0, 40);
+    const reject = (reason) => rejected.push({ id: customShopId(domainRaw || '?'), name, custom: true, status: 'error', error: reason, found: 0, matched: 0 });
+    if (!PLATFORMS.includes(platform)) {
+      reject('plateforme inconnue');
+      continue;
+    }
     const clean = await resolve(domainRaw);
-    if (!clean || clean.unresolved) continue;
+    if (!clean) {
+      reject('adresse invalide ou interne');
+      continue;
+    }
+    if (clean.unresolved) {
+      reject('domaine introuvable (DNS)');
+      continue;
+    }
     const root = rootDomain(clean.host);
-    if (black.has(root) || knownDomains.has(root) || out.some((s) => rootDomain(s.domain) === root)) continue;
-    out.push({
+    if (black.has(root)) {
+      reject('site signalé comme arnaque');
+      continue;
+    }
+    if (knownDomains.has(root) || shops.some((s) => rootDomain(s.domain) === root)) continue;
+    shops.push({
       id: customShopId(clean.host),
-      name: (nameRaw || root).replace(/[<>]/g, '').slice(0, 40),
+      name: name || root,
       domain: clean.host,
       base: `https://${clean.host}`,
       platform,
@@ -96,5 +128,5 @@ export async function parseCustomParam(param, { knownDomains, blacklist, resolve
       custom: true,
     });
   }
-  return out;
+  return { shops, rejected };
 }

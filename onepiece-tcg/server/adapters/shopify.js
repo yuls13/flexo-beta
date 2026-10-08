@@ -1,14 +1,7 @@
 // Boutiques Shopify : endpoint public de suggestions de recherche (/search/suggest.json).
-// Il renvoie au plus 10 produits par requête : on précise donc la requête par type de produit.
+// Il renvoie au plus 10 produits par requête (voir queriesFor dans adapters/index.js).
 import { fetchJson } from '../http.js';
 import { parsePrice } from '../classify.js';
-
-const SUFFIXES = ['display', 'booster', 'double pack'];
-
-export function shopifyQueries(baseQueries, series) {
-  if (series.special) return baseQueries;
-  return baseQueries.flatMap((q) => SUFFIXES.map((s) => `${q} ${s}`));
-}
 
 export function parseShopify(json, base) {
   const products = json?.resources?.results?.products || [];

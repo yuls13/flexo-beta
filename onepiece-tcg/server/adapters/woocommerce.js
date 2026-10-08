@@ -19,17 +19,18 @@ export function parseWoo(json) {
   });
 }
 
+const NAMED_ENTITIES = {
+  amp: '&', quot: '"', apos: "'", lt: '<', gt: '>', nbsp: ' ', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“',
+  ndash: '–', mdash: '—', hellip: '…', laquo: '«', raquo: '»', euro: '€', eacute: 'é', egrave: 'è', ecirc: 'ê',
+  agrave: 'à', acirc: 'â', ccedil: 'ç', icirc: 'î', iuml: 'ï', ocirc: 'ô', ugrave: 'ù', ucirc: 'û', Eacute: 'É', times: '×',
+};
+
 export function decodeEntities(s) {
   return s
     .replace(/<[^>]+>/g, '')
     .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(+d))
     .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCharCode(parseInt(h, 16)))
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#039;|&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ');
+    .replace(/&([a-z]+);/gi, (m, n) => NAMED_ENTITIES[n] ?? m);
 }
 
 export async function searchWoo(shop, query) {

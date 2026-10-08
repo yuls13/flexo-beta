@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseShopify, shopifyQueries } from '../server/adapters/shopify.js';
+import { parseShopify } from '../server/adapters/shopify.js';
+import { queriesFor } from '../server/adapters/index.js';
 import { parseWoo } from '../server/adapters/woocommerce.js';
 import { parsePresta, parsePrestaHtml } from '../server/adapters/prestashop.js';
 
@@ -18,7 +19,14 @@ test('Shopify suggest.json', () => {
   assert.equal(p.price, 139.9);
   assert.equal(p.url, 'https://vcollect.fr/products/display-op17-jp');
   assert.equal(p.available, false);
-  assert.deepEqual(shopifyQueries(['OP17'], {}), ['OP17 display', 'OP17 booster', 'OP17 double pack']);
+  assert.deepEqual(queriesFor('shopify', { queries: ['OP17', 'Strongest Warriors'] }), [
+    'OP17 display',
+    'OP17 booster box',
+    'OP17 booster',
+    'OP17 double pack',
+    'Strongest Warriors',
+  ]);
+  assert.deepEqual(queriesFor('woocommerce', { queries: ['OP17', 'Strongest Warriors'] }), ['OP17', 'Strongest Warriors']);
 });
 
 test('WooCommerce Store API', () => {

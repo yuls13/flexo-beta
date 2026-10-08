@@ -19,8 +19,10 @@ test('parseCustomParam : filtre plateformes, doublons, liste blanche/noire, adre
     '127.0.0.1|shopify|Interne',
     'example.org|link|Lien',
   ].join(',');
-  const shops = await parseCustomParam(param, opts);
-  assert.equal(shops.length, 1);
+  const { shops, rejected } = await parseCustomParam(param, opts);
+  assert.equal(shops.length, 2); // example.com + example.org (ancienne plateforme « link » → détection automatique)
+  assert.equal(shops[1].platform, 'auto');
+  assert.deepEqual(rejected.map((r) => r.error), ['site signalé comme arnaque', 'adresse invalide ou interne']);
   assert.deepEqual(
     { id: shops[0].id, name: shops[0].name, base: shops[0].base, platform: shops[0].platform, custom: shops[0].custom },
     { id: 'custom:example.com', name: 'Ma boutique', base: 'https://example.com', platform: 'shopify', custom: true }

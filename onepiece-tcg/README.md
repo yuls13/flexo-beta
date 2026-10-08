@@ -10,11 +10,26 @@ Application web (installable sur téléphone) qui compare en direct les prix des
 
 ![Aperçu (mode démo, prix fictifs)](docs/apercu-demo.png)
 
+## Lecture des boutiques et diagnostic
+
+Chaque plateforme a plusieurs méthodes de lecture, essayées dans l'ordre. La première qui fonctionne est mémorisée pour la boutique.
+
+| Plateforme | Méthodes |
+|---|---|
+| Shopify | API de recherche `/search/suggest.json`, puis page de recherche + fiches `/products/…js` |
+| WooCommerce | API Store `/wp-json/wc/store/v1/products`, puis page de recherche `?s=…&post_type=product` (utile quand un plugin de sécurité ferme l'API : erreur 401/403) |
+| PrestaShop | recherche JSON `ajax=1`, puis page de recherche HTML ou données JSON-LD |
+| Détection automatique | toutes les méthodes ci-dessus, puis les données structurées (JSON-LD) de la page de recherche |
+
+Chaque série est cherchée par son code (`OP16`, `OP-16`) et par le nom du set (« Time of Battle », « Bataille Décisive »), car beaucoup de boutiques titrent leurs produits sans le code.
+
+Le bouton **🔍 Diagnostic** de chaque boutique, dans « Boutiques interrogées », interroge la boutique en direct. Il affiche les requêtes envoyées et leur code de réponse, les protections anti-robots reconnues (Cloudflare, Sucuri, DataDome, Wordfence, API WordPress fermée), puis chaque produit lu avec la raison pour laquelle il est retenu ou écarté. **📋 Copier le rapport** permet de transmettre le résultat. Une boutique protégée par un système anti-robots n'est pas contournée : il faut alors passer par le lien direct vers le site.
+
 ## Mes boutiques (ajout manuel)
 
 Le bouton **➕ Ajouter une boutique** accepte n'importe quelle adresse. L'app :
 1. vérifie la fiabilité du site (même score que pour les boutiques suivies), refuse les sites de la liste noire et avertit si le score est faible ;
-2. détecte la plateforme. Avec Shopify, WooCommerce ou PrestaShop, les prix sont lus automatiquement à chaque actualisation et les offres portent le tag « ⭐ Ma boutique ». Sinon, la boutique est ajoutée comme simple lien.
+2. détecte la plateforme, par son API ou par l'empreinte de sa page d'accueil. Si aucune n'est reconnue, la boutique passe en **détection automatique**. Elle apparaît dans « Boutiques interrogées » avec le tag « ⭐ Ajoutée par vous », et ses offres ressortent dans les résultats avec le tag « ⭐ Ma boutique ».
 
 La liste est enregistrée **dans le navigateur** (10 boutiques maximum) et envoyée au serveur à chaque recherche. Elle fonctionne donc aussi sur Render, qui n'a pas de disque permanent, mais elle est propre à chaque appareil.
 

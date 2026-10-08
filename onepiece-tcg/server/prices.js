@@ -1,7 +1,7 @@
 // Agrégation des offres d'une série : interrogation des boutiques, classement, port, alertes de prix.
-import { ADAPTERS } from './adapters/index.js';
-import { classify, PRODUCT_TYPES } from './classify.js';
-import { pool } from './http.js';
+import { PLATFORMS, STRATEGIES, searchShop as readShop, queriesFor } from './adapters/index.js';
+import { classify, explain, PRODUCT_TYPES } from './classify.js';
+import { pool, withTrace } from './http.js';
 
 const CACHE_TTL_MS = 10 * 60 * 1000; // résultats réutilisés 10 min
 const MIN_FORCE_INTERVAL_MS = 45 * 1000; // « Actualiser » ne relance pas plus d'une fois / 45 s
@@ -21,30 +21,60 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
   const inflight = new Map();
   const blocked = new Set(blacklist.map((b) => b.domain.replace(/^www\./, '')));
   const scrapable = shops.filter(
-    (s) => ADAPTERS[s.platform] && !blocked.has(s.domain.replace(/^www\./, ''))
+    (s) => PLATFORMS.includes(s.platform) && !blocked.has(s.domain.replace(/^www\./, ''))
   );
 
   async function searchShop(shop, s) {
-    const adapter = ADAPTERS[shop.platform];
-    const queries = adapter.queries(s.queries, s);
+    const queries = queriesFor(shop.platform, s);
     const started = Date.now();
     const items = [];
     const errors = [];
+    const strategies = new Set();
     for (const q of queries) {
       if (Date.now() - started > SHOP_BUDGET_MS) {
         errors.push('temps total dépassé');
         break;
       }
       try {
-        const found = await (searchImpl ? searchImpl(shop, q, s) : adapter.search(shop, q));
-        items.push(...found);
+        if (searchImpl) {
+          items.push(...(await searchImpl(shop, q, s)));
+        } else {
+          const { items: found, strategy } = await readShop(shop, q);
+          items.push(...found);
+          if (strategy) strategies.add(strategy);
+        }
       } catch (err) {
         errors.push(err.message);
         // Un blocage (403/429) ou une boutique injoignable ne s'améliorera pas sur les requêtes suivantes.
-        if ([0, 403, 404, 429, 503].includes(err.status)) break;
+        if ([0, 401, 403, 404, 429, 503].includes(err.status)) break;
       }
     }
-    return { items, errors, ms: Date.now() - started };
+    return { items, errors, ms: Date.now() - started, strategies: [...strategies] };
+  }
+
+  // Diagnostic d'une boutique : requêtes envoyées, réponses, produits lus et verdict pour chacun.
+  async function diagnose(shop, seriesId) {
+    const s = series.find((x) => x.id === seriesId);
+    if (!s) return null;
+    const { result, trace } = await withTrace(() => searchShop(shop, s));
+    if (result.error) throw result.error;
+    const seen = new Set();
+    const products = [];
+    for (const item of result.items) {
+      if (!item?.url || seen.has(item.url)) continue;
+      seen.add(item.url);
+      products.push({ title: item.title, price: item.price, available: item.available, url: item.url, verdict: explain(item.title, s, item.price) });
+    }
+    return {
+      shop: { id: shop.id, name: shop.name, domain: shop.domain, platform: shop.platform },
+      series: s.id,
+      queries: queriesFor(shop.platform, s),
+      strategies: result.strategies.map((n) => STRATEGIES[n]?.label || n),
+      errors: result.errors,
+      ms: result.ms,
+      requests: trace,
+      products,
+    };
   }
 
   async function run(s, extraShops) {
@@ -53,7 +83,7 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
     const perShop = await pool(targets, 8, (shop) => searchShop(shop, s));
     const offers = [];
     const shopStatus = [];
-    perShop.forEach(({ items, errors, ms }, i) => {
+    perShop.forEach(({ items, errors, ms, strategies }, i) => {
       const shop = targets[i];
       const seen = new Set();
       let matched = 0;
@@ -72,9 +102,11 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
         name: shop.name,
         custom: !!shop.custom,
         status: matched ? 'ok' : items.length ? 'empty' : errors.length ? 'error' : 'empty',
+        platform: shop.platform,
         found: items.length,
         matched,
         error: items.length ? null : errors[0] || null,
+        method: strategies?.[0] ? STRATEGIES[strategies[0]]?.label : null,
         ms,
       });
     });
@@ -112,7 +144,7 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
     return p;
   }
 
-  return { getSeries, scrapable };
+  return { getSeries, scrapable, diagnose };
 }
 
 export function shippingFor(shop, type, price, defaults) {

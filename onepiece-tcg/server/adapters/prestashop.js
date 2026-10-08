@@ -2,6 +2,7 @@
 import { fetchJson, fetchText } from '../http.js';
 import { parsePrice } from '../classify.js';
 import { decodeEntities } from './woocommerce.js';
+import { parseJsonLd } from './html.js';
 
 export function parsePresta(json) {
   const products = json?.products || [];
@@ -59,15 +60,18 @@ function searchUrl(shop, query, ajax) {
   return u.href;
 }
 
-export async function searchPresta(shop, query) {
-  try {
-    const { json } = await fetchJson(searchUrl(shop, query, true), {
-      headers: { 'X-Requested-With': 'XMLHttpRequest' },
-    });
-    if (Array.isArray(json?.products)) return parsePresta(json);
-  } catch (err) {
-    if (err.status === 403 || err.status === 429) throw err;
-  }
+// Méthode 1 : page de recherche en JSON (ajax=1).
+export async function prestaAjax(shop, query) {
+  const { json } = await fetchJson(searchUrl(shop, query, true), {
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+  });
+  if (!Array.isArray(json?.products)) throw new Error('format PrestaShop inattendu');
+  return parsePresta(json);
+}
+
+// Méthode 2 : page de recherche HTML (vignettes produits, sinon données JSON-LD).
+export async function prestaHtml(shop, query) {
   const { text, url } = await fetchText(searchUrl(shop, query, false));
-  return parsePrestaHtml(text, url);
+  const items = parsePrestaHtml(text, url);
+  return items.length ? items : parseJsonLd(text, url);
 }

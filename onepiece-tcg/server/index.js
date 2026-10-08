@@ -56,6 +56,14 @@ const trustService = DEMO
 const cardService = DEMO ? { getTop: async (id) => demoCards(rawSeries.find((s) => s.id === id)) } : createCardmarketService();
 const knownDomains = new Set(shops.map((s) => rootDomain(s.domain)));
 const logoService = createLogoService();
+const diagnoseTimes = new Map();
+// En démo, pas de résolution DNS : seule la forme de l'adresse est vérifiée.
+const resolve = DEMO
+  ? async (input) => {
+      const host = String(input || '').trim().toLowerCase();
+      return /^[a-z0-9.-]+\.[a-z]{2,}$/.test(host) ? { host } : null;
+    }
+  : sanitizeDomain;
 const isBlacklisted = (domain) => blacklist.find((b) => rootDomain(b.domain) === rootDomain(domain)) || null;
 
 const MIME = {
@@ -103,9 +111,10 @@ async function handleApi(req, res, url) {
     const id = url.searchParams.get('series');
     const s = series.find((x) => x.id === id);
     if (!s) return sendJson(res, 404, { error: 'Série inconnue' });
-    const extraShops = await parseCustomParam(url.searchParams.get('custom'), { knownDomains, blacklist });
+    const { shops: extraShops, rejected } = await parseCustomParam(url.searchParams.get('custom'), { knownDomains, blacklist, resolve });
     const data = await priceService.getSeries(id, { force: url.searchParams.get('refresh') === '1', extraShops });
-    return sendJson(res, 200, { ...data, demo: DEMO });
+    // Les boutiques personnelles écartées restent visibles dans « Boutiques interrogées », avec la raison.
+    return sendJson(res, 200, { ...data, shops: [...data.shops, ...rejected], demo: DEMO });
   }
 
   if (url.pathname === '/api/trust') {
@@ -155,6 +164,24 @@ async function handleApi(req, res, url) {
       trust,
       blocked: black ? `Site signalé comme arnaque : ${black.reason}` : null,
     });
+  }
+
+  if (url.pathname === '/api/diagnose') {
+    // Diagnostic d'une boutique (suivie ou personnelle) pour une série.
+    const id = url.searchParams.get('shop');
+    const seriesId = url.searchParams.get('series');
+    let shop = shops.find((x) => x.id === id && x.platform !== 'link');
+    if (!shop && id?.startsWith('custom:')) {
+      const { shops: [custom] } = await parseCustomParam(url.searchParams.get('custom'), { knownDomains, blacklist, resolve });
+      if (custom?.id === id) shop = custom;
+    }
+    if (!shop) return sendJson(res, 404, { error: 'Boutique inconnue ou non interrogée automatiquement' });
+    const last = diagnoseTimes.get(shop.id) || 0;
+    if (Date.now() - last < 10000) return sendJson(res, 429, { error: 'Patientez quelques secondes avant un nouveau diagnostic.' });
+    diagnoseTimes.set(shop.id, Date.now());
+    const report = await priceService.diagnose(shop, seriesId);
+    if (!report) return sendJson(res, 404, { error: 'Série inconnue' });
+    return sendJson(res, 200, { ...report, demo: DEMO });
   }
 
   if (url.pathname === '/api/logo') {

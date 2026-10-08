@@ -83,6 +83,22 @@ export function classify(title, series) {
   return { type, lang: detectLang(t), quantity: type === 'booster' ? detectQuantity(t) : 1 };
 }
 
+// Explication lisible du sort d'un produit (outil de diagnostic).
+export function explain(title, series, price) {
+  const t = String(title || '').replace(/\s+/g, ' ').trim();
+  if (!t) return { ok: false, reason: 'titre vide' };
+  if (price == null || !(price > 0)) return { ok: false, reason: 'prix illisible' };
+  if (EXCLUDE[0].test(t)) return { ok: false, reason: 'carte à l’unité' };
+  if (isExcluded(t)) return { ok: false, reason: 'hors périmètre (accessoire, autre jeu, lot de displays…)' };
+  if (!matchesSeries(t, series)) return { ok: false, reason: `pas la série ${series.id}` };
+  const cls = classify(t, series);
+  if (!cls) {
+    const type = detectType(t);
+    return { ok: false, reason: type ? `type « ${type} » affiché dans un autre onglet` : 'type de produit non reconnu' };
+  }
+  return { ok: true, reason: `${PRODUCT_TYPES[cls.type].label}${cls.lang ? ` · ${cls.lang}` : ' · langue ?'}` };
+}
+
 export function parsePrice(value) {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
   if (typeof value !== 'string') return null;

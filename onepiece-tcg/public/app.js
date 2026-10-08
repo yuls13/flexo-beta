@@ -28,7 +28,7 @@ const state = {
   firstAuth: true,
 };
 
-const PLATFORM_NAMES = { shopify: 'Shopify', woocommerce: 'WooCommerce', prestashop: 'PrestaShop', link: 'lien seulement' };
+const PLATFORM_NAMES = { shopify: 'Shopify', woocommerce: 'WooCommerce', prestashop: 'PrestaShop', auto: 'détection automatique', link: 'détection automatique' };
 
 const store = {
   get(k, d) {
@@ -376,8 +376,10 @@ function render() {
   const st = { ok: '✔ offres trouvées', empty: '○ rien pour cette série', error: '✖ injoignable' };
   $('#shopList').innerHTML = data.shops
     .map(
-      (s) => `<div class="shop-row"><div><div class="shop-name">${favStar(s.id)}${shopLogo(s.id, s.name)}<b>${esc(s.name)}</b></div>${trustBadge(s.id)}</div>
-      <div class="st ${s.status}" title="${esc(s.error || '')}">${st[s.status]}${s.matched ? ` (${s.matched})` : ''}${s.error ? `<br><small>${esc(s.error)}</small>` : ''}</div></div>`
+      (s) => `<div class="shop-row ${s.custom ? 'mine' : ''}"><div><div class="shop-name">${favStar(s.id)}${shopLogo(s.id, s.name)}<b>${esc(s.name)}</b></div>
+        ${s.custom ? '<span class="tag mine">⭐ Ajoutée par vous</span> ' : ''}${trustBadge(s.id)}</div>
+      <div class="st-col"><div class="st ${s.status}" title="${esc(s.error || '')}">${st[s.status]}${s.matched ? ` (${s.matched})` : ''}${s.error ? `<br><small>${esc(s.error)}</small>` : ''}</div>
+        <button class="diag-btn" type="button" data-diagnose="${esc(s.id)}" title="Voir ce que la boutique a répondu">🔍 Diagnostic</button></div></div>`
     )
     .join('');
   const ok = data.shops.filter((s) => s.status === 'ok').length;
@@ -393,19 +395,18 @@ function renderLinks() {
       .filter((s) => s.platform === 'link' && s.searchUrl)
       .map((s) => `<a class="chip" href="${esc(safeUrl(s.searchUrl.replace('{q}', encodeURIComponent(q))))}" target="_blank" rel="noopener noreferrer">${shopLogo(s.id, s.name, 'xs')}${esc(s.name)} ↗</a> ${trustBadge(s.id)}`)
       .join('') +
-    state.customShops
-      .filter((c) => c.platform === 'link')
-      .map((c) => `<a class="chip" href="${esc(safeUrl(c.base))}" target="_blank" rel="noopener noreferrer">${shopLogo(c.id, c.name, 'xs')}⭐ ${esc(c.name)} ↗</a> ${trustBadge(c.id)}`)
-      .join('');
+    '';
 }
 
 // ---------- Mes boutiques ----------
 
+// Toutes les boutiques ajoutées sont interrogées ; une plateforme non reconnue passe en détection automatique.
+function customEntry(c) {
+  return [c.domain, c.platform === 'link' ? 'auto' : c.platform, c.name].map(encodeURIComponent).join('|');
+}
+
 function customParam() {
-  return state.customShops
-    .filter((c) => c.platform !== 'link')
-    .map((c) => [c.domain, c.platform, c.name].map(encodeURIComponent).join('|'))
-    .join(',');
+  return state.customShops.map(customEntry).join(',');
 }
 
 function saveCustomShops() {
@@ -456,9 +457,9 @@ function showAddShop() {
       return;
     }
     const risky = info.trust.level === 'low' || info.trust.level === 'danger';
-    const platformTxt = info.platform
-      ? `✅ Plateforme <b>${esc(PLATFORM_NAMES[info.platform])}</b> détectée : les prix seront lus automatiquement.`
-      : '⚠️ Plateforme non reconnue : les prix ne peuvent pas être lus automatiquement. La boutique sera ajoutée comme lien dans « Vérifier aussi sur ».';
+    const platformTxt = info.confirmed
+      ? `✅ Plateforme <b>${esc(PLATFORM_NAMES[info.platform])}</b> détectée : ses prix seront lus à chaque actualisation.`
+      : '🔎 Plateforme non confirmée : à chaque actualisation, l’app essaiera plusieurs méthodes pour lire ses prix. Le résultat apparaîtra dans « Boutiques interrogées » (bouton 🔍 pour le détail).';
     out.innerHTML = `${scoreHtml(info.trust)}
       <p>${platformTxt}</p>
       ${
@@ -475,12 +476,13 @@ function showAddShop() {
         domain: info.domain,
         base: info.base,
         name: ($('#addName').value || info.name).trim().slice(0, 40),
-        platform: info.platform || 'link',
+        platform: info.platform || 'auto',
         trust: info.trust,
         addedAt: new Date().toISOString(),
       });
       $('#dlg').close();
       saveCustomShops();
+      toast(`${info.name} ajoutée : recherche des prix en cours…`);
     });
   });
 }
@@ -743,6 +745,76 @@ function toast(msg) {
   toastTimer = setTimeout(() => (t.hidden = true), 3200);
 }
 
+// ---------- Diagnostic d'une boutique ----------
+
+async function showDiagnose(shopId) {
+  const s = state.series;
+  const shop = state.config.shops.find((x) => x.id === shopId) || state.customShops.find((x) => x.id === shopId);
+  const name = shop?.name || shopId;
+  openDialog(`<h2 class="dlg-shop">${shopLogo(shopId, name, 'lg')}Diagnostic</h2>
+    <p class="muted">${esc(name)} · série ${esc(s.id)} · interrogation en direct…</p><p class="muted">⚓ Patientez quelques secondes.</p>`);
+  const custom = state.customShops.find((c) => c.id === shopId);
+  let r;
+  try {
+    r = await api(`/api/diagnose?shop=${encodeURIComponent(shopId)}&series=${encodeURIComponent(s.id)}${custom ? `&custom=${encodeURIComponent(customEntry(custom))}` : ''}`);
+  } catch (err) {
+    $('#dlgBody').innerHTML = `<h2>Diagnostic</h2><p class="err-msg">${esc(err.message)}</p>`;
+    return;
+  }
+  const kept = r.products.filter((p) => p.verdict.ok);
+  const verdict = r.products.length
+    ? kept.length
+      ? `✅ ${kept.length} produit${kept.length > 1 ? 's' : ''} retenu${kept.length > 1 ? 's' : ''} sur ${r.products.length} lus.`
+      : `⚠️ ${r.products.length} produit${r.products.length > 1 ? 's' : ''} lu${r.products.length > 1 ? 's' : ''}, aucun ne correspond à ${esc(s.id)} (voir les raisons ci-dessous).`
+    : r.errors.length
+      ? `❌ La boutique n’a pas pu être lue : ${esc(r.errors[0])}.`
+      : `○ La boutique a répondu, mais sa recherche ne renvoie aucun produit pour ${esc(s.id)}.`;
+  const reqs = r.requests
+    .map((q) => {
+      let path = q.url;
+      try {
+        const u = new URL(q.url);
+        path = decodeURIComponent(u.pathname + u.search);
+      } catch {
+        /* adresse brute */
+      }
+      const cls = q.status >= 200 && q.status < 300 ? 'ok' : 'bad';
+      return `<li><span class="code ${cls}">${q.status || '—'}</span><span class="req-path">${esc(path)}</span>${q.note ? `<small class="err-msg">${esc(q.note)}</small>` : ''}</li>`;
+    })
+    .join('');
+  const prods = r.products
+    .slice(0, 40)
+    .map((p) => `<li class="${p.verdict.ok ? 'ok' : 'no'}"><span>${p.verdict.ok ? '✔' : '✖'}</span><span>${esc(p.title)}<small>${p.price != null ? esc(eur.format(p.price)) + ' · ' : ''}${esc(p.verdict.reason)}</small></span></li>`)
+    .join('');
+  const report = [
+    `Diagnostic ${name} (${r.shop.domain}) · série ${r.series} · plateforme ${r.shop.platform}`,
+    `Méthode : ${r.strategies.join(', ') || 'aucune'} · ${r.ms} ms`,
+    `Erreurs : ${r.errors.join(' | ') || 'aucune'}`,
+    'Requêtes :',
+    ...r.requests.map((q) => `  ${q.status || '---'} ${q.url}${q.note ? ` (${q.note})` : ''}`),
+    'Produits :',
+    ...r.products.map((p) => `  ${p.verdict.ok ? 'OK ' : 'NON'} ${p.title} — ${p.price ?? '?'} € — ${p.verdict.reason}`),
+  ].join('\n');
+  $('#dlgBody').innerHTML = `<h2 class="dlg-shop">${shopLogo(shopId, name, 'lg')}Diagnostic</h2>
+    <p class="muted">${esc(name)} · série ${esc(r.series)} · ${esc(PLATFORM_NAMES[r.shop.platform] || r.shop.platform)}${r.strategies.length ? ` · lu via ${esc(r.strategies.join(', '))}` : ''} · ${r.ms} ms</p>
+    <p class="notice">${verdict}</p>
+    <h3 class="sub-h">Requêtes envoyées (${r.requests.length})</h3><ul class="diag-list">${reqs || '<li>Aucune</li>'}</ul>
+    <h3 class="sub-h">Produits lus (${r.products.length})</h3><ul class="diag-prods">${prods || '<li>Aucun</li>'}</ul>
+    <div class="account-actions"><button class="btn btn-red" id="copyReport" type="button">📋 Copier le rapport</button></div>
+    <textarea id="reportText" class="report" readonly hidden>${esc(report)}</textarea>`;
+  $('#copyReport').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(report);
+      toast('Rapport copié : collez-le dans la conversation avec Claude.');
+    } catch {
+      const t = $('#reportText');
+      t.hidden = false;
+      t.select();
+      toast('Sélectionnez le texte puis copiez-le.');
+    }
+  });
+}
+
 // ---------- Fenêtres ----------
 
 function scoreHtml(t, shop) {
@@ -812,6 +884,8 @@ document.addEventListener('click', async (e) => {
   const t = e.target;
   const favSeries = t.closest('[data-fav-series]');
   if (favSeries) return toggleFavSeries(favSeries.dataset.favSeries);
+  const diag = t.closest('[data-diagnose]');
+  if (diag) return showDiagnose(diag.dataset.diagnose);
   const favShop = t.closest('[data-fav-shop]');
   if (favShop) {
     e.preventDefault();
