@@ -307,6 +307,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 .btn-ghost-dark { background: var(--line); color: var(--text); }
 .icon-btn { border: 0; background: transparent; font-size: 1.1rem; padding: 4px; border-radius: 8px; }
 .icon-btn:hover { background: var(--line); }
+.icon-btn.armed { background: var(--bad); color: #fff; font-size: 0.8rem; font-weight: 800; padding: 4px 8px; }
 .tag.mine { background: var(--straw); color: var(--navy); }
 .field { display: grid; gap: 4px; font-weight: 700; font-size: 0.85rem; margin: 8px 0 12px; }
 .field input { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }

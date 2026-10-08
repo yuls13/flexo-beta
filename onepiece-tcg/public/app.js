@@ -125,7 +125,11 @@ async function loadTrust() {
 
 function selectSeries(id) {
   state.series = state.config.series.find((s) => s.id === id);
-  history.replaceState(null, '', `#${id}`);
+  try {
+    history.replaceState(null, '', `#${id}`);
+  } catch {
+    /* navigation intégrée : sans importance */
+  }
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.dataset.id === id));
   document.querySelector(`.tab[data-id="${id}"]`)?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   renderTypeFilter();
@@ -586,10 +590,23 @@ document.addEventListener('click', (e) => {
   const rm = e.target.closest('[data-remove-shop]');
   if (!rm) return;
   const shop = state.customShops.find((c) => c.id === rm.dataset.removeShop);
-  if (shop && confirm(`Retirer « ${shop.name} » de vos boutiques ?`)) {
-    state.customShops = state.customShops.filter((c) => c.id !== shop.id);
-    saveCustomShops();
+  if (!shop) return;
+  // Confirmation en deux clics (les boîtes confirm() sont bloquées dans certains navigateurs intégrés).
+  if (rm.dataset.armed !== '1') {
+    rm.dataset.armed = '1';
+    rm.textContent = 'Retirer ?';
+    rm.classList.add('armed');
+    setTimeout(() => {
+      if (rm.isConnected) {
+        rm.dataset.armed = '';
+        rm.textContent = '🗑';
+        rm.classList.remove('armed');
+      }
+    }, 4000);
+    return;
   }
+  state.customShops = state.customShops.filter((c) => c.id !== shop.id);
+  saveCustomShops();
 });
 document.addEventListener('change', (e) => {
   const box = e.target.closest('[data-own]');
