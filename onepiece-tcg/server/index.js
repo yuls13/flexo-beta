@@ -198,5 +198,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`OP TCG Prix → http://localhost:${PORT}${DEMO ? '  (MODE DÉMO : données fictives)' : ''}`);
+  console.log(`Berry Radar → http://localhost:${PORT}${DEMO ? '  (MODE DÉMO : données fictives)' : ''}`);
 });

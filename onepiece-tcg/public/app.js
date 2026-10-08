@@ -1,4 +1,4 @@
-// Grand Line Prix — interface (vanilla JS, sans build).
+// Berry Radar — interface (vanilla JS, sans build).
 import { createAccount, mergePrefs } from './account.js';
 
 const $ = (sel) => document.querySelector(sel);

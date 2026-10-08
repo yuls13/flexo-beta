@@ -1,4 +1,4 @@
-# 🏴‍☠️ Grand Line Prix — comparateur One Piece Card Game
+# 📡 Berry Radar — comparateur One Piece Card Game
 
 Application web (installable sur téléphone) qui compare en direct les prix des **displays, boosters, double packs, starter decks et coffrets** One Piece Card Game, série par série, parmi une **liste blanche de boutiques vérifiées**, avec un **score de confiance** pour chaque boutique et une **alerte sur les prix suspects**.
 
