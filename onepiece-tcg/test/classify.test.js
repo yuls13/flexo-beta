@@ -7,12 +7,12 @@ const { series: raw } = JSON.parse(fs.readFileSync(new URL('../server/config/ser
 const S = Object.fromEntries(compileSeries(raw).map((s) => [s.id, s]));
 
 test('display FR OP16', () => {
-  assert.deepEqual(classify("Display 24 boosters OP16 - L'heure de la Bataille Décisive (FR)", S.OP16), { type: 'display', lang: 'FR', quantity: 1 });
+  assert.deepEqual(classify("Display 24 boosters OP16 - L'heure de la Bataille Décisive (FR)", S.OP16), { type: 'display', lang: 'FR', quantity: 1, inferred: false });
   assert.deepEqual(classify("Boite 24 boosters L'Heure de la Bataille Décisive OP16 (FR)", S.OP16)?.type, 'display');
 });
 
 test('booster box EN et display JP', () => {
-  assert.deepEqual(classify('One Piece Card Game OP-17 Booster Box - English', S.OP17), { type: 'display', lang: 'EN', quantity: 1 });
+  assert.deepEqual(classify('One Piece Card Game OP-17 Booster Box - English', S.OP17), { type: 'display', lang: 'EN', quantity: 1, inferred: false });
   assert.equal(classify('Display One Piece Japonais OP-17 - The World’s Strongest Warrior', S.OP17).lang, 'JP');
 });
 
@@ -56,4 +56,16 @@ test('parsePrice', () => {
   assert.equal(parsePrice('139.90'), 139.9);
   assert.equal(parsePrice(12), 12);
   assert.equal(parsePrice(''), null);
+});
+
+test('type déduit du prix quand le titre ne le précise pas', async () => {
+  const { inferType } = await import('../server/classify.js');
+  const t = "One Piece - The World’s Strongest Warriors - OP17 - en japonais";
+  assert.deepEqual(classify(t, S.OP17, 199.99), { type: 'display', lang: 'JP', quantity: 1, inferred: true });
+  assert.equal(classify(t, S.OP17, 3.5).type, 'booster');
+  assert.equal(classify(t, S.OP17, 25), null); // prix ambigu : pas de déduction
+  assert.equal(classify(t, S.OP17), null); // sans prix : pas de déduction
+  assert.equal(classify('Display OP17 FR', S.OP17, 140).inferred, false);
+  assert.equal(inferType(60, 'FR'), null);
+  assert.equal(inferType(60, 'JP'), 'display');
 });

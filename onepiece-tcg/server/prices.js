@@ -104,7 +104,7 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
         const key = item.url.replace(/[?#].*$/, '').replace(/\/$/, '');
         if (seen.has(key)) continue;
         seen.add(key);
-        const cls = classify(item.title, s);
+        const cls = classify(item.title, s, item.price);
         if (!cls) continue;
         matched++;
         offers.push(buildOffer(shop, item, cls, shippingDefaults, s));
@@ -213,7 +213,10 @@ export function buildOffer(shop, item, cls, shippingDefaults, s, today = new Dat
     preorder,
     upcoming,
     releaseDate: upcoming ? release : null,
-    flags: [],
+    inferred: !!cls.inferred,
+    flags: cls.inferred
+      ? [{ kind: 'info', text: 'Type déduit du prix : le titre ne précise pas « display » ou « booster », vérifiez sur la fiche' }]
+      : [],
   };
 }
 

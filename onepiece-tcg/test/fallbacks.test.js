@@ -67,7 +67,8 @@ test('explain : raisons lisibles', () => {
   const [s] = compileSeries([{ id: 'OP16', queries: [], match: ['\\bOP-?16\\b'] }]);
   assert.equal(explain('OP16-118 Luffy SEC', s, 50).reason, 'carte à l’unité');
   assert.equal(explain('Display OP15 FR', s, 120).reason, 'pas la série OP16');
-  assert.equal(explain('Display OP16 FR', s, null).reason, 'prix illisible');
+  assert.equal(explain('Display OP16 FR', s, null).reason, 'prix absent ou nul sur la boutique');
+  assert.equal(explain('Carte One Piece Shanks OP16-020 L', s, 0).reason, 'carte à l’unité');
   assert.equal(explain('Display OP16 FR', s, 130).ok, true);
 });
 

@@ -342,7 +342,8 @@ function renderBest(data) {
 
 function offerRow(o, isTop) {
   const suspect = o.flags.some((f) => f.kind === 'suspect');
-  const flags = o.flags.map((f) => `<span class="tag ${f.kind}" title="${esc(f.text)}">${f.kind === 'suspect' ? '⚠ Prix suspect' : '▲ Prix élevé'}</span>`).join('');
+  const FLAG_LABELS = { suspect: '⚠ Prix suspect', high: '▲ Prix élevé', info: 'ℹ Type déduit' };
+  const flags = o.flags.map((f) => `<span class="tag ${f.kind}" title="${esc(f.text)}">${FLAG_LABELS[f.kind] || 'ℹ'}</span>`).join('');
   return `<article class="offer ${o.available === false ? 'out' : ''} ${suspect ? 'suspect' : ''} ${isTop ? 'top1' : ''}">
     <div class="offer-main">
       <div class="offer-shop">${favStar(o.shopId)}${shopLogo(o.shopId, o.shopName)}${isTop ? '👑 ' : ''}${esc(o.shopName)} ${o.custom ? '<span class="tag mine">⭐ Ma boutique</span>' : ''} ${trustBadge(o.shopId)}</div>

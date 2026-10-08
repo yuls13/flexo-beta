@@ -224,6 +224,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 .tag.out { background: #eee; color: #777; }
 .tag.suspect { background: #fde2e6; color: var(--bad); }
 .tag.high { background: #fff1d6; color: var(--warn); }
+.tag.info { background: #e3f0fb; color: var(--sea); }
 .offer-price { text-align: right; white-space: nowrap; }
 .offer-price .total { font-size: 1.35rem; font-weight: 800; color: var(--red); }
 .offer-price .sub { font-size: 0.74rem; color: var(--muted); }

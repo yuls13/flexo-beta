@@ -69,34 +69,50 @@ export function detectQuantity(title) {
   return n > 1 && n < 24 ? n : 1;
 }
 
-// Renvoie { type, lang, quantity } si le titre correspond à la série et à un type suivi, sinon null.
-export function classify(title, series) {
+// Titre sans type (« One Piece - The World’s Strongest Warriors - OP17 - en japonais ») :
+// type déduit du prix, dans des fourchettes sans ambiguïté (sinon : non reconnu).
+export function inferType(price, lang) {
+  if (!(price > 0)) return null;
+  const jp = lang === 'JP';
+  if (price >= (jp ? 40 : 70) && price <= (jp ? 400 : 450)) return 'display';
+  if (price >= (jp ? 0.5 : 2) && price <= (jp ? 4 : 8)) return 'booster';
+  return null;
+}
+
+// Renvoie { type, lang, quantity, inferred } si le titre correspond à la série et à un type suivi, sinon null.
+export function classify(title, series, price = null) {
   const t = String(title || '').replace(/\s+/g, ' ').trim();
   if (!t || isExcluded(t)) return null;
   if (!matchesSeries(t, series)) return null;
   if (series.special && !/one ?piece|\bST-?\d{2}\b/i.test(t)) return null;
-  const type = detectType(t);
+  const lang = detectLang(t);
+  let type = detectType(t);
+  let inferred = false;
+  if (!type && !series.special) {
+    type = inferType(price, lang);
+    inferred = !!type;
+  }
   if (!type) return null;
   // Les starters et coffrets sont regroupés dans l'onglet dédié ; l'onglet dédié ne garde qu'eux.
   const allowed = series.types || ['display', 'booster', 'duo'];
   if (!allowed.includes(type)) return null;
-  return { type, lang: detectLang(t), quantity: type === 'booster' ? detectQuantity(t) : 1 };
+  return { type, lang, quantity: type === 'booster' ? detectQuantity(t) : 1, inferred };
 }
 
 // Explication lisible du sort d'un produit (outil de diagnostic).
 export function explain(title, series, price) {
   const t = String(title || '').replace(/\s+/g, ' ').trim();
   if (!t) return { ok: false, reason: 'titre vide' };
-  if (price == null || !(price > 0)) return { ok: false, reason: 'prix illisible' };
   if (EXCLUDE[0].test(t)) return { ok: false, reason: 'carte à l’unité' };
   if (isExcluded(t)) return { ok: false, reason: 'hors périmètre (accessoire, autre jeu, lot de displays…)' };
   if (!matchesSeries(t, series)) return { ok: false, reason: `pas la série ${series.id}` };
-  const cls = classify(t, series);
+  if (price == null || !(price > 0)) return { ok: false, reason: 'prix absent ou nul sur la boutique' };
+  const cls = classify(t, series, price);
   if (!cls) {
     const type = detectType(t);
-    return { ok: false, reason: type ? `type « ${type} » affiché dans un autre onglet` : 'type de produit non reconnu' };
+    return { ok: false, reason: type ? `type « ${type} » affiché dans un autre onglet` : 'type de produit non reconnu (ni dans le titre, ni d’après le prix)' };
   }
-  return { ok: true, reason: `${PRODUCT_TYPES[cls.type].label}${cls.lang ? ` · ${cls.lang}` : ' · langue ?'}` };
+  return { ok: true, reason: `${PRODUCT_TYPES[cls.type].label}${cls.inferred ? ' (déduit du prix)' : ''}${cls.lang ? ` · ${cls.lang}` : ' · langue ?'}` };
 }
 
 export function parsePrice(value) {
