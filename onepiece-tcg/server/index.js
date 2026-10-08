@@ -10,6 +10,7 @@ import { demoSearch, demoTrust, demoCards } from './demo.js';
 import { inspectShop, parseCustomParam, customShopId, MAX_CUSTOM_SHOPS } from './customShops.js';
 import { createCardmarketService } from './cardmarket.js';
 import { createLogoService, googleFavicon } from './logos.js';
+import { createCardImageService, validCode } from './cardImages.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -56,6 +57,7 @@ const trustService = DEMO
 const cardService = DEMO ? { getTop: async (id) => demoCards(rawSeries.find((s) => s.id === id)) } : createCardmarketService();
 const knownDomains = new Set(shops.map((s) => rootDomain(s.domain)));
 const logoService = createLogoService();
+const cardImageService = createCardImageService();
 const diagnoseTimes = new Map();
 // En démo, pas de résolution DNS : seule la forme de l'adresse est vérifiée.
 const resolve = DEMO
@@ -202,6 +204,26 @@ async function handleApi(req, res, url) {
     }
     res.writeHead(302, { Location: googleFavicon(rootDomain(clean.host)), 'Cache-Control': 'public, max-age=86400' });
     return res.end();
+  }
+
+  if (url.pathname === '/api/card-image') {
+    const code = url.searchParams.get('code');
+    if (!validCode(code)) return sendJson(res, 400, { error: 'Code de carte invalide' });
+    const img = DEMO ? { fail: true, tried: ['mode démo : pas de visuel'] } : await cardImageService.get(code, url.searchParams.get('v'));
+    if (url.searchParams.get('debug') === '1') {
+      return sendJson(res, 200, { code, variant: url.searchParams.get('v'), source: img.source || null, tried: img.tried || [] });
+    }
+    if (!img.buf) {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=3600' });
+      return res.end('Visuel introuvable');
+    }
+    res.writeHead(200, {
+      'Content-Type': img.type,
+      'Cache-Control': 'public, max-age=604800',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'",
+    });
+    return res.end(img.buf);
   }
 
   if (url.pathname === '/api/cards') {

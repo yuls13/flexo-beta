@@ -107,7 +107,7 @@ async function init() {
   state.data = store.get('prices', {});
   state.customShops = store.get('customShops', []);
   state.owned = store.get('owned', {});
-  state.cards = store.get('cards', {});
+  state.cards = store.get('cards-v2', {});
   for (const c of state.customShops) if (c.trust) state.trust[c.id] = c.trust;
   renderMyShops();
   const prefs = store.get('prefs', {});
@@ -533,7 +533,7 @@ async function loadCards() {
   try {
     const data = await api(`/api/cards?series=${encodeURIComponent(s.id)}`);
     state.cards[s.id] = { ...data, fetchedAt: new Date().toISOString() };
-    if (data.available) store.set('cards', state.cards);
+    if (data.available) store.set('cards-v2', state.cards);
   } catch (err) {
     state.cards[s.id] = { available: false, error: err.message, cards: [] };
   }

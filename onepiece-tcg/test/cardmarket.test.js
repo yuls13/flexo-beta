@@ -7,10 +7,24 @@ test('parseCardName', () => {
   assert.deepEqual(parseCardName('Monkey.D.Luffy (OP16-118)'), { code: 'OP16-118', variant: 1, base: 'Monkey.D.Luffy' });
 });
 
-test('cardImages : version alternative puis image de base', () => {
-  const imgs = cardImages('OP16-118', 2);
-  assert.match(imgs[0], /OP16-118_p1\.png$/);
-  assert.ok(imgs.some((u) => u.endsWith('/OP16-118.png')));
+test('cardImages : visuel servi par le serveur de l’app', () => {
+  assert.deepEqual(cardImages('OP16-118', 2), ['/api/card-image?code=OP16-118&v=2']);
+  assert.deepEqual(cardImages(null, 1), []);
+});
+
+test('imageIds et pickOptcgImage : version alternative puis version de base', async () => {
+  const { imageIds, pickOptcgImage, validCode } = await import('../server/cardImages.js');
+  assert.deepEqual(imageIds('OP17-118', 3), ['OP17-118_p2', 'OP17-118']);
+  assert.deepEqual(imageIds('OP17-118', 1), ['OP17-118']);
+  const json = [
+    { card_image_id: 'OP17-118', card_image: 'https://img/OP17-118.jpg' },
+    { card_image_id: 'OP17-118_p1', card_image: 'https://img/OP17-118_p1.jpg' },
+  ];
+  assert.equal(pickOptcgImage(json, imageIds('OP17-118', 2)), 'https://img/OP17-118_p1.jpg');
+  assert.equal(pickOptcgImage(json, imageIds('OP17-118', 5)), 'https://img/OP17-118.jpg');
+  assert.equal(pickOptcgImage({ data: [] }, ['X']), null);
+  assert.equal(validCode('EB04-061'), true);
+  assert.equal(validCode('../etc'), false);
 });
 
 test('topCards : top 5 par moyenne 7 jours, extension majoritaire incluse, autres séries exclues', () => {

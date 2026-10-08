@@ -33,12 +33,10 @@ export function parseCardName(name) {
   return { code, variant, base };
 }
 
+// Visuel servi par le serveur de l'app (voir cardImages.js).
 export function cardImages(code, variant) {
   if (!code) return [];
-  const suffix = variant > 1 ? `_p${variant - 1}` : '';
-  const hosts = ['https://en.onepiece-cardgame.com', 'https://asia-en.onepiece-cardgame.com', 'https://www.onepiece-cardgame.com'];
-  const files = suffix ? [`${code}${suffix}.png`, `${code}.png`] : [`${code}.png`];
-  return files.flatMap((f) => hosts.map((h) => `${h}/images/cardlist/card/${f}`));
+  return [`/api/card-image?code=${encodeURIComponent(code)}&v=${variant || 1}`];
 }
 
 // Sélection des cartes d'une série : code de carte de la série + toutes les cartes de
