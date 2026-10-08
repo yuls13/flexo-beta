@@ -74,13 +74,14 @@
       "name": "Next Hobby",
       "domain": "nexthobby.fr",
       "base": "https://nexthobby.fr",
-      "platform": "woocommerce",
+      "platform": "link",
       "country": "FR",
       "flags": {},
       "refs": [
         "https://www.trustpilot.com/review/nexthobby.fr"
       ],
-      "searchUrl": "https://nexthobby.fr/?s={q}&post_type=product"
+      "searchUrl": "https://nexthobby.fr/?s={q}&post_type=product",
+      "notes": "Site protégé par Cloudflare (vérification anti-robots) : prix non lisibles automatiquement, lien direct vers sa recherche."
     },
     {
       "id": "ecardstore",

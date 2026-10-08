@@ -6,6 +6,8 @@ import { pool, withTrace } from './http.js';
 const CACHE_TTL_MS = 10 * 60 * 1000; // résultats réutilisés 10 min
 const MIN_FORCE_INTERVAL_MS = 45 * 1000; // « Actualiser » ne relance pas plus d'une fois / 45 s
 const SHOP_BUDGET_MS = 30 * 1000;
+const PROTECTED_TTL_MS = 24 * 60 * 60 * 1000; // site anti-robots : on réessaie une fois par jour
+const ANTI_BOT = /anti-robots|Cloudflare|DataDome|Sucuri|Wordfence/i;
 
 // Prix plancher en dessous desquels une offre neuve est très improbable (€).
 const FLOOR = {
@@ -24,7 +26,13 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
     (s) => PLATFORMS.includes(s.platform) && !blocked.has(s.domain.replace(/^www\./, ''))
   );
 
-  async function searchShop(shop, s) {
+  const protectedUntil = new Map(); // domaine -> { until, reason }
+
+  async function searchShop(shop, s, { ignoreProtection = false } = {}) {
+    const prot = protectedUntil.get(shop.domain);
+    if (!ignoreProtection && prot && prot.until > Date.now()) {
+      return { items: [], errors: [prot.reason], ms: 0, strategies: [], protected: true };
+    }
     const queries = queriesFor(shop.platform, s);
     const started = Date.now();
     const items = [];
@@ -45,6 +53,10 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
         }
       } catch (err) {
         errors.push(err.message);
+        if (ANTI_BOT.test(err.message)) {
+          protectedUntil.set(shop.domain, { until: Date.now() + PROTECTED_TTL_MS, reason: err.message.replace(/^HTTP \d+ – /, '') });
+          return { items, errors, ms: Date.now() - started, strategies: [...strategies], protected: true };
+        }
         // Un blocage (403/429) ou une boutique injoignable ne s'améliorera pas sur les requêtes suivantes.
         if ([0, 401, 403, 404, 429, 503].includes(err.status)) break;
       }
@@ -56,7 +68,7 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
   async function diagnose(shop, seriesId) {
     const s = series.find((x) => x.id === seriesId);
     if (!s) return null;
-    const { result, trace } = await withTrace(() => searchShop(shop, s));
+    const { result, trace } = await withTrace(() => searchShop(shop, s, { ignoreProtection: true }));
     if (result.error) throw result.error;
     const seen = new Set();
     const products = [];
@@ -83,7 +95,7 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
     const perShop = await pool(targets, 8, (shop) => searchShop(shop, s));
     const offers = [];
     const shopStatus = [];
-    perShop.forEach(({ items, errors, ms, strategies }, i) => {
+    perShop.forEach(({ items, errors, ms, strategies, protected: isProtected }, i) => {
       const shop = targets[i];
       const seen = new Set();
       let matched = 0;
@@ -101,7 +113,7 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
         id: shop.id,
         name: shop.name,
         custom: !!shop.custom,
-        status: matched ? 'ok' : items.length ? 'empty' : errors.length ? 'error' : 'empty',
+        status: matched ? 'ok' : isProtected ? 'protected' : items.length ? 'empty' : errors.length ? 'error' : 'empty',
         platform: shop.platform,
         found: items.length,
         matched,

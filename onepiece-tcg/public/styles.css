@@ -265,6 +265,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 .st.ok { color: var(--ok); }
 .st.empty { color: var(--muted); }
 .st.error { color: var(--bad); }
+.st.protected { color: var(--warn); }
 
 .foot { text-align: center; color: var(--muted); font-size: 0.78rem; padding: 0 16px 32px; max-width: 800px; margin: 0 auto; }
 

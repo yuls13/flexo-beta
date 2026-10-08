@@ -394,19 +394,20 @@ function render() {
         .join('')
     : `<div class="empty">Aucune offre trouvée avec ces filtres.${state.stock !== 'all' ? ' Essayez le filtre « Tout » (inclut les ruptures).' : ''}<br>Pensez aussi aux liens « Vérifier aussi sur » ci-dessous.</div>`;
 
-  const st = { ok: '✔ offres trouvées', empty: '○ rien pour cette série', error: '✖ injoignable' };
+  const st = { ok: '✔ offres trouvées', empty: '○ rien pour cette série', error: '✖ injoignable', protected: '🛡 site protégé (anti-robots)' };
   $('#shopList').innerHTML = data.shops
     .map(
       (s) => `<div class="shop-row ${s.custom ? 'mine' : ''}"><div><div class="shop-name">${favStar(s.id)}${shopLogo(s.id, s.name)}<b>${esc(s.name)}</b></div>
         ${s.custom ? '<span class="tag mine">⭐ Ajoutée par vous</span> ' : ''}${trustBadge(s.id)}</div>
       <div class="st-col"><div class="st ${s.status}" title="${esc(s.error || '')}">${st[s.status]}${s.matched ? ` (${s.matched})` : ''}${s.error ? `<br><small>${esc(s.error)}</small>` : ''}</div>
         <button class="diag-btn" type="button" data-diagnose="${esc(s.id)}" title="Voir ce que la boutique a répondu">🔍 Diagnostic</button>
-        ${s.status === 'error' && shopSearchUrl(s.id) ? `<a class="diag-btn" href="${esc(shopSearchUrl(s.id))}" target="_blank" rel="noopener noreferrer">Voir sur le site ↗</a>` : ''}</div></div>`
+        ${['error', 'protected'].includes(s.status) && shopSearchUrl(s.id) ? `<a class="diag-btn" href="${esc(shopSearchUrl(s.id))}" target="_blank" rel="noopener noreferrer">Voir sur le site ↗</a>` : ''}</div></div>`
     )
     .join('');
   const ok = data.shops.filter((s) => s.status === 'ok').length;
   const err = data.shops.filter((s) => s.status === 'error').length;
-  $('#shopSummary').textContent = `— ${ok} avec offres, ${err} injoignable${err > 1 ? 's' : ''}, ${data.shops.length - ok - err} sans résultat`;
+  const prot = data.shops.filter((s) => s.status === 'protected').length;
+  $('#shopSummary').textContent = `— ${ok} avec offres, ${err} injoignable${err > 1 ? 's' : ''}${prot ? `, ${prot} protégée${prot > 1 ? 's' : ''}` : ''}, ${data.shops.length - ok - err - prot} sans résultat`;
 }
 
 function renderLinks() {

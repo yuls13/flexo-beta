@@ -87,3 +87,22 @@ test('précommandes : série à venir, mention dans le titre, FR sans date → d
   const inStock = buildOffer(shop, { title: 'Display OP16 FR', price: 130, url: 'u', available: true }, cls('FR'), defaults, old, today);
   assert.equal(inStock.preorder, false);
 });
+
+test('site anti-robots : marqué « protégé » et plus interrogé pendant 24 h', async () => {
+  const series = compileSeries([{ id: 'OP16', code: 'OP-16', names: {}, queries: ['OP16', 'OP-16'], match: ['\\bOP-?16\\b'] }]);
+  const shops = [{ id: 'cf', name: 'CF', domain: 'cf.fr', base: 'https://cf.fr', platform: 'woocommerce', country: 'FR' }];
+  let calls = 0;
+  const searchImpl = async () => {
+    calls++;
+    const e = new Error('HTTP 403 – protection anti-robots Cloudflare');
+    e.status = 403;
+    throw e;
+  };
+  const svc = createPriceService({ shops, shippingDefaults: defaults, blacklist: [], series, searchImpl });
+  const first = await svc.getSeries('OP16');
+  assert.equal(first.shops[0].status, 'protected');
+  assert.equal(calls, 1);
+  const again = await svc.getSeries('OP16', { extraShops: [{ id: 'x', name: 'X', domain: 'x.fr', base: 'https://x.fr', platform: 'auto', country: 'FR' }] });
+  assert.equal(again.shops.find((s) => s.id === 'cf').status, 'protected');
+  assert.equal(calls, 2); // seule la nouvelle boutique a été interrogée
+});
