@@ -51,8 +51,29 @@ export function demoSearch(shop, query, series) {
 export function demoTrust(shop) {
   const r = rand(shop.domain);
   return {
-    age: { created: `20${10 + Math.floor(r() * 14)}-0${1 + Math.floor(r() * 8)}-15`, years: 1 + r() * 12 },
+    age: (() => {
+      const created = `20${10 + Math.floor(r() * 14)}-0${1 + Math.floor(r() * 8)}-15`;
+      return { created, years: (Date.now() - new Date(created)) / 3.156e10 };
+    })(),
     tp: r() < 0.8 ? { rating: 3 + r() * 2, reviews: Math.floor(10 + r() * 2000) } : null,
     site: { https: true, legal: r() > 0.1, companyId: r() > 0.3 },
   };
+}
+
+// Cartes FICTIVES pour le mode démo (noms de personnages, prix inventés, pas de visuel).
+export function demoCards(series) {
+  if (!series || Object.values(series.release || {}).every((d) => d > new Date().toISOString().slice(0, 10))) {
+    return { available: true, demo: true, updatedAt: null, cards: [] };
+  }
+  const r = rand(series.id + 'cards');
+  const names = ['Monkey D. Luffy', 'Roronoa Zoro', 'Nami', 'Shanks', 'Boa Hancock', 'Trafalgar Law', 'Yamato', 'Portgas D. Ace'];
+  const cards = names
+    .map((name, i) => {
+      const price = Math.round((40 + r() * 600) * 100) / 100;
+      const code = `${series.id}-${String(100 + i * 3).padStart(3, '0')}`;
+      return { idProduct: `demo-${series.id}-${i}`, name, code, variant: 1 + (i % 3), avg7: price, trend: price * (0.9 + r() * 0.2), price, images: [], url: '#' };
+    })
+    .sort((a, b) => b.price - a.price)
+    .slice(0, 5);
+  return { available: true, demo: true, updatedAt: new Date().toISOString(), cards };
 }

@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { compileSeries, PRODUCT_TYPES } from './classify.js';
 import { createPriceService } from './prices.js';
 import { createTrustService, computeScore, sanitizeDomain, rootDomain, LEVEL_LABELS } from './trust.js';
-import { demoSearch, demoTrust } from './demo.js';
+import { demoSearch, demoTrust, demoCards } from './demo.js';
+import { inspectShop, parseCustomParam, customShopId, MAX_CUSTOM_SHOPS } from './customShops.js';
+import { createCardmarketService } from './cardmarket.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -37,6 +39,10 @@ const trustService = DEMO
       },
     }
   : createTrustService({ shops, blacklist });
+
+const cardService = DEMO ? { getTop: async (id) => demoCards(rawSeries.find((s) => s.id === id)) } : createCardmarketService();
+const knownDomains = new Set(shops.map((s) => rootDomain(s.domain)));
+const isBlacklisted = (domain) => blacklist.find((b) => rootDomain(b.domain) === rootDomain(domain)) || null;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -82,12 +88,20 @@ async function handleApi(req, res, url) {
     const id = url.searchParams.get('series');
     const s = series.find((x) => x.id === id);
     if (!s) return sendJson(res, 404, { error: 'Série inconnue' });
-    const data = await priceService.getSeries(id, { force: url.searchParams.get('refresh') === '1' });
+    const extraShops = await parseCustomParam(url.searchParams.get('custom'), { knownDomains, blacklist });
+    const data = await priceService.getSeries(id, { force: url.searchParams.get('refresh') === '1', extraShops });
     return sendJson(res, 200, { ...data, demo: DEMO });
   }
 
   if (url.pathname === '/api/trust') {
     const results = await Promise.all(shops.map((s) => trustService.evaluate(s.domain)));
+    // Boutiques personnelles : domaines séparés par des virgules.
+    const custom = (url.searchParams.get('custom') || '').split(',').filter(Boolean).slice(0, MAX_CUSTOM_SHOPS);
+    for (const d of custom) {
+      const clean = await sanitizeDomain(d);
+      if (!clean || clean.unresolved || knownDomains.has(rootDomain(clean.host))) continue;
+      results.push({ ...(await trustService.evaluate(clean.host)), shopId: customShopId(clean.host) });
+    }
     return sendJson(res, 200, { demo: DEMO, shops: results });
   }
 
@@ -104,6 +118,35 @@ async function handleApi(req, res, url) {
       });
     }
     return sendJson(res, 200, await trustService.evaluate(clean.host));
+  }
+
+  if (url.pathname === '/api/shop/inspect') {
+    const input = url.searchParams.get('url');
+    const pre = await sanitizeDomain(input);
+    if (pre && knownDomains.has(rootDomain(pre.host))) {
+      return sendJson(res, 409, { error: 'Cette boutique fait déjà partie de la liste surveillée.' });
+    }
+    const info = DEMO
+      ? pre
+        ? { domain: pre.host, base: `https://${pre.host}`, name: rootDomain(pre.host).split('.')[0], platform: 'shopify' }
+        : { error: 'Adresse de site invalide' }
+      : await inspectShop(input);
+    if (info.error) return sendJson(res, 400, { error: info.error });
+    const trust = { ...(await trustService.evaluate(info.domain)), shopId: customShopId(info.domain) };
+    const black = isBlacklisted(info.domain);
+    return sendJson(res, 200, {
+      ...info,
+      id: customShopId(info.domain),
+      trust,
+      blocked: black ? `Site signalé comme arnaque : ${black.reason}` : null,
+    });
+  }
+
+  if (url.pathname === '/api/cards') {
+    const s = rawSeries.find((x) => x.id === url.searchParams.get('series'));
+    if (!s) return sendJson(res, 404, { error: 'Série inconnue' });
+    if (s.special) return sendJson(res, 200, { available: false, cards: [], error: 'Pas de top cartes pour cet onglet' });
+    return sendJson(res, 200, { ...(await cardService.getTop(s.id)), demo: DEMO });
   }
 
   return sendJson(res, 404, { error: 'Route inconnue' });

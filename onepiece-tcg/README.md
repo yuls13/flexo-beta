@@ -10,6 +10,23 @@ Application web (installable sur téléphone) qui compare en direct les prix des
 
 ![Aperçu (mode démo, prix fictifs)](docs/apercu-demo.png)
 
+## Mes boutiques (ajout manuel)
+
+Le bouton **➕ Ajouter une boutique** accepte n'importe quelle adresse. L'app :
+1. vérifie la fiabilité du site (même score que pour les boutiques suivies), refuse les sites de la liste noire et avertit si le score est faible ;
+2. détecte la plateforme. Avec Shopify, WooCommerce ou PrestaShop, les prix sont lus automatiquement à chaque actualisation et les offres portent le tag « ⭐ Ma boutique ». Sinon, la boutique est ajoutée comme simple lien.
+
+La liste est enregistrée **dans le navigateur** (10 boutiques maximum) et envoyée au serveur à chaque recherche. Elle fonctionne donc aussi sur Render, qui n'a pas de disque permanent, mais elle est propre à chaque appareil.
+
+## Top 5 des cartes de chaque série (Cardmarket)
+
+Pour chaque série, l'app affiche les 5 cartes les plus chères avec leur visuel, leur **prix de vente moyen sur 7 jours** et leur tendance. Les données viennent des fichiers publics que Cardmarket recalcule chaque nuit (catalogue des cartes et *price guide*). Le serveur les télécharge directement et les garde 12 h en mémoire. Aucun compte ni clé n'est nécessaire.
+
+- Les prix sont toutes langues confondues, comme le *price guide* de Cardmarket.
+- Les visuels viennent du site officiel du jeu, d'après le code de la carte. Si l'image d'une version alternative est introuvable, l'app affiche l'image de base, puis le code de la carte.
+- La case **« Je l'ai »** est enregistrée sur l'appareil et affiche la valeur estimée de vos cartes du top.
+- L'identifiant du jeu One Piece chez Cardmarket (18 par défaut) est détecté automatiquement. On peut aussi le forcer avec la variable d'environnement `CARDMARKET_GAME_ID`.
+
 ## Lancer en local
 
 Node.js 20 ou plus récent. **Aucune dépendance à installer.**

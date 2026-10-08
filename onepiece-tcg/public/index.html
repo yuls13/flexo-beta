@@ -62,12 +62,19 @@
     <p id="status" class="status" role="status"></p>
 
     <section id="best" class="best" aria-label="Meilleurs prix"></section>
+    <section id="cards" class="panel cards" aria-label="Cartes les plus chères" hidden></section>
     <section id="offers" class="offers"></section>
 
     <section class="panel">
       <h2>Vérifier aussi sur</h2>
       <p class="muted">Ces sites ne peuvent pas être lus automatiquement (protection anti-robots). Liens directs vers la recherche :</p>
       <div id="links" class="chips"></div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>⭐ Mes boutiques</h2>
+        <button id="addShopBtn" class="btn btn-red btn-sm" type="button">➕ Ajouter une boutique</button></div>
+      <div id="myShops" class="shop-list"></div>
     </section>
 
     <details class="panel" id="shopPanel">

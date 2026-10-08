@@ -300,3 +300,33 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
   .offer-price { text-align: left; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .offer-price a { margin: 0 0 0 auto; }
 }
+
+/* ---------- Mes boutiques ---------- */
+.panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.btn-sm { padding: 7px 14px; font-size: 0.85rem; }
+.btn-ghost-dark { background: var(--line); color: var(--text); }
+.icon-btn { border: 0; background: transparent; font-size: 1.1rem; padding: 4px; border-radius: 8px; }
+.icon-btn:hover { background: var(--line); }
+.tag.mine { background: var(--straw); color: var(--navy); }
+.field { display: grid; gap: 4px; font-weight: 700; font-size: 0.85rem; margin: 8px 0 12px; }
+.field input { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
+
+/* ---------- Top cartes ---------- */
+.cards { margin: 0 0 22px; }
+.cards-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin-bottom: 10px; }
+.cards-head h2 { margin: 0; }
+.card-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.tcg { position: relative; margin: 0; display: flex; flex-direction: column; background: var(--bg); border: 2px solid var(--line); border-radius: 12px; padding: 8px; transition: border-color 0.2s; }
+.tcg.have { border-color: var(--ok); }
+.tcg .rank { position: absolute; z-index: 1; top: 2px; left: 2px; background: var(--red); color: #fff; font-family: 'Pirata One', serif; font-size: 1.1rem; padding: 0 8px; border-radius: 10px 0 10px 0; }
+.tcg-img { display: grid; place-items: center; aspect-ratio: 63 / 88; border-radius: 8px; overflow: hidden; background: linear-gradient(160deg, var(--ocean), var(--navy)); }
+.tcg-img img { width: 100%; height: 100%; object-fit: cover; }
+.tcg-ph { color: var(--straw); font-family: 'Pirata One', serif; font-size: 1.3rem; text-align: center; padding: 8px; }
+.tcg figcaption { display: grid; gap: 2px; margin-top: 6px; font-size: 0.82rem; }
+.tcg figcaption b { font-size: 0.9rem; line-height: 1.2; }
+.tcg-price { font-weight: 800; color: var(--red); font-size: 1.1rem; }
+.tcg-price small { font-size: 0.7rem; color: var(--muted); font-weight: 700; }
+.have-box { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; font-weight: 800; cursor: pointer; }
+.have-box input { width: 18px; height: 18px; accent-color: var(--ok); }
+@media (max-width: 900px) { .card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

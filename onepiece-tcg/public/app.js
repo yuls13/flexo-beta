@@ -16,7 +16,12 @@ const state = {
   type: 'all',
   stock: 'buyable', // buyable = en stock + précommandes | preorder | all
   loading: false,
+  customShops: [], // boutiques ajoutées par l'utilisateur (conservées dans ce navigateur)
+  cards: {}, // seriesId -> réponse /api/cards
+  owned: {}, // idProduct -> { name, code, at } : cartes cochées « je l'ai »
 };
+
+const PLATFORM_NAMES = { shopify: 'Shopify', woocommerce: 'WooCommerce', prestashop: 'PrestaShop', link: 'lien seulement' };
 
 const store = {
   get(k, d) {
@@ -84,6 +89,11 @@ async function init() {
   }
   $('#demoBanner').hidden = !state.config.demo;
   state.data = store.get('prices', {});
+  state.customShops = store.get('customShops', []);
+  state.owned = store.get('owned', {});
+  state.cards = store.get('cards', {});
+  for (const c of state.customShops) if (c.trust) state.trust[c.id] = c.trust;
+  renderMyShops();
   const prefs = store.get('prefs', {});
   Object.assign(state, { lang: prefs.lang || 'all', type: prefs.type || 'all', stock: ['buyable', 'preorder', 'all'].includes(prefs.stock) ? prefs.stock : 'buyable' });
 
@@ -102,10 +112,12 @@ async function init() {
 
 async function loadTrust() {
   try {
-    const { shops } = await api('/api/trust');
+    const domains = state.customShops.map((c) => c.domain).join(',');
+    const { shops } = await api(`/api/trust${domains ? `?custom=${encodeURIComponent(domains)}` : ''}`);
     for (const t of shops) if (t.shopId) state.trust[t.shopId] = t;
     render();
     renderLinks();
+    renderMyShops();
   } catch {
     /* les badges restent « vérification… » */
   }
@@ -123,6 +135,7 @@ function selectSeries(id) {
   const cached = state.data[id];
   const stale = !cached || Date.now() - new Date(cached.fetchedAt) > 10 * 60 * 1000;
   if (stale) load(false);
+  loadCards();
 }
 
 async function load(refresh) {
@@ -134,7 +147,10 @@ async function load(refresh) {
   btn.classList.add('loading');
   $('#status').textContent = `⚓ Recherche des prix ${state.series.code} dans ${state.config.shops.filter((s) => s.platform !== 'link').length} boutiques…`;
   try {
-    const data = await api(`/api/prices?series=${encodeURIComponent(id)}${refresh ? '&refresh=1' : ''}`);
+    const custom = customParam();
+    const data = await api(
+      `/api/prices?series=${encodeURIComponent(id)}${refresh ? '&refresh=1' : ''}${custom ? `&custom=${encodeURIComponent(custom)}` : ''}`
+    );
     state.data[id] = data;
     store.set('prices', state.data);
   } catch (err) {
@@ -259,7 +275,7 @@ function offerRow(o, isTop) {
   const flags = o.flags.map((f) => `<span class="tag ${f.kind}" title="${esc(f.text)}">${f.kind === 'suspect' ? '⚠ Prix suspect' : '▲ Prix élevé'}</span>`).join('');
   return `<article class="offer ${o.available === false ? 'out' : ''} ${suspect ? 'suspect' : ''} ${isTop ? 'top1' : ''}">
     <div class="offer-main">
-      <div class="offer-shop">${isTop ? '👑 ' : ''}${esc(o.shopName)} ${trustBadge(o.shopId)}</div>
+      <div class="offer-shop">${isTop ? '👑 ' : ''}${esc(o.shopName)} ${o.custom ? '<span class="tag mine">⭐ Ma boutique</span>' : ''} ${trustBadge(o.shopId)}</div>
       <p class="offer-title">${esc(o.title)}</p>
       <div class="tags">
         <span class="tag">${o.lang ? `${LANG_FLAGS[o.lang]} ${LANG_NAMES[o.lang]}` : 'Langue ?'}</span>
@@ -323,11 +339,191 @@ function render() {
 function renderLinks() {
   if (!state.series) return;
   const q = state.series.special ? 'One Piece starter deck' : `One Piece ${state.series.id}`;
-  $('#links').innerHTML = state.config.shops
-    .filter((s) => s.platform === 'link' && s.searchUrl)
-    .map((s) => `<a class="chip" href="${esc(safeUrl(s.searchUrl.replace('{q}', encodeURIComponent(q))))}" target="_blank" rel="noopener noreferrer">${esc(s.name)} ↗</a> ${trustBadge(s.id)}`)
-    .join('');
+  $('#links').innerHTML =
+    state.config.shops
+      .filter((s) => s.platform === 'link' && s.searchUrl)
+      .map((s) => `<a class="chip" href="${esc(safeUrl(s.searchUrl.replace('{q}', encodeURIComponent(q))))}" target="_blank" rel="noopener noreferrer">${esc(s.name)} ↗</a> ${trustBadge(s.id)}`)
+      .join('') +
+    state.customShops
+      .filter((c) => c.platform === 'link')
+      .map((c) => `<a class="chip" href="${esc(safeUrl(c.base))}" target="_blank" rel="noopener noreferrer">⭐ ${esc(c.name)} ↗</a> ${trustBadge(c.id)}`)
+      .join('');
 }
+
+// ---------- Mes boutiques ----------
+
+function customParam() {
+  return state.customShops
+    .filter((c) => c.platform !== 'link')
+    .map((c) => [c.domain, c.platform, c.name].map(encodeURIComponent).join('|'))
+    .join(',');
+}
+
+function saveCustomShops() {
+  store.set('customShops', state.customShops);
+  // Les résultats en cache ne contiennent pas la nouvelle liste : on relance la recherche.
+  state.data = {};
+  store.set('prices', {});
+  renderMyShops();
+  renderLinks();
+  load(false);
+}
+
+function renderMyShops() {
+  const list = $('#myShops');
+  if (!list) return;
+  list.innerHTML = state.customShops.length
+    ? state.customShops
+        .map(
+          (c) => `<div class="shop-row"><div><b>⭐ ${esc(c.name)}</b> <span class="muted">${esc(c.domain)}</span><br>
+          <span class="tag">${esc(PLATFORM_NAMES[c.platform] || c.platform)}</span> ${trustBadge(c.id)}</div>
+          <button class="icon-btn" type="button" data-remove-shop="${esc(c.id)}" title="Retirer" aria-label="Retirer ${esc(c.name)}">🗑</button></div>`
+        )
+        .join('')
+    : '<p class="muted">Aucune boutique ajoutée. Ajoutez une boutique que vous connaissez : elle sera vérifiée puis interrogée à chaque actualisation.</p>';
+}
+
+function showAddShop() {
+  openDialog(`<h2>Ajouter une boutique</h2>
+    <p class="muted">Collez l’adresse du site. L’app vérifie sa fiabilité et détecte si ses prix peuvent être lus automatiquement (Shopify, WooCommerce, PrestaShop).</p>
+    <form class="check-form" id="addForm"><input id="addInput" placeholder="ex. www.ma-boutique-tcg.fr" autocomplete="off" inputmode="url" required />
+    <button class="btn btn-red" type="submit">Analyser</button></form>
+    <div id="addResult"></div>`);
+  $('#addInput').focus();
+  $('#addForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const out = $('#addResult');
+    out.innerHTML = '<p class="muted">⚓ Analyse de la boutique (plateforme, fiabilité)…</p>';
+    let info;
+    try {
+      info = await api(`/api/shop/inspect?url=${encodeURIComponent($('#addInput').value)}`);
+    } catch (err) {
+      out.innerHTML = `<p style="color:var(--bad)"><b>${esc(err.message)}</b></p>`;
+      return;
+    }
+    if (state.customShops.some((c) => c.id === info.id)) {
+      out.innerHTML = '<p class="muted">Cette boutique est déjà dans « Mes boutiques ».</p>';
+      return;
+    }
+    const risky = info.trust.level === 'low' || info.trust.level === 'danger';
+    const platformTxt = info.platform
+      ? `✅ Plateforme <b>${esc(PLATFORM_NAMES[info.platform])}</b> détectée : les prix seront lus automatiquement.`
+      : '⚠️ Plateforme non reconnue : les prix ne peuvent pas être lus automatiquement. La boutique sera ajoutée comme lien dans « Vérifier aussi sur ».';
+    out.innerHTML = `${scoreHtml(info.trust)}
+      <p>${platformTxt}</p>
+      ${
+        info.blocked
+          ? `<p style="color:var(--bad)"><b>⛔ ${esc(info.blocked)}. Ajout refusé.</b></p>`
+          : `<label class="field">Nom affiché <input id="addName" value="${esc(info.name)}" maxlength="40" /></label>
+             ${risky ? '<p style="color:var(--bad)"><b>⚠️ Score de confiance faible : risque d’arnaque. Ajoutez-la seulement si vous la connaissez.</b></p>' : ''}
+             <button class="btn ${risky ? 'btn-ghost-dark' : 'btn-red'}" id="addConfirm" type="button">${risky ? 'Ajouter quand même' : '➕ Ajouter à mes boutiques'}</button>`
+      }`;
+    $('#addConfirm')?.addEventListener('click', () => {
+      state.trust[info.id] = info.trust;
+      state.customShops.push({
+        id: info.id,
+        domain: info.domain,
+        base: info.base,
+        name: ($('#addName').value || info.name).trim().slice(0, 40),
+        platform: info.platform || 'link',
+        trust: info.trust,
+        addedAt: new Date().toISOString(),
+      });
+      $('#dlg').close();
+      saveCustomShops();
+    });
+  });
+}
+
+// ---------- Top cartes (Cardmarket) ----------
+
+async function loadCards() {
+  const s = state.series;
+  if (!s || s.special) return renderCards();
+  const cached = state.cards[s.id];
+  renderCards();
+  if (cached && cached.fetchedAt && Date.now() - new Date(cached.fetchedAt) < 6 * 60 * 60 * 1000) return;
+  try {
+    const data = await api(`/api/cards?series=${encodeURIComponent(s.id)}`);
+    state.cards[s.id] = { ...data, fetchedAt: new Date().toISOString() };
+    if (data.available) store.set('cards', state.cards);
+  } catch (err) {
+    state.cards[s.id] = { available: false, error: err.message, cards: [] };
+  }
+  if (state.series.id === s.id) renderCards();
+}
+
+function renderCards() {
+  const box = $('#cards');
+  const s = state.series;
+  if (!s || s.special) {
+    box.hidden = true;
+    return;
+  }
+  box.hidden = false;
+  const data = state.cards[s.id];
+  const head = `<div class="cards-head"><h2>🏆 Top 5 des cartes ${esc(s.id)}</h2>
+    <span class="muted">Prix moyen de vente sur 7 jours · Cardmarket${data?.updatedAt ? ` · données du ${esc(dateFmt.format(new Date(data.updatedAt)))}` : ''}</span></div>`;
+  if (!data) {
+    box.innerHTML = `${head}<p class="muted">⚓ Chargement des prix Cardmarket…</p>`;
+    return;
+  }
+  if (!data.available || !data.cards.length) {
+    const msg = isUpcoming(s)
+      ? 'Série pas encore sortie : les prix des cartes apparaîtront après la sortie.'
+      : data.available
+        ? 'Aucune carte trouvée pour cette série dans les données Cardmarket.'
+        : `Prix Cardmarket indisponibles pour le moment (${esc(data.error || 'erreur')}).`;
+    box.innerHTML = `${head}<p class="muted">${msg}</p>`;
+    return;
+  }
+  const owned = data.cards.filter((c) => state.owned[c.idProduct]);
+  const value = owned.reduce((sum, c) => sum + c.price, 0);
+  box.innerHTML = `${head}
+    <div class="card-grid">${data.cards
+      .map((c, i) => {
+        const have = !!state.owned[c.idProduct];
+        const [first, ...rest] = c.images || [];
+        return `<figure class="tcg ${have ? 'have' : ''}">
+          <span class="rank">#${i + 1}</span>
+          <a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer" class="tcg-img">
+            ${
+              first
+                ? `<img src="${esc(first)}" data-fallbacks="${esc(rest.join(' '))}" alt="${esc(c.name)} ${esc(c.code || '')}" loading="lazy" referrerpolicy="no-referrer" />`
+                : ''
+            }
+            <span class="tcg-ph" ${first ? 'hidden' : ''}>${esc(c.code || '?')}</span>
+          </a>
+          <figcaption>
+            <b>${esc(c.name)}</b>
+            <span class="muted">${esc(c.code || '')}${c.variant > 1 ? ` · version ${c.variant} (alt.)` : ''}</span>
+            <span class="tcg-price">${c.avg7 != null ? esc(eur.format(c.avg7)) : '—'}<small> moy. 7 j</small></span>
+            ${c.trend != null ? `<span class="muted">Tendance ${esc(eur.format(c.trend))}</span>` : ''}
+            <label class="have-box"><input type="checkbox" data-own="${esc(c.idProduct)}" ${have ? 'checked' : ''} /> Je l’ai</label>
+          </figcaption>
+        </figure>`;
+      })
+      .join('')}</div>
+    <p class="muted">${owned.length ? `✅ Vous en possédez ${owned.length}/${data.cards.length} · valeur estimée ≈ <b>${esc(eur.format(value))}</b>` : 'Cochez « Je l’ai » pour suivre votre collection (enregistré sur cet appareil).'} · Prix Cardmarket toutes langues confondues.</p>`;
+}
+
+// Image officielle introuvable : on essaie les adresses suivantes, puis on affiche le code de la carte.
+document.addEventListener(
+  'error',
+  (e) => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement) || img.dataset.fallbacks === undefined) return;
+    const list = img.dataset.fallbacks.split(' ').filter(Boolean);
+    if (list.length) {
+      img.dataset.fallbacks = list.slice(1).join(' ');
+      img.src = list[0];
+    } else {
+      img.hidden = true;
+      img.nextElementSibling.hidden = false;
+    }
+  },
+  true
+);
 
 // ---------- Fenêtres ----------
 
@@ -355,7 +551,7 @@ function openDialog(html) {
 }
 
 function showTrust(shopId) {
-  const shop = state.config.shops.find((s) => s.id === shopId);
+  const shop = state.config.shops.find((s) => s.id === shopId) || state.customShops.find((c) => c.id === shopId);
   const t = state.trust[shopId];
   openDialog(`<h2>${esc(shop?.name || shopId)}</h2>${t ? scoreHtml(t, shop) : '<p>Vérification en cours, réessayez dans quelques secondes…</p>'}`);
 }
@@ -385,6 +581,25 @@ function showChecker() {
 
 $('#refreshBtn').addEventListener('click', () => load(true));
 $('#checkBtn').addEventListener('click', showChecker);
+$('#addShopBtn').addEventListener('click', showAddShop);
+document.addEventListener('click', (e) => {
+  const rm = e.target.closest('[data-remove-shop]');
+  if (!rm) return;
+  const shop = state.customShops.find((c) => c.id === rm.dataset.removeShop);
+  if (shop && confirm(`Retirer « ${shop.name} » de vos boutiques ?`)) {
+    state.customShops = state.customShops.filter((c) => c.id !== shop.id);
+    saveCustomShops();
+  }
+});
+document.addEventListener('change', (e) => {
+  const box = e.target.closest('[data-own]');
+  if (!box) return;
+  const card = state.cards[state.series.id]?.cards.find((c) => String(c.idProduct) === box.dataset.own);
+  if (box.checked) state.owned[box.dataset.own] = { name: card?.name, code: card?.code, at: new Date().toISOString() };
+  else delete state.owned[box.dataset.own];
+  store.set('owned', state.owned);
+  renderCards();
+});
 document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-trust]');
   if (b) {

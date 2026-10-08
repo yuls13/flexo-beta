@@ -47,13 +47,14 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
     return { items, errors, ms: Date.now() - started };
   }
 
-  async function run(s) {
+  async function run(s, extraShops) {
     const startedAt = Date.now();
-    const perShop = await pool(scrapable, 8, (shop) => searchShop(shop, s));
+    const targets = [...scrapable, ...extraShops.filter((x) => !blocked.has(x.domain.replace(/^www\./, '')))];
+    const perShop = await pool(targets, 8, (shop) => searchShop(shop, s));
     const offers = [];
     const shopStatus = [];
     perShop.forEach(({ items, errors, ms }, i) => {
-      const shop = scrapable[i];
+      const shop = targets[i];
       const seen = new Set();
       let matched = 0;
       for (const item of items) {
@@ -69,6 +70,7 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
       shopStatus.push({
         id: shop.id,
         name: shop.name,
+        custom: !!shop.custom,
         status: matched ? 'ok' : items.length ? 'empty' : errors.length ? 'error' : 'empty',
         found: items.length,
         matched,
@@ -88,22 +90,25 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
     };
   }
 
-  async function getSeries(seriesId, { force = false } = {}) {
+  // extraShops : boutiques ajoutées par l'utilisateur (déjà validées), incluses dans la clé de cache.
+  async function getSeries(seriesId, { force = false, extraShops = [] } = {}) {
     const s = series.find((x) => x.id === seriesId);
     if (!s) return null;
-    const cached = cache.get(seriesId);
+    const key = [seriesId, ...extraShops.map((x) => `${x.platform}:${x.domain}`).sort()].join('|');
+    const cached = cache.get(key);
     const age = cached ? Date.now() - cached.at : Infinity;
     if (cached && (age < (force ? MIN_FORCE_INTERVAL_MS : CACHE_TTL_MS))) {
       return { ...cached.data, cached: true };
     }
-    if (inflight.has(seriesId)) return inflight.get(seriesId);
-    const p = run(s)
+    if (inflight.has(key)) return inflight.get(key);
+    const p = run(s, extraShops)
       .then((data) => {
-        cache.set(seriesId, { data, at: Date.now() });
+        cache.set(key, { data, at: Date.now() });
+        if (cache.size > 200) cache.delete(cache.keys().next().value);
         return { ...data, cached: false };
       })
-      .finally(() => inflight.delete(seriesId));
-    inflight.set(seriesId, p);
+      .finally(() => inflight.delete(key));
+    inflight.set(key, p);
     return p;
   }
 
@@ -148,6 +153,7 @@ export function buildOffer(shop, item, cls, shippingDefaults, s, today = new Dat
   return {
     shopId: shop.id,
     shopName: shop.name,
+    custom: !!shop.custom,
     country: shop.country,
     title: item.title,
     url: item.url,
