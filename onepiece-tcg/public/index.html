@@ -25,6 +25,7 @@
         </div>
       </a>
       <div class="top-actions">
+        <button id="accountBtn" class="btn btn-ghost" type="button" title="Se connecter avec Google"><span>Se connecter</span></button>
         <button id="checkBtn" class="btn btn-ghost" type="button" title="Vérifier si un site est fiable">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.5 8 11 4.6-1.5 8-6 8-11V5l-8-3Zm-1 14-4-4 1.4-1.4 2.6 2.6 5.6-5.6L18 9l-7 7Z"/></svg>
           <span>Vérifier un site</span>
@@ -52,6 +53,7 @@
         <button data-v="JP">🇯🇵 JP</button>
       </div>
       <div class="seg" id="typeFilter" role="group" aria-label="Produit"></div>
+      <button id="favShopsToggle" class="fav-toggle" type="button" aria-pressed="false" hidden>★ Mes boutiques préférées</button>
       <div class="seg" id="stockFilter" role="group" aria-label="Disponibilité">
         <button data-v="buyable" class="on">En stock + précos</button>
         <button data-v="preorder">🗓️ Précommandes</button>
@@ -97,6 +99,8 @@
   <footer class="foot">
     <p>Grand Line Prix — outil personnel non affilié à Bandai, Toei Animation ni aux boutiques citées. Prix indicatifs, à confirmer sur le site marchand.</p>
   </footer>
+
+  <div id="toast" class="toast" role="status" hidden></div>
 
   <dialog id="dlg" class="dlg">
     <form method="dialog" class="dlg-close"><button aria-label="Fermer">✕</button></form>

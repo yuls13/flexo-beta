@@ -354,3 +354,36 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
   .dlg { padding: 16px; }
   .dlg h2 { font-size: 1.4rem; }
 }
+
+/* ---------- Compte et favoris ---------- */
+.avatar { width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--straw); color: var(--navy); font-weight: 800; font-size: 0.8rem; object-fit: cover; flex: none; }
+.avatar.lg { width: 52px; height: 52px; font-size: 1.4rem; }
+.title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.fav-btn { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 999px; padding: 4px 12px; font-weight: 800; font-size: 0.82rem; }
+.fav-btn:hover { border-color: var(--straw-dark); }
+.fav-btn.on { background: var(--straw); color: var(--navy); border-color: var(--straw-dark); }
+.star { border: 0; background: transparent; color: var(--muted); font-size: 1.05rem; line-height: 1; padding: 2px 4px 2px 0; }
+.star:hover { color: var(--straw-dark); }
+.star.on { color: var(--straw-dark); }
+.tab-star { color: var(--red); margin-right: 3px; }
+.tab.on .tab-star { color: var(--red-dark); }
+.fav-toggle { border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 10px; padding: 6px 12px; font-weight: 800; font-size: 0.85rem; }
+.fav-toggle.on { background: var(--straw); color: var(--navy); border-color: var(--straw-dark); }
+.btn-google { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; border: 1px solid #dadce0; background: #fff; color: #1f1f1f; border-radius: 999px; padding: 11px 16px; font-weight: 700; font-size: 1rem; margin: 14px 0 8px; }
+.btn-google:hover { background: #f7f8f8; }
+.btn-google svg { width: 20px; height: 20px; }
+.btn-danger { background: transparent; color: var(--bad); border: 1px solid var(--bad); }
+.btn-danger[data-armed='1'] { background: var(--bad); color: #fff; }
+.perks { margin: 6px 0 0; padding-left: 4px; list-style: none; display: grid; gap: 4px; }
+.notice { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 0.88rem; }
+.small { font-size: 0.8rem; }
+.err-msg { color: var(--bad); font-weight: 700; }
+.profile { display: flex; align-items: center; gap: 12px; margin: 8px 0 4px; }
+.sub-h { font-size: 1.15rem; margin: 14px 0 4px; color: var(--heading); }
+.chip-x { border: 0; background: transparent; color: var(--muted); padding: 0 0 0 4px; font-size: 0.8rem; }
+.chip-x:hover { color: var(--bad); }
+.account-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.toast { position: fixed; z-index: 50; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--navy); color: #fff; padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 0.9rem; box-shadow: var(--shadow); max-width: calc(100% - 32px); text-align: center; }
+@media (max-width: 640px) {
+  #accountBtn span:not(.avatar) { display: none; }
+}

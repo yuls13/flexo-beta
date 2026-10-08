@@ -15,6 +15,18 @@ const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 const PORT = process.env.PORT || 3000;
 const DEMO = process.env.DEMO === '1';
 
+// Connexion Google (Firebase). La configuration web Firebase n'est pas secrète : elle identifie
+// le projet ; la sécurité repose sur les règles Firestore (firestore.rules).
+const FIREBASE = process.env.FIREBASE_API_KEY
+  ? {
+      apiKey: process.env.FIREBASE_API_KEY,
+      authDomain: process.env.FIREBASE_AUTH_DOMAIN || `${process.env.FIREBASE_PROJECT_ID}.firebaseapp.com`,
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      appId: process.env.FIREBASE_APP_ID,
+    }
+  : null;
+const AUTH = DEMO ? { provider: 'demo' } : FIREBASE ? { provider: 'firebase', firebase: FIREBASE } : null;
+
 const readJson = async (f) => JSON.parse(await fs.readFile(path.join(__dirname, 'config', f), 'utf8'));
 const { series: rawSeries } = await readJson('series.json');
 const { shops, shippingDefaults } = await readJson('shops.json');
@@ -77,6 +89,7 @@ async function handleApi(req, res, url) {
   if (url.pathname === '/api/config') {
     return sendJson(res, 200, {
       demo: DEMO,
+      auth: AUTH,
       series: rawSeries.map(({ id, code, names, release, special }) => ({ id, code, names, release, special: !!special })),
       shops: shops.map(publicShop),
       productTypes: PRODUCT_TYPES,

@@ -1,4 +1,5 @@
 // Grand Line Prix — interface (vanilla JS, sans build).
+import { createAccount, mergePrefs } from './account.js';
 
 const $ = (sel) => document.querySelector(sel);
 const LANG_FLAGS = { FR: '🇫🇷', EN: '🇬🇧', JP: '🇯🇵' };
@@ -19,6 +20,12 @@ const state = {
   customShops: [], // boutiques ajoutées par l'utilisateur (conservées dans ce navigateur)
   cards: {}, // seriesId -> réponse /api/cards
   owned: {}, // idProduct -> { name, code, at } : cartes cochées « je l'ai »
+  account: null, // module de connexion (Firebase ou démo)
+  user: null, // { uid, name, email, photo } une fois connecté
+  favSeries: [], // séries préférées (compte)
+  favShops: [], // boutiques préférées (compte)
+  favOnly: false, // filtre « boutiques préférées seulement »
+  firstAuth: true,
 };
 
 const PLATFORM_NAMES = { shopify: 'Shopify', woocommerce: 'WooCommerce', prestashop: 'PrestaShop', link: 'lien seulement' };
@@ -108,6 +115,7 @@ async function init() {
     state.config.series[0];
   selectSeries(first.id);
   loadTrust();
+  setupAccount(!fromHash);
 }
 
 async function loadTrust() {
@@ -170,18 +178,17 @@ async function load(refresh) {
 // ---------- Rendu ----------
 
 function renderTabs() {
-  $('#tabs').innerHTML = state.config.series
+  // Séries préférées en premier, marquées d'une étoile.
+  const fav = (s) => state.favSeries.includes(s.id);
+  const list = [...state.config.series].sort((a, b) => fav(b) - fav(a));
+  $('#tabs').innerHTML = list
     .map((s) => {
       const sub = s.special ? 'ST · coffrets' : s.names.fr || s.names.en || '';
-      return `<button class="tab" data-id="${esc(s.id)}" type="button">
-        <b>${esc(s.special ? 'Starters' : s.id)}${isUpcoming(s) ? '<span class="soon">bientôt</span>' : ''}</b>
+      return `<button class="tab ${state.series?.id === s.id ? 'on' : ''} ${fav(s) ? 'fav' : ''}" data-id="${esc(s.id)}" type="button">
+        <b>${fav(s) ? '<span class="tab-star" aria-label="Série préférée">★</span>' : ''}${esc(s.special ? 'Starters' : s.id)}${isUpcoming(s) ? '<span class="soon">bientôt</span>' : ''}</b>
         <small>${esc(sub.length > 26 ? sub.slice(0, 25) + '…' : sub)}</small></button>`;
     })
-    .join('');
-  $('#tabs').addEventListener('click', (e) => {
-    const tab = e.target.closest('.tab');
-    if (tab) selectSeries(tab.dataset.id);
-  });
+    .join('');  $('#tabs .tab.on')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
 }
 
 function renderTypeFilter() {
@@ -213,7 +220,10 @@ function renderHead() {
         isUpcoming(s) ? 'Série pas encore sortie' : `Pas encore sortie en ${future.map(([l]) => l.toUpperCase()).join(', ')}`
       } : les offres commandables sont des <b>précommandes</b>. Préférez les boutiques bien notées, payez par CB/PayPal et méfiez-vous des précommandes sans date ni délai.</div>`
     : '';
-  $('#seriesHead').innerHTML = `<div><h2>${esc(s.special ? 'Starter decks & coffrets' : s.code)}</h2>
+  const isFav = state.favSeries.includes(s.id);
+  const favBtn = `<button class="fav-btn ${isFav ? 'on' : ''}" type="button" data-fav-series="${esc(s.id)}" aria-pressed="${isFav}">
+    ${isFav ? '★ Série suivie' : '☆ Ajouter à mes séries'}</button>`;
+  $('#seriesHead').innerHTML = `<div><div class="title-row"><h2>${esc(s.special ? 'Starter decks & coffrets' : s.code)}</h2>${favBtn}</div>
     <p class="names">${esc(names.join(' · '))}</p></div><div class="dates">${dates}</div>${banner}`;
 }
 
@@ -245,8 +255,28 @@ function filtered(offers) {
       (state.type === 'all' || o.type === state.type) &&
       (state.stock === 'all' ||
         (state.stock === 'buyable' && o.available !== false) ||
-        (state.stock === 'preorder' && o.preorder && o.available !== false))
+        (state.stock === 'preorder' && o.preorder && o.available !== false)) &&
+      (!state.favOnly || state.favShops.includes(o.shopId))
   );
+}
+
+// Étoile « boutique préférée » (un clic hors connexion propose de se connecter).
+function favStar(shopId) {
+  const on = state.favShops.includes(shopId);
+  return `<button class="star ${on ? 'on' : ''}" type="button" data-fav-shop="${esc(shopId)}" aria-pressed="${on}"
+    title="${on ? 'Retirer de mes boutiques préférées' : 'Ajouter à mes boutiques préférées'}">${on ? '★' : '☆'}</button>`;
+}
+
+// Meilleure offre disponible (hors prix suspects) par type × langue, parmi les offres filtrées.
+function bestOf(offers) {
+  const best = {};
+  const cost = (o) => (o.type === 'booster' ? (o.price + o.shipping) / o.quantity : o.total);
+  for (const o of offers) {
+    if (o.available === false || o.flags.some((f) => f.kind === 'suspect')) continue;
+    const k = `${o.type}|${o.lang || '?'}`;
+    if (!best[k] || cost(o) < cost(best[k])) best[k] = o;
+  }
+  return Object.values(best);
 }
 
 function productLabel(o) {
@@ -255,8 +285,7 @@ function productLabel(o) {
 }
 
 function renderBest(data) {
-  const best = filtered(data.best || [])
-    .filter((o) => o.available !== false)
+  const best = bestOf(filtered(data.offers))
     .sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type) || (a.lang || 'Z').localeCompare(b.lang || 'Z'));
   $('#best').innerHTML = best
     .map(
@@ -279,7 +308,7 @@ function offerRow(o, isTop) {
   const flags = o.flags.map((f) => `<span class="tag ${f.kind}" title="${esc(f.text)}">${f.kind === 'suspect' ? '⚠ Prix suspect' : '▲ Prix élevé'}</span>`).join('');
   return `<article class="offer ${o.available === false ? 'out' : ''} ${suspect ? 'suspect' : ''} ${isTop ? 'top1' : ''}">
     <div class="offer-main">
-      <div class="offer-shop">${isTop ? '👑 ' : ''}${esc(o.shopName)} ${o.custom ? '<span class="tag mine">⭐ Ma boutique</span>' : ''} ${trustBadge(o.shopId)}</div>
+      <div class="offer-shop">${favStar(o.shopId)}${isTop ? '👑 ' : ''}${esc(o.shopName)} ${o.custom ? '<span class="tag mine">⭐ Ma boutique</span>' : ''} ${trustBadge(o.shopId)}</div>
       <p class="offer-title">${esc(o.title)}</p>
       <div class="tags">
         <span class="tag">${o.lang ? `${LANG_FLAGS[o.lang]} ${LANG_NAMES[o.lang]}` : 'Langue ?'}</span>
@@ -331,7 +360,7 @@ function render() {
   const st = { ok: '✔ offres trouvées', empty: '○ rien pour cette série', error: '✖ injoignable' };
   $('#shopList').innerHTML = data.shops
     .map(
-      (s) => `<div class="shop-row"><div><b>${esc(s.name)}</b><br>${trustBadge(s.id)}</div>
+      (s) => `<div class="shop-row"><div>${favStar(s.id)}<b>${esc(s.name)}</b><br>${trustBadge(s.id)}</div>
       <div class="st ${s.status}" title="${esc(s.error || '')}">${st[s.status]}${s.matched ? ` (${s.matched})` : ''}${s.error ? `<br><small>${esc(s.error)}</small>` : ''}</div></div>`
     )
     .join('');
@@ -365,6 +394,7 @@ function customParam() {
 
 function saveCustomShops() {
   store.set('customShops', state.customShops);
+  syncAccount();
   // Les résultats en cache ne contiennent pas la nouvelle liste : on relance la recherche.
   state.data = {};
   store.set('prices', {});
@@ -379,7 +409,7 @@ function renderMyShops() {
   list.innerHTML = state.customShops.length
     ? state.customShops
         .map(
-          (c) => `<div class="shop-row"><div><b>⭐ ${esc(c.name)}</b> <span class="muted">${esc(c.domain)}</span><br>
+          (c) => `<div class="shop-row"><div>${favStar(c.id)}<b>${esc(c.name)}</b> <span class="muted">${esc(c.domain)}</span><br>
           <span class="tag">${esc(PLATFORM_NAMES[c.platform] || c.platform)}</span> ${trustBadge(c.id)}</div>
           <button class="icon-btn" type="button" data-remove-shop="${esc(c.id)}" title="Retirer" aria-label="Retirer ${esc(c.name)}">🗑</button></div>`
         )
@@ -508,7 +538,7 @@ function renderCards() {
         </figure>`;
       })
       .join('')}</div>
-    <p class="muted">${owned.length ? `✅ Vous en possédez ${owned.length}/${data.cards.length} · valeur estimée ≈ <b>${esc(eur.format(value))}</b>` : 'Cochez « Je l’ai » pour suivre votre collection (enregistré sur cet appareil).'} · Prix Cardmarket toutes langues confondues.</p>`;
+    <p class="muted">${owned.length ? `✅ Vous en possédez ${owned.length}/${data.cards.length} · valeur estimée ≈ <b>${esc(eur.format(value))}</b>` : state.user ? 'Cochez « Je l’ai » pour suivre votre collection (synchronisé avec votre compte).' : 'Cochez « Je l’ai » pour suivre votre collection (enregistré sur cet appareil ; connectez-vous pour le retrouver partout).'} · Prix Cardmarket toutes langues confondues.</p>`;
 }
 
 // Image officielle introuvable : on essaie les adresses suivantes, puis on affiche le code de la carte.
@@ -528,6 +558,169 @@ document.addEventListener(
   },
   true
 );
+
+// ---------- Compte ----------
+
+async function setupAccount(pickFavorite) {
+  state.account = await createAccount(state.config.auth);
+  renderAccountBtn();
+  if (!state.account.available) return;
+  state.account.onChange(async (user) => {
+    state.user = user;
+    if (user) {
+      try {
+        const remote = await state.account.load(user.uid);
+        const before = state.customShops.map((c) => c.id).join();
+        const merged = mergePrefs(remote, { customShops: state.customShops, owned: state.owned });
+        state.favSeries = merged.favoriteSeries;
+        state.favShops = merged.favoriteShops;
+        state.customShops = merged.customShops;
+        state.owned = merged.owned;
+        for (const c of state.customShops) if (c.trust) state.trust[c.id] = c.trust;
+        store.set('owned', state.owned);
+        if (state.customShops.map((c) => c.id).join() !== before) saveCustomShops();
+        if (JSON.stringify(remote) !== JSON.stringify(accountPrefs())) syncAccount(0);
+        if (state.firstAuth && pickFavorite && state.favSeries.length && !state.favSeries.includes(state.series.id)) {
+          selectSeries(state.favSeries[0]);
+        }
+      } catch (err) {
+        toast(`Impossible de charger votre compte : ${err.message}`);
+      }
+    } else {
+      state.favSeries = [];
+      state.favShops = [];
+      state.favOnly = false;
+    }
+    state.firstAuth = false;
+    if (user && $('#googleSignIn')) {
+      $('#dlg').close();
+      toast(`Connecté : ${user.name || user.email}`);
+    }
+    renderAccountBtn();
+    renderTabs();
+    renderHead();
+    syncFavToggle();
+    render();
+    renderMyShops();
+    renderCards();
+  });
+}
+
+function accountPrefs() {
+  return { favoriteSeries: state.favSeries, favoriteShops: state.favShops, customShops: state.customShops, owned: state.owned };
+}
+
+let saveTimer = null;
+function syncAccount(delay = 600) {
+  if (!state.user || !state.account?.available) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    state.account.save(state.user.uid, accountPrefs()).catch((err) => toast(`Enregistrement impossible : ${err.message}`));
+  }, delay);
+}
+
+function renderAccountBtn() {
+  const btn = $('#accountBtn');
+  const u = state.user;
+  if (u) {
+    const initial = esc((u.name || u.email || '?').trim()[0].toUpperCase());
+    btn.innerHTML = `${u.photo ? `<img class="avatar" src="${esc(safeUrl(u.photo))}" alt="" referrerpolicy="no-referrer" />` : `<span class="avatar">${initial}</span>`}<span>Mon compte</span>`;
+    btn.title = `Connecté : ${u.email || u.name}`;
+  } else {
+    btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-4.4 0-8 2.2-8 5v3h16v-3c0-2.8-3.6-5-8-5Z"/></svg><span>Se connecter</span>`;
+    btn.title = 'Se connecter avec Google';
+  }
+}
+
+function syncFavToggle() {
+  const t = $('#favShopsToggle');
+  t.hidden = !state.user || !state.favShops.length;
+  if (t.hidden) state.favOnly = false;
+  t.classList.toggle('on', state.favOnly);
+  t.setAttribute('aria-pressed', String(state.favOnly));
+  t.textContent = `★ Mes boutiques préférées (${state.favShops.length})`;
+}
+
+const GOOGLE_G = `<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>`;
+
+function showAccount(reason) {
+  const acc = state.account;
+  if (!acc) return openDialog('<h2>Mon compte</h2><p class="muted">Chargement…</p>');
+  if (!acc.available) {
+    return openDialog(`<h2>Mon compte</h2><p>${esc(acc.reason)}</p>`);
+  }
+  const u = state.user;
+  if (!u) {
+    return openDialog(`<h2>Créer mon compte</h2>
+      ${reason ? `<p class="notice">${esc(reason)}</p>` : ''}
+      <p class="muted">Avec un compte, retrouvez sur tous vos appareils :</p>
+      <ul class="perks">
+        <li>★ <b>vos séries préférées</b>, affichées en premier ;</li>
+        <li>★ <b>vos boutiques préférées</b>, avec un filtre pour ne voir qu’elles ;</li>
+        <li>vos boutiques ajoutées et les cartes cochées « Je l’ai ».</li>
+      </ul>
+      <button class="btn-google" id="googleSignIn" type="button">${GOOGLE_G}<span>Continuer avec Google</span></button>
+      <p class="muted small">Le compte est créé à la première connexion. Seuls votre nom, votre e-mail et vos préférences sont enregistrés. Vous pouvez tout supprimer à tout moment.</p>
+      ${acc.demo ? '<p class="notice">Version démo : la connexion est simulée, aucun compte Google n’est utilisé.</p>' : ''}
+      <p id="signInError" class="err-msg" hidden></p>`);
+  }
+  const seriesName = (id) => {
+    const s = state.config.series.find((x) => x.id === id);
+    return s ? (s.special ? 'Starters & coffrets' : `${s.id}${s.names.fr || s.names.en ? ` · ${s.names.fr || s.names.en}` : ''}`) : id;
+  };
+  const shopName = (id) => state.config.shops.find((x) => x.id === id)?.name || state.customShops.find((x) => x.id === id)?.name || id;
+  const chips = (ids, kind, label) =>
+    ids.length
+      ? `<div class="chips">${ids.map((id) => `<span class="chip">${esc(label(id))}<button type="button" class="chip-x" data-unfav-${kind}="${esc(id)}" aria-label="Retirer">✕</button></span>`).join('')}</div>`
+      : `<p class="muted small">Aucune pour l’instant : utilisez l’étoile ☆ ${kind === 'series' ? 'à côté du nom de la série' : 'à côté du nom d’une boutique'}.</p>`;
+  openDialog(`<h2>Mon compte</h2>
+    <div class="profile">${u.photo ? `<img class="avatar lg" src="${esc(safeUrl(u.photo))}" alt="" referrerpolicy="no-referrer" />` : `<span class="avatar lg">${esc((u.name || '?')[0].toUpperCase())}</span>`}
+      <div><b>${esc(u.name || '')}</b><br><span class="muted">${esc(u.email || '')}</span></div></div>
+    ${acc.demo ? '<p class="notice">Compte de démonstration (connexion simulée).</p>' : ''}
+    <h3 class="sub-h">★ Mes séries préférées</h3>${chips(state.favSeries, 'series', seriesName)}
+    <h3 class="sub-h">★ Mes boutiques préférées</h3>${chips(state.favShops, 'shop', shopName)}
+    <p class="muted small">${state.customShops.length} boutique${state.customShops.length > 1 ? 's' : ''} ajoutée${state.customShops.length > 1 ? 's' : ''} · ${Object.keys(state.owned).length} carte${Object.keys(state.owned).length > 1 ? 's' : ''} cochée${Object.keys(state.owned).length > 1 ? 's' : ''} « Je l’ai » · synchronisé avec votre compte</p>
+    <div class="account-actions">
+      <button class="btn btn-ghost-dark" id="signOutBtn" type="button">Se déconnecter</button>
+      <button class="btn btn-danger" id="deleteDataBtn" type="button">Supprimer mes données</button>
+    </div>`);
+}
+
+function requireAccount(reason) {
+  if (state.user) return true;
+  showAccount(reason);
+  return false;
+}
+
+function toggleFavSeries(id) {
+  if (!requireAccount('Connectez-vous pour enregistrer vos séries préférées.')) return;
+  const on = state.favSeries.includes(id);
+  state.favSeries = on ? state.favSeries.filter((x) => x !== id) : [...state.favSeries, id];
+  syncAccount();
+  renderTabs();
+  renderHead();
+  toast(on ? 'Série retirée de vos séries' : 'Série ajoutée à vos séries ★');
+}
+
+function toggleFavShop(id) {
+  if (!requireAccount('Connectez-vous pour enregistrer vos boutiques préférées.')) return;
+  const on = state.favShops.includes(id);
+  state.favShops = on ? state.favShops.filter((x) => x !== id) : [...state.favShops, id];
+  syncAccount();
+  syncFavToggle();
+  render();
+  renderMyShops();
+  toast(on ? 'Boutique retirée de vos préférées' : 'Boutique ajoutée à vos préférées ★');
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (t.hidden = true), 3200);
+}
 
 // ---------- Fenêtres ----------
 
@@ -584,6 +777,68 @@ function showChecker() {
 // ---------- Événements ----------
 
 $('#refreshBtn').addEventListener('click', () => load(true));
+$('#tabs').addEventListener('click', (e) => {
+  const tab = e.target.closest('.tab');
+  if (tab) selectSeries(tab.dataset.id);
+});
+$('#accountBtn').addEventListener('click', () => showAccount());
+$('#favShopsToggle').addEventListener('click', () => {
+  state.favOnly = !state.favOnly;
+  syncFavToggle();
+  render();
+});
+document.addEventListener('click', async (e) => {
+  const t = e.target;
+  const favSeries = t.closest('[data-fav-series]');
+  if (favSeries) return toggleFavSeries(favSeries.dataset.favSeries);
+  const favShop = t.closest('[data-fav-shop]');
+  if (favShop) {
+    e.preventDefault();
+    return toggleFavShop(favShop.dataset.favShop);
+  }
+  const unS = t.closest('[data-unfav-series]');
+  if (unS) {
+    toggleFavSeries(unS.dataset.unfavSeries);
+    return showAccount();
+  }
+  const unB = t.closest('[data-unfav-shop]');
+  if (unB) {
+    toggleFavShop(unB.dataset.unfavShop);
+    return showAccount();
+  }
+  if (t.closest('#googleSignIn')) {
+    const err = $('#signInError');
+    try {
+      await state.account.signIn();
+    } catch (ex) {
+      err.textContent = ex.message;
+      err.hidden = false;
+    }
+    return;
+  }
+  if (t.closest('#signOutBtn')) {
+    await state.account.signOut();
+    $('#dlg').close();
+    return toast('Vous êtes déconnecté.');
+  }
+  const del = t.closest('#deleteDataBtn');
+  if (del) {
+    if (del.dataset.armed !== '1') {
+      del.dataset.armed = '1';
+      del.textContent = 'Confirmer la suppression';
+      return;
+    }
+    try {
+      clearTimeout(saveTimer);
+      await state.account.remove(state.user.uid);
+      await state.account.signOut();
+      $('#dlg').close();
+      toast('Vos données de compte ont été supprimées.');
+    } catch (ex) {
+      toast(`Suppression impossible : ${ex.message}`);
+    }
+  }
+});
 $('#checkBtn').addEventListener('click', showChecker);
 $('#addShopBtn').addEventListener('click', showAddShop);
 document.addEventListener('click', (e) => {
@@ -615,6 +870,7 @@ document.addEventListener('change', (e) => {
   if (box.checked) state.owned[box.dataset.own] = { name: card?.name, code: card?.code, at: new Date().toISOString() };
   else delete state.owned[box.dataset.own];
   store.set('owned', state.owned);
+  syncAccount();
   renderCards();
 });
 document.addEventListener('click', (e) => {

@@ -27,6 +27,34 @@ Pour chaque série, l'app affiche les 5 cartes les plus chères avec leur visuel
 - La case **« Je l'ai »** est enregistrée sur l'appareil et affiche la valeur estimée de vos cartes du top.
 - L'identifiant du jeu One Piece chez Cardmarket (18 par défaut) est détecté automatiquement. On peut aussi le forcer avec la variable d'environnement `CARDMARKET_GAME_ID`.
 
+## Comptes (connexion Google)
+
+Le bouton **Se connecter** permet de créer un compte avec Google. Une fois connecté, l'utilisateur :
+- marque ses **séries préférées** (☆ à côté du nom de la série). Elles s'affichent en premier dans les onglets, et l'app s'ouvre sur la première ;
+- marque ses **boutiques préférées** (☆ à côté du nom d'une boutique) et peut filtrer avec « ★ Mes boutiques préférées », y compris pour les affiches « meilleur prix » ;
+- retrouve sur tous ses appareils ses boutiques ajoutées et ses cartes cochées « Je l'ai ».
+
+Depuis « Mon compte », il voit et retire ses favoris, se déconnecte, ou **supprime ses données**. Sans compte, l'app fonctionne comme avant.
+
+La connexion utilise **Firebase** (Google), gratuit à ce volume. Les préférences sont stockées dans Firestore, dans un document `users/{uid}` que seul son propriétaire peut lire et modifier (règles dans `firestore.rules`).
+
+### Configuration (une seule fois, environ 10 min)
+
+1. Sur [console.firebase.google.com](https://console.firebase.google.com), **créer un projet**. Google Analytics n'est pas nécessaire.
+2. Ouvrir **Authentication → Commencer → Sign-in method → Google** et l'activer, avec votre e-mail comme adresse d'assistance.
+3. Ouvrir **Firestore Database → Créer une base de données**, en mode production. Choisir une région européenne, par exemple `eur3`.
+4. Dans **Firestore → Règles**, remplacer le contenu par celui du fichier `firestore.rules`, puis cliquer sur **Publier**.
+5. Dans **Paramètres du projet (⚙️) → Vos applications**, cliquer sur l'icône Web `</>`, enregistrer l'application, puis noter `apiKey`, `authDomain`, `projectId` et `appId`.
+6. Donner ces valeurs au serveur :
+   - **Render** : onglet *Environment*, ajouter `FIREBASE_API_KEY`, `FIREBASE_AUTH_DOMAIN`, `FIREBASE_PROJECT_ID`, `FIREBASE_APP_ID`.
+   - **En local** :
+     ```bash
+     FIREBASE_API_KEY=… FIREBASE_AUTH_DOMAIN=….firebaseapp.com FIREBASE_PROJECT_ID=… FIREBASE_APP_ID=… npm start
+     ```
+7. Dans **Authentication → Paramètres → Domaines autorisés**, ajouter l'adresse du site, par exemple `mon-app.onrender.com`. `localhost` est autorisé par défaut.
+
+Ces valeurs identifient le projet Firebase mais ne sont pas des secrets : la sécurité repose sur les règles Firestore. Sans cette configuration, le bouton « Se connecter » explique que la connexion n'est pas encore activée. En mode démo (`npm run demo`), la connexion est simulée.
+
 ## Lancer en local
 
 Node.js 20 ou plus récent. **Aucune dépendance à installer.**
