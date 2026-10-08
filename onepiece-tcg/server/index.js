@@ -9,6 +9,7 @@ import { createTrustService, computeScore, sanitizeDomain, rootDomain, LEVEL_LAB
 import { demoSearch, demoTrust, demoCards } from './demo.js';
 import { inspectShop, parseCustomParam, customShopId, MAX_CUSTOM_SHOPS } from './customShops.js';
 import { createCardmarketService } from './cardmarket.js';
+import { createLogoService, googleFavicon } from './logos.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -54,6 +55,7 @@ const trustService = DEMO
 
 const cardService = DEMO ? { getTop: async (id) => demoCards(rawSeries.find((s) => s.id === id)) } : createCardmarketService();
 const knownDomains = new Set(shops.map((s) => rootDomain(s.domain)));
+const logoService = createLogoService();
 const isBlacklisted = (domain) => blacklist.find((b) => rootDomain(b.domain) === rootDomain(domain)) || null;
 
 const MIME = {
@@ -153,6 +155,26 @@ async function handleApi(req, res, url) {
       trust,
       blocked: black ? `Site signalé comme arnaque : ${black.reason}` : null,
     });
+  }
+
+  if (url.pathname === '/api/logo') {
+    // Domaine d'une boutique suivie, ou domaine public validé (boutiques personnelles).
+    const raw = String(url.searchParams.get('domain') || '').toLowerCase();
+    const known = shops.find((s) => s.domain === raw || rootDomain(s.domain) === rootDomain(raw));
+    const clean = known ? { host: known.domain } : await sanitizeDomain(raw);
+    if (!clean || clean.unresolved) return sendJson(res, 400, { error: 'Domaine invalide' });
+    const logo = DEMO ? { fail: true } : await logoService.get(clean.host);
+    if (logo.buf) {
+      res.writeHead(200, {
+        'Content-Type': logo.type,
+        'Cache-Control': 'public, max-age=604800',
+        'X-Content-Type-Options': 'nosniff',
+        'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'",
+      });
+      return res.end(logo.buf);
+    }
+    res.writeHead(302, { Location: googleFavicon(rootDomain(clean.host)), 'Cache-Control': 'public, max-age=86400' });
+    return res.end();
   }
 
   if (url.pathname === '/api/cards') {

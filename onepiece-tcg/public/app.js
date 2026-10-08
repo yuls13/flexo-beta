@@ -260,6 +260,22 @@ function filtered(offers) {
   );
 }
 
+// Logo d'une boutique (servi par /api/logo), avec l'initiale en couleur si l'image manque.
+function shopDomain(shopId) {
+  return state.config.shops.find((x) => x.id === shopId)?.domain || state.customShops.find((x) => x.id === shopId)?.domain || null;
+}
+
+function shopLogo(shopId, name, size = '') {
+  const label = String(name || shopId || '?').replace(/^www\./, '');
+  const initials = label.split(/[\s-]+/).filter((w) => /^\p{L}/u.test(w)).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
+  let hue = 0;
+  for (const c of label) hue = (hue * 31 + c.charCodeAt(0)) % 360;
+  const domain = shopDomain(shopId);
+  return `<span class="logo ${size}" style="--h:${hue}" aria-hidden="true">${
+    domain ? `<img src="/api/logo?domain=${encodeURIComponent(domain)}" alt="" loading="lazy" data-logo />` : ''
+  }<span class="logo-txt" ${domain ? 'hidden' : ''}>${esc(initials)}</span></span>`;
+}
+
 // Étoile « boutique préférée » (un clic hors connexion propose de se connecter).
 function favStar(shopId) {
   const on = state.favShops.includes(shopId);
@@ -296,7 +312,7 @@ function renderBest(data) {
         <div class="w-product">${esc(productLabel(o))} ${o.lang ? LANG_FLAGS[o.lang] : ''}</div>
         <div class="w-price">${esc(eur.format(o.total).replace(/\s?€/, ''))}<small> €</small></div>
         <div class="w-detail">${esc(eur.format(o.price))} + port ~${esc(eur.format(o.shipping))}${o.perBooster ? ` · ${esc(eur.format(o.perBooster))}/booster` : ''}</div>
-        <div class="w-shop">chez ${esc(o.shopName)}</div>
+        <div class="w-shop">${shopLogo(o.shopId, o.shopName, 'xs')} chez ${esc(o.shopName)}</div>
         ${o.preorder ? `<div class="w-detail">Précommande${o.releaseDate ? ` · sortie ${esc(shortDate(o.releaseDate))}` : ''}</div>` : ''}
       </a>`
     )
@@ -308,7 +324,7 @@ function offerRow(o, isTop) {
   const flags = o.flags.map((f) => `<span class="tag ${f.kind}" title="${esc(f.text)}">${f.kind === 'suspect' ? '⚠ Prix suspect' : '▲ Prix élevé'}</span>`).join('');
   return `<article class="offer ${o.available === false ? 'out' : ''} ${suspect ? 'suspect' : ''} ${isTop ? 'top1' : ''}">
     <div class="offer-main">
-      <div class="offer-shop">${favStar(o.shopId)}${isTop ? '👑 ' : ''}${esc(o.shopName)} ${o.custom ? '<span class="tag mine">⭐ Ma boutique</span>' : ''} ${trustBadge(o.shopId)}</div>
+      <div class="offer-shop">${favStar(o.shopId)}${shopLogo(o.shopId, o.shopName)}${isTop ? '👑 ' : ''}${esc(o.shopName)} ${o.custom ? '<span class="tag mine">⭐ Ma boutique</span>' : ''} ${trustBadge(o.shopId)}</div>
       <p class="offer-title">${esc(o.title)}</p>
       <div class="tags">
         <span class="tag">${o.lang ? `${LANG_FLAGS[o.lang]} ${LANG_NAMES[o.lang]}` : 'Langue ?'}</span>
@@ -360,7 +376,7 @@ function render() {
   const st = { ok: '✔ offres trouvées', empty: '○ rien pour cette série', error: '✖ injoignable' };
   $('#shopList').innerHTML = data.shops
     .map(
-      (s) => `<div class="shop-row"><div>${favStar(s.id)}<b>${esc(s.name)}</b><br>${trustBadge(s.id)}</div>
+      (s) => `<div class="shop-row"><div><div class="shop-name">${favStar(s.id)}${shopLogo(s.id, s.name)}<b>${esc(s.name)}</b></div>${trustBadge(s.id)}</div>
       <div class="st ${s.status}" title="${esc(s.error || '')}">${st[s.status]}${s.matched ? ` (${s.matched})` : ''}${s.error ? `<br><small>${esc(s.error)}</small>` : ''}</div></div>`
     )
     .join('');
@@ -375,11 +391,11 @@ function renderLinks() {
   $('#links').innerHTML =
     state.config.shops
       .filter((s) => s.platform === 'link' && s.searchUrl)
-      .map((s) => `<a class="chip" href="${esc(safeUrl(s.searchUrl.replace('{q}', encodeURIComponent(q))))}" target="_blank" rel="noopener noreferrer">${esc(s.name)} ↗</a> ${trustBadge(s.id)}`)
+      .map((s) => `<a class="chip" href="${esc(safeUrl(s.searchUrl.replace('{q}', encodeURIComponent(q))))}" target="_blank" rel="noopener noreferrer">${shopLogo(s.id, s.name, 'xs')}${esc(s.name)} ↗</a> ${trustBadge(s.id)}`)
       .join('') +
     state.customShops
       .filter((c) => c.platform === 'link')
-      .map((c) => `<a class="chip" href="${esc(safeUrl(c.base))}" target="_blank" rel="noopener noreferrer">⭐ ${esc(c.name)} ↗</a> ${trustBadge(c.id)}`)
+      .map((c) => `<a class="chip" href="${esc(safeUrl(c.base))}" target="_blank" rel="noopener noreferrer">${shopLogo(c.id, c.name, 'xs')}⭐ ${esc(c.name)} ↗</a> ${trustBadge(c.id)}`)
       .join('');
 }
 
@@ -409,7 +425,7 @@ function renderMyShops() {
   list.innerHTML = state.customShops.length
     ? state.customShops
         .map(
-          (c) => `<div class="shop-row"><div>${favStar(c.id)}<b>${esc(c.name)}</b> <span class="muted">${esc(c.domain)}</span><br>
+          (c) => `<div class="shop-row"><div><div class="shop-name">${favStar(c.id)}${shopLogo(c.id, c.name)}<b>${esc(c.name)}</b></div><span class="muted">${esc(c.domain)}</span><br>
           <span class="tag">${esc(PLATFORM_NAMES[c.platform] || c.platform)}</span> ${trustBadge(c.id)}</div>
           <button class="icon-btn" type="button" data-remove-shop="${esc(c.id)}" title="Retirer" aria-label="Retirer ${esc(c.name)}">🗑</button></div>`
         )
@@ -546,6 +562,11 @@ document.addEventListener(
   'error',
   (e) => {
     const img = e.target;
+    if (img instanceof HTMLImageElement && img.dataset.logo !== undefined) {
+      img.hidden = true;
+      img.nextElementSibling.hidden = false;
+      return;
+    }
     if (!(img instanceof HTMLImageElement) || img.dataset.fallbacks === undefined) return;
     const list = img.dataset.fallbacks.split(' ').filter(Boolean);
     if (list.length) {
@@ -750,7 +771,7 @@ function openDialog(html) {
 function showTrust(shopId) {
   const shop = state.config.shops.find((s) => s.id === shopId) || state.customShops.find((c) => c.id === shopId);
   const t = state.trust[shopId];
-  openDialog(`<h2>${esc(shop?.name || shopId)}</h2>${t ? scoreHtml(t, shop) : '<p>Vérification en cours, réessayez dans quelques secondes…</p>'}`);
+  openDialog(`<h2 class="dlg-shop">${shopLogo(shopId, shop?.name, 'lg')}${esc(shop?.name || shopId)}</h2>${t ? scoreHtml(t, shop) : '<p>Vérification en cours, réessayez dans quelques secondes…</p>'}`);
 }
 
 function showChecker() {

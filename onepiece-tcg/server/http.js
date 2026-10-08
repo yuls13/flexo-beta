@@ -54,3 +54,23 @@ export async function pool(items, limit, worker) {
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, run));
   return results;
 }
+
+// Téléchargement binaire (images) avec taille maximale.
+export async function fetchBinary(url, { timeoutMs = 8000, maxBytes = 400 * 1024 } = {}) {
+  let res;
+  try {
+    res = await fetch(url, {
+      headers: { 'User-Agent': USER_AGENT, Accept: 'image/avif,image/webp,image/png,image/svg+xml,image/*,*/*;q=0.8' },
+      signal: AbortSignal.timeout(timeoutMs),
+      redirect: 'follow',
+    });
+  } catch (err) {
+    throw new HttpError(err.name === 'TimeoutError' ? 'délai dépassé' : 'connexion impossible', 0);
+  }
+  if (!res.ok) throw new HttpError(`HTTP ${res.status}`, res.status);
+  const declared = Number(res.headers.get('content-length') || 0);
+  if (declared > maxBytes) throw new HttpError('fichier trop lourd', res.status);
+  const buf = Buffer.from(await res.arrayBuffer());
+  if (buf.length > maxBytes) throw new HttpError('fichier trop lourd', res.status);
+  return { buf, type: (res.headers.get('content-type') || '').split(';')[0].trim().toLowerCase(), url: res.url };
+}

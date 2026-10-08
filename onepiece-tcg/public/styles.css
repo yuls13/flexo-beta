@@ -387,3 +387,36 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 @media (max-width: 640px) {
   #accountBtn span:not(.avatar) { display: none; }
 }
+
+/* ---------- Logos des boutiques ---------- */
+.logo {
+  --size: 26px;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 7px;
+  overflow: hidden;
+  vertical-align: middle;
+  background: #fff; /* les logos sont dessinés pour un fond clair, y compris en mode sombre */
+  box-shadow: 0 0 0 1px var(--line);
+}
+.logo img { width: 100%; height: 100%; object-fit: contain; padding: 2px; }
+.logo-txt {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: calc(var(--size) * 0.42);
+  color: #fff;
+  background: hsl(var(--h) 55% 38%);
+}
+.logo.xs { --size: 18px; border-radius: 5px; }
+.logo.lg { --size: 40px; border-radius: 10px; }
+.offer-shop .logo { margin-right: 2px; }
+.shop-name { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.chip .logo { margin-right: 2px; }
+.w-shop { display: flex; align-items: center; justify-content: center; gap: 6px; }
+.dlg-shop { display: flex; align-items: center; gap: 10px; }

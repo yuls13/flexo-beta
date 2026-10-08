@@ -2,7 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseCustomParam, guessName } from '../server/customShops.js';
 
-const opts = { knownDomains: new Set(['philibertnet.com']), blacklist: [{ domain: 'boutique-one-piece.fr' }] };
+// Résolveur factice : pas de dépendance au DNS pendant les tests.
+const fakeResolve = async (input) => {
+  const host = String(input).toLowerCase();
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host) || !host.includes('.')) return null;
+  return { host };
+};
+const opts = { knownDomains: new Set(['philibertnet.com']), blacklist: [{ domain: 'boutique-one-piece.fr' }], resolve: fakeResolve };
 
 test('parseCustomParam : filtre plateformes, doublons, liste blanche/noire, adresses internes', async () => {
   const param = [

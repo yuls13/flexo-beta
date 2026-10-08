@@ -73,7 +73,8 @@ export function customShopId(domain) {
 }
 
 // Paramètre `custom` de /api/prices : « domaine|plateforme|nom » séparés par des virgules.
-export async function parseCustomParam(param, { knownDomains, blacklist }) {
+// `resolve` vérifie qu'un domaine est public (remplaçable dans les tests, sans réseau).
+export async function parseCustomParam(param, { knownDomains, blacklist, resolve = sanitizeDomain }) {
   if (!param) return [];
   const entries = String(param).split(',').slice(0, MAX_CUSTOM_SHOPS);
   const black = new Set(blacklist.map((b) => rootDomain(b.domain)));
@@ -81,7 +82,7 @@ export async function parseCustomParam(param, { knownDomains, blacklist }) {
   for (const entry of entries) {
     const [domainRaw, platform, nameRaw] = entry.split('|').map((x) => decodeURIComponent(x || ''));
     if (!PLATFORMS.includes(platform)) continue;
-    const clean = await sanitizeDomain(domainRaw);
+    const clean = await resolve(domainRaw);
     if (!clean || clean.unresolved) continue;
     const root = rootDomain(clean.host);
     if (black.has(root) || knownDomains.has(root) || out.some((s) => rootDomain(s.domain) === root)) continue;
