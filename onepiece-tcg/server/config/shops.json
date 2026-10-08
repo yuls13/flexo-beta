@@ -45,12 +45,13 @@
       "name": "Les Gentlemen du Jeu",
       "domain": "lesgentlemendujeu.com",
       "base": "https://lesgentlemendujeu.com",
-      "platform": "prestashop",
+      "platform": "link",
       "country": "FR",
       "flags": {
         "physicalStore": true
       },
-      "searchUrl": "https://lesgentlemendujeu.com/recherche?controller=search&s={q}"
+      "searchUrl": "https://lesgentlemendujeu.com/recherche?controller=search&s={q}",
+      "notes": "Site protégé par Cloudflare (vérification anti-robots) : prix non lisibles automatiquement, lien direct vers sa recherche."
     },
     {
       "id": "cardshunter",

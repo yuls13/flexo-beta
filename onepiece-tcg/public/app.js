@@ -288,6 +288,15 @@ function shopLogo(shopId, name, size = '') {
   }<span class="logo-txt" ${domain ? 'hidden' : ''}>${esc(initials)}</span></span>`;
 }
 
+// Recherche de la série sur le site d'une boutique (quand ses prix ne peuvent pas être lus).
+function shopSearchUrl(shopId) {
+  const shop = state.config.shops.find((x) => x.id === shopId);
+  const q = state.series?.special ? 'One Piece starter deck' : `One Piece ${state.series?.id || ''}`;
+  if (shop?.searchUrl) return safeUrl(shop.searchUrl.replace('{q}', encodeURIComponent(q)));
+  const custom = state.customShops.find((x) => x.id === shopId);
+  return custom?.base ? safeUrl(custom.base) : null;
+}
+
 // Étoile « boutique préférée » (un clic hors connexion propose de se connecter).
 function favStar(shopId) {
   const on = state.favShops.includes(shopId);
@@ -391,7 +400,8 @@ function render() {
       (s) => `<div class="shop-row ${s.custom ? 'mine' : ''}"><div><div class="shop-name">${favStar(s.id)}${shopLogo(s.id, s.name)}<b>${esc(s.name)}</b></div>
         ${s.custom ? '<span class="tag mine">⭐ Ajoutée par vous</span> ' : ''}${trustBadge(s.id)}</div>
       <div class="st-col"><div class="st ${s.status}" title="${esc(s.error || '')}">${st[s.status]}${s.matched ? ` (${s.matched})` : ''}${s.error ? `<br><small>${esc(s.error)}</small>` : ''}</div>
-        <button class="diag-btn" type="button" data-diagnose="${esc(s.id)}" title="Voir ce que la boutique a répondu">🔍 Diagnostic</button></div></div>`
+        <button class="diag-btn" type="button" data-diagnose="${esc(s.id)}" title="Voir ce que la boutique a répondu">🔍 Diagnostic</button>
+        ${s.status === 'error' && shopSearchUrl(s.id) ? `<a class="diag-btn" href="${esc(shopSearchUrl(s.id))}" target="_blank" rel="noopener noreferrer">Voir sur le site ↗</a>` : ''}</div></div>`
     )
     .join('');
   const ok = data.shops.filter((s) => s.status === 'ok').length;
