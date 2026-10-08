@@ -20,8 +20,10 @@ test('imageIds et pickOptcgImage : version alternative puis version de base', as
     { card_image_id: 'OP17-118', card_image: 'https://img/OP17-118.jpg' },
     { card_image_id: 'OP17-118_p1', card_image: 'https://img/OP17-118_p1.jpg' },
   ];
-  assert.equal(pickOptcgImage(json, imageIds('OP17-118', 2)), 'https://img/OP17-118_p1.jpg');
-  assert.equal(pickOptcgImage(json, imageIds('OP17-118', 5)), 'https://img/OP17-118.jpg');
+  assert.deepEqual(pickOptcgImage(json, imageIds('OP17-118', 2)), { url: 'https://img/OP17-118_p1.jpg', exact: true });
+  // Version 5 absente : la version alternative la plus proche, pas la version de base.
+  assert.deepEqual(pickOptcgImage(json, imageIds('OP17-118', 5)), { url: 'https://img/OP17-118_p1.jpg', exact: false });
+  assert.deepEqual(pickOptcgImage(json, imageIds('OP17-118', 1)), { url: 'https://img/OP17-118.jpg', exact: true });
   assert.equal(pickOptcgImage({ data: [] }, ['X']), null);
   assert.equal(validCode('EB04-061'), true);
   assert.equal(validCode('../etc'), false);
@@ -85,4 +87,25 @@ test('expansionPrefixes et topCards : extension et lien d’image avec id', asyn
   assert.deepEqual(top.map((c) => c.idProduct), [2, 1, 3]);
   assert.equal(top[2].expansion, 'OP16'); // EB04-061 imprimée dans l'extension OP16
   assert.equal(top[0].images[0], '/api/card-image?code=OP16-065&v=1&id=2&exp=OP16');
+});
+
+test('westernExpansion : extension EN/FR = la plus récente (le japonais sort avant), sinon la plus chère', async () => {
+  const { westernExpansion, chaseCards } = await import('../server/cardmarket.js');
+  const mk = (exp, date, n0 = 0) =>
+    Array.from({ length: 12 }, (_, i) => ({ idProduct: exp * 100 + i, name: `Carte (OP16-${String(i + 1).padStart(3, '0')})${i % 4 === 3 ? ' (V.2)' : ''}`, idExpansion: exp, dateAdded: date }));
+  const jp = mk(80, '2026-05-20 10:00:00');
+  const en = mk(81, '2026-06-05 09:00:00');
+  const guides = [...jp.map((p) => ({ idProduct: p.idProduct, avg7: 5 })), ...en.map((p) => ({ idProduct: p.idProduct, avg7: 9 }))];
+  const r = westernExpansion([...jp, ...en], guides, 'OP16');
+  assert.equal(r.western, 81);
+  assert.equal(r.method, 'date');
+  // Sans dates : la plus chère.
+  const strip = (l) => l.map(({ dateAdded, ...p }) => p);
+  assert.equal(westernExpansion([...strip(jp), ...strip(en)], guides, 'OP16').western, 81);
+  // Chase cards : uniquement les versions alternatives de l'extension EN/FR, triées par prix.
+  guides.find((g) => g.idProduct === 8107).avg7 = 250;
+  const chase = chaseCards([...jp, ...en], guides, 81);
+  assert.deepEqual(chase.map((c) => c.idProduct), [8107, 8103, 8111]);
+  assert.ok(chase.every((c) => c.variant >= 2));
+  assert.equal(chase[0].images[0], '/api/card-image?code=OP16-008&v=2');
 });

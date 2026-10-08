@@ -35,6 +35,7 @@ const state = {
   favShops: [], // boutiques préférées (compte)
   favOnly: false, // filtre « boutiques préférées seulement »
   firstAuth: true,
+  showAllChase: false,
 };
 
 const PLATFORM_NAMES = { shopify: 'Shopify', woocommerce: 'WooCommerce', prestashop: 'PrestaShop', auto: 'détection automatique', link: 'détection automatique' };
@@ -107,7 +108,7 @@ async function init() {
   state.data = store.get('prices', {});
   state.customShops = store.get('customShops', []);
   state.owned = store.get('owned', {});
-  state.cards = store.get('cards-v3', {});
+  state.cards = store.get('cards-v4', {});
   for (const c of state.customShops) if (c.trust) state.trust[c.id] = c.trust;
   renderMyShops();
   const prefs = store.get('prefs', {});
@@ -145,6 +146,7 @@ async function loadTrust() {
 
 function selectSeries(id) {
   state.series = state.config.series.find((s) => s.id === id);
+  state.showAllChase = false;
   try {
     history.replaceState(null, '', `#${id}`);
   } catch {
@@ -533,12 +535,14 @@ async function loadCards() {
   try {
     const data = await api(`/api/cards?series=${encodeURIComponent(s.id)}`);
     state.cards[s.id] = { ...data, fetchedAt: new Date().toISOString() };
-    if (data.available) store.set('cards-v3', state.cards);
+    if (data.available) store.set('cards-v4', state.cards);
   } catch (err) {
     state.cards[s.id] = { available: false, error: err.message, cards: [] };
   }
   if (state.series.id === s.id) renderCards();
 }
+
+const CHASE_PREVIEW = 12;
 
 function renderCards() {
   const box = $('#cards');
@@ -549,57 +553,51 @@ function renderCards() {
   }
   box.hidden = false;
   const data = state.cards[s.id];
-  const head = `<div class="cards-head"><h2>🏆 Top 5 des cartes ${esc(s.id)}</h2>
-    <span class="muted">Prix moyen de vente sur 7 jours · Cardmarket${data?.updatedAt ? ` · données du ${esc(dateFmt.format(new Date(data.updatedAt)))}` : ''}</span></div>`;
+  const langFlags = `<span class="flag-pair" role="img" aria-label="Version anglaise ou française" title="Prix de la version occidentale (anglais, français…) sur Cardmarket ; les cartes japonaises sont exclues">${FLAG_SVG.EN}${FLAG_SVG.FR}</span>`;
+  const head = (n) => `<div class="cards-head"><h2>💎 Chase cards ${esc(s.id)}</h2>
+    <span class="muted">${n ? `${n} version${n > 1 ? 's' : ''} alternative${n > 1 ? 's' : ''} · ` : ''}prix moyen de vente sur 7 jours · ${langFlags} Cardmarket${data?.updatedAt ? ` · données du ${esc(dateFmt.format(new Date(data.updatedAt)))}` : ''}</span></div>`;
   if (!data) {
-    box.innerHTML = `${head}<p class="muted">⚓ Chargement des prix Cardmarket…</p>`;
+    box.innerHTML = `${head()}<p class="muted">⚓ Chargement des prix Cardmarket…</p>`;
     return;
   }
   if (!data.available || !data.cards.length) {
     const msg = isUpcoming(s)
-      ? 'Série pas encore sortie : les prix des cartes apparaîtront après la sortie.'
+      ? 'Série pas encore sortie : les chase cards apparaîtront après la sortie.'
       : data.available
-        ? 'Aucune carte trouvée pour cette série dans les données Cardmarket.'
+        ? 'Aucune version alternative trouvée pour cette série dans les données Cardmarket (version EN/FR).'
         : `Prix Cardmarket indisponibles pour le moment (${esc(data.error || 'erreur')}).`;
-    box.innerHTML = `${head}<p class="muted">${msg}</p>`;
+    box.innerHTML = `${head()}<p class="muted">${msg}</p>`;
     return;
   }
-  const owned = data.cards.filter((c) => state.owned[c.idProduct]);
-  const value = owned.reduce((sum, c) => sum + c.price, 0);
-  box.innerHTML = `${head}
-    <div class="card-grid">${data.cards
-      .map((c, i) => {
+  const all = data.cards;
+  const shown = state.showAllChase ? all : all.slice(0, CHASE_PREVIEW);
+  const owned = all.filter((c) => state.owned[c.idProduct]);
+  const value = owned.reduce((sum, c) => sum + (c.price || 0), 0);
+  box.innerHTML = `${head(all.length)}
+    <div class="chase-grid">${shown
+      .map((c) => {
         const have = !!state.owned[c.idProduct];
         const [first, ...rest] = c.images || [];
-        return `<figure class="tcg ${have ? 'have' : ''}">
-          <span class="rank">#${i + 1}</span>
-          <a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer" class="tcg-img">
-            ${
-              first
-                ? `<img src="${esc(first)}" data-fallbacks="${esc(rest.join(' '))}" alt="${esc(c.name)} ${esc(c.code || '')}" loading="lazy" referrerpolicy="no-referrer" />`
-                : ''
-            }
-            <span class="tcg-ph" ${first ? 'hidden' : ''}>${esc(c.code || '?')}</span>
-            ${first && c.artExact === false ? '<span class="tcg-note" title="Photo exacte de la fiche Cardmarket indisponible : illustration officielle de la carte, la version (alternative, manga…) peut différer.">illustration indicative</span>' : ''}
+        return `<figure class="chase ${have ? 'have' : ''}">
+          <a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer" class="chase-img" title="Voir sur Cardmarket">
+            ${first ? `<img src="${esc(first)}" data-fallbacks="${esc(rest.join(' '))}" alt="${esc(c.name)} ${esc(c.code)} version ${c.variant}" loading="lazy" referrerpolicy="no-referrer" />` : ''}
+            <span class="tcg-ph" ${first ? 'hidden' : ''}>${esc(c.code)}</span>
           </a>
           <figcaption>
-            <b>${esc(c.name)}</b>
-            <span class="muted tcg-meta">${cardLang(c.lang)}${esc(c.code || '')}${c.variant > 1 ? ` · V.${c.variant}` : ''}</span>
-            <span class="tcg-price">${c.avg7 != null ? esc(eur.format(c.avg7)) : '—'}<small> moy. 7 j</small></span>
-            ${c.trend != null ? `<span class="muted">Tendance ${esc(eur.format(c.trend))}</span>` : ''}
+            <b title="${esc(c.fullName || c.name)}">${esc(c.name)}</b>
+            <span class="muted">${esc(c.code)} · V.${c.variant}</span>
+            <span class="chase-price">${c.avg7 != null ? esc(eur.format(c.avg7)) : c.price != null ? esc(eur.format(c.price)) : '—'}</span>
             <label class="have-box"><input type="checkbox" data-own="${esc(c.idProduct)}" ${have ? 'checked' : ''} /> Je l’ai</label>
           </figcaption>
         </figure>`;
       })
       .join('')}</div>
-    <p class="muted">${owned.length ? `✅ Vous en possédez ${owned.length}/${data.cards.length} · valeur estimée ≈ <b>${esc(eur.format(value))}</b>` : state.user ? 'Cochez « Je l’ai » pour suivre votre collection (synchronisé avec votre compte).' : 'Cochez « Je l’ai » pour suivre votre collection (enregistré sur cet appareil ; connectez-vous pour le retrouver partout).'} · Prix Cardmarket par fiche : version japonaise ou version occidentale (anglais, français… réunis).</p>`;
-}
-
-// Langue d'une carte Cardmarket : extension japonaise (JP) ou occidentale (anglais, français… réunis).
-function cardLang(lang) {
-  if (lang === 'JP') return `<span class="flag" role="img" aria-label="Version japonaise" title="Version japonaise (extension -JP sur Cardmarket)">${FLAG_SVG.JP}</span>`;
-  if (lang === 'EN') return `<span class="flag-pair" role="img" aria-label="Version anglaise ou française" title="Version occidentale : Cardmarket réunit les cartes anglaises, françaises et des autres langues occidentales sur la même fiche, avec un prix commun">${FLAG_SVG.EN}${FLAG_SVG.FR}</span>`;
-  return '<span class="lang-unknown" title="Langue non déterminée">🌐</span>';
+    ${all.length > CHASE_PREVIEW ? `<button class="btn btn-ghost-dark chase-more" type="button" id="chaseMore">${state.showAllChase ? 'Réduire' : `Voir les ${all.length} chase cards`}</button>` : ''}
+    <p class="muted">${owned.length ? `✅ Vous en possédez ${owned.length}/${all.length} · valeur estimée ≈ <b>${esc(eur.format(value))}</b>` : state.user ? 'Cochez « Je l’ai » pour suivre votre collection (synchronisé avec votre compte).' : 'Cochez « Je l’ai » pour suivre votre collection (enregistré sur cet appareil ; connectez-vous pour le retrouver partout).'} · Visuels : base OPTCG API (illustrations officielles, marquées « SAMPLE »).</p>`;
+  $('#chaseMore')?.addEventListener('click', () => {
+    state.showAllChase = !state.showAllChase;
+    renderCards();
+  });
 }
 
 // Image officielle introuvable : on essaie les adresses suivantes, puis on affiche le code de la carte.

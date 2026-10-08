@@ -56,8 +56,8 @@ const trustService = DEMO
 
 const cardImageService = createCardImageService();
 const cardService = DEMO
-  ? { getTop: async (id) => demoCards(rawSeries.find((s) => s.id === id)), gameId: () => null }
-  : createCardmarketService({ imageService: cardImageService });
+  ? { getChase: async (id) => demoCards(rawSeries.find((s) => s.id === id)), gameId: () => null }
+  : createCardmarketService();
 const knownDomains = new Set(shops.map((s) => rootDomain(s.domain)));
 const logoService = createLogoService();
 const diagnoseTimes = new Map();
@@ -235,8 +235,8 @@ async function handleApi(req, res, url) {
   if (url.pathname === '/api/cards') {
     const s = rawSeries.find((x) => x.id === url.searchParams.get('series'));
     if (!s) return sendJson(res, 404, { error: 'Série inconnue' });
-    if (s.special) return sendJson(res, 200, { available: false, cards: [], error: 'Pas de top cartes pour cet onglet' });
-    return sendJson(res, 200, { ...(await cardService.getTop(s.id)), demo: DEMO });
+    if (s.special) return sendJson(res, 200, { available: false, cards: [], error: 'Pas de chase cards pour cet onglet' });
+    return sendJson(res, 200, { ...(await cardService.getChase(s.id)), demo: DEMO });
   }
 
   return sendJson(res, 404, { error: 'Route inconnue' });

@@ -56,7 +56,73 @@ export function expansionPrefixes(products) {
   return out;
 }
 
-// Sélection des cartes d'une série : code de carte de la série + toutes les cartes de
+// Extension occidentale (EN/FR) d'une série. Cardmarket publie chaque série deux fois : version
+// occidentale et version japonaise (« -JP »). Le japonais sort toujours en premier : parmi les extensions
+// de la série, la plus récemment ajoutée est l'occidentale. Sans dates, on retient la plus chère
+// (les cartes EN/FR se vendent généralement plus cher que les japonaises).
+export function westernExpansion(products, guides, prefix, prefixes = expansionPrefixes(products)) {
+  const byId = new Map(guides.map((g) => [g.idProduct, g]));
+  const stats = new Map();
+  for (const p of products) {
+    if (prefixes.get(p.idExpansion) !== prefix) continue;
+    const st = stats.get(p.idExpansion) || { idExpansion: p.idExpansion, count: 0, firstAdded: null, prices: [] };
+    st.count++;
+    const t = Date.parse(String(p.dateAdded || '').replace(' ', 'T'));
+    if (Number.isFinite(t) && (st.firstAdded == null || t < st.firstAdded)) st.firstAdded = t;
+    const price = byId.get(p.idProduct)?.avg7 ?? byId.get(p.idProduct)?.trend;
+    if (price > 0) st.prices.push(price);
+    stats.set(p.idExpansion, st);
+  }
+  const list = [...stats.values()].filter((st) => st.count >= 10);
+  if (!list.length) return { western: null, expansions: [] };
+  const median = (a) => {
+    const v = [...a].sort((x, y) => x - y);
+    return v.length ? v[Math.floor(v.length / 2)] : 0;
+  };
+  const summary = list.map((st) => ({
+    idExpansion: st.idExpansion,
+    cards: st.count,
+    firstAdded: st.firstAdded ? new Date(st.firstAdded).toISOString().slice(0, 10) : null,
+    medianPrice: Math.round(median(st.prices) * 100) / 100,
+  }));
+  if (list.length === 1) return { western: list[0].idExpansion, method: 'unique', expansions: summary };
+  const dated = list.every((st) => st.firstAdded != null) && new Set(list.map((st) => st.firstAdded)).size === list.length;
+  const sorted = dated
+    ? [...list].sort((a, b) => b.firstAdded - a.firstAdded)
+    : [...list].sort((a, b) => median(b.prices) - median(a.prices));
+  return { western: sorted[0].idExpansion, method: dated ? 'date' : 'prix', expansions: summary };
+}
+
+// Chase cards : toutes les versions alternatives (V.2, V.3…) de l'extension occidentale de la série.
+export function chaseCards(products, guides, westernId) {
+  if (westernId == null) return [];
+  const byId = new Map(guides.map((g) => [g.idProduct, g]));
+  return products
+    .filter((p) => p.idExpansion === westernId)
+    .map((p) => ({ p, ...parseCardName(p.name || '') }))
+    .filter((c) => c.code && c.variant >= 2)
+    .map(({ p, code, variant, base }) => {
+      const g = byId.get(p.idProduct) || {};
+      const price = g.avg7 ?? g.trend ?? null;
+      return {
+        idProduct: p.idProduct,
+        name: base,
+        fullName: p.name,
+        code,
+        variant,
+        avg7: g.avg7 ?? null,
+        trend: g.trend ?? null,
+        low: g.low ?? null,
+        price: price > 0 ? price : null,
+        images: cardImages(code, variant),
+        url: `https://www.cardmarket.com/fr/OnePiece/Products/Search?searchString=${encodeURIComponent(`${base} ${code}`)}`,
+      };
+    })
+    .sort((a, b) => (b.price ?? -1) - (a.price ?? -1) || a.code.localeCompare(b.code) || a.variant - b.variant);
+}
+
+// Ancien top 5 (conservé pour les tests et la compatibilité).
+// Sélection des cartes d'une série (ancien top 5) : code de carte de la série + toutes les cartes de
 // l'extension Cardmarket majoritaire (utile pour les rééditions PRB qui gardent leurs anciens codes).
 export function topCards(products, guides, seriesId, limit = 5, prefixes = expansionPrefixes(products)) {
   const prefix = seriesId.toUpperCase();
@@ -96,7 +162,7 @@ export function topCards(products, guides, seriesId, limit = 5, prefixes = expan
     .slice(0, limit);
 }
 
-export function createCardmarketService({ gameId = process.env.CARDMARKET_GAME_ID, imageService = null } = {}) {
+export function createCardmarketService({ gameId = process.env.CARDMARKET_GAME_ID } = {}) {
   let data = null; // { products, guides, createdAt, at, gameId }
   let loading = null;
   let lastError = null;
@@ -140,32 +206,19 @@ export function createCardmarketService({ gameId = process.env.CARDMARKET_GAME_I
     await loading;
   }
 
-  async function getTop(seriesId) {
+  async function getChase(seriesId) {
     await ensure();
     if (!data) return { available: false, error: lastError || 'données Cardmarket indisponibles', cards: [] };
-    const cards = topCards(data.products, data.guides, seriesId, 5, data.prefixes);
-    await annotate(cards);
-    return { available: true, source: 'cardmarket', updatedAt: data.createdAt, cards };
+    const { western, method, expansions } = westernExpansion(data.products, data.guides, seriesId.toUpperCase(), data.prefixes);
+    return {
+      available: true,
+      source: 'cardmarket',
+      lang: 'EN/FR',
+      updatedAt: data.createdAt,
+      expansion: { western, method, candidates: expansions },
+      cards: chaseCards(data.products, data.guides, western),
+    };
   }
 
-  // Langue et exactitude de l'illustration : la photo Cardmarket qui répond (extension « -JP » ou non)
-  // indique la langue ; le résultat vaut pour toute l'extension. Les images restent en cache pour l'affichage.
-  const expansionLang = new Map(); // idExpansion -> 'JP' | 'EN'
-  async function annotate(cards) {
-    if (!imageService) return;
-    const timeout = new Promise((r) => setTimeout(r, 15000));
-    await Promise.race([
-      timeout,
-      Promise.all(
-        cards.map(async (c) => {
-          const img = await imageService.get({ code: c.code, variant: c.variant, idProduct: c.idProduct, exp: c.expansion, gameId: data.gameId }).catch(() => null);
-          if (img?.lang) expansionLang.set(c.idExpansion, img.lang);
-          c.artExact = !!img?.exact;
-        })
-      ),
-    ]);
-    for (const c of cards) c.lang = expansionLang.get(c.idExpansion) || null;
-  }
-
-  return { getTop, gameId: () => data?.gameId || null };
+  return { getChase, gameId: () => data?.gameId || null };
 }

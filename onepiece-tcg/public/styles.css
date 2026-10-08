@@ -463,3 +463,19 @@ a.diag-btn { text-decoration: none; }
 .flag-pair svg { height: 0.95em; width: auto; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
 .tcg-img { position: relative; }
 .tcg-note { position: absolute; left: 6px; right: 6px; bottom: 6px; background: rgba(11, 31, 58, 0.82); color: #fff; font-size: 0.68rem; font-weight: 700; text-align: center; border-radius: 6px; padding: 2px 4px; }
+
+/* ---------- Chase cards ---------- */
+.chase-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.chase { margin: 0; display: flex; flex-direction: column; gap: 4px; min-width: 0; background: var(--bg); border: 2px solid var(--line); border-radius: 10px; padding: 6px; }
+.chase.have { border-color: var(--ok); }
+.chase-img { position: relative; display: grid; place-items: center; aspect-ratio: 63 / 88; max-width: 100%; border-radius: 6px; overflow: hidden; background: linear-gradient(160deg, var(--ocean), var(--navy)); }
+.chase-img img { width: 100%; height: 100%; object-fit: cover; }
+.chase-img .tcg-ph { font-size: 0.95rem; }
+.chase figcaption { display: grid; gap: 1px; font-size: 0.74rem; min-width: 0; }
+.chase figcaption b { font-size: 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chase figcaption .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.7rem; }
+.chase-price { font-weight: 800; color: var(--red); font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+.chase .have-box { font-size: 0.74rem; margin-top: 2px; }
+.chase .have-box input { width: 16px; height: 16px; }
+.chase-more { margin: 12px auto 0; display: flex; }
+@media (max-width: 520px) { .chase-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; } }

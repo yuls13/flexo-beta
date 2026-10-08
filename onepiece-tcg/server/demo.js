@@ -60,20 +60,20 @@ export function demoTrust(shop) {
   };
 }
 
-// Cartes FICTIVES pour le mode démo (noms de personnages, prix inventés, pas de visuel).
+// Chase cards FICTIVES pour le mode démo (noms de personnages, prix inventés, pas de visuel).
 export function demoCards(series) {
   if (!series || Object.values(series.release || {}).every((d) => d > new Date().toISOString().slice(0, 10))) {
-    return { available: true, demo: true, updatedAt: null, cards: [] };
+    return { available: true, demo: true, lang: 'EN/FR', updatedAt: null, cards: [] };
   }
-  const r = rand(series.id + 'cards');
-  const names = ['Monkey D. Luffy', 'Roronoa Zoro', 'Nami', 'Shanks', 'Boa Hancock', 'Trafalgar Law', 'Yamato', 'Portgas D. Ace'];
+  const r = rand(series.id + 'chase');
+  const names = ['Monkey D. Luffy', 'Roronoa Zoro', 'Nami', 'Shanks', 'Boa Hancock', 'Trafalgar Law', 'Yamato', 'Portgas D. Ace', 'Sanji', 'Nico Robin', 'Kaido', 'Charlotte Katakuri', 'Sabo', 'Uta'];
   const cards = names
     .map((name, i) => {
-      const price = Math.round((40 + r() * 600) * 100) / 100;
-      const code = `${series.id}-${String(100 + i * 3).padStart(3, '0')}`;
-      return { idProduct: `demo-${series.id}-${i}`, name, code, variant: 1 + (i % 3), lang: i % 2 ? 'JP' : 'EN', avg7: price, trend: price * (0.9 + r() * 0.2), price, images: [], url: '#' };
+      const variant = 2 + (i % 3);
+      const price = Math.round((8 + r() ** 2 * 900) * 100) / 100;
+      const code = `${series.id}-${String(20 + i * 7).padStart(3, '0')}`;
+      return { idProduct: `demo-${series.id}-${i}`, name, code, variant, avg7: price, trend: price * (0.9 + r() * 0.2), price, images: [], url: '#' };
     })
-    .sort((a, b) => b.price - a.price)
-    .slice(0, 5);
-  return { available: true, demo: true, updatedAt: new Date().toISOString(), cards };
+    .sort((a, b) => b.price - a.price);
+  return { available: true, demo: true, lang: 'EN/FR', updatedAt: new Date().toISOString(), cards };
 }

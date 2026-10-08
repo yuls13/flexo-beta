@@ -19,13 +19,24 @@ export function imageIds(code, variant) {
 }
 
 // Réponse OPTCG API : liste des versions de la carte, chacune avec card_image_id et card_image.
+// Réponse OPTCG API : liste des versions de la carte, chacune avec card_image_id et card_image.
+// Renvoie { url, exact } : version demandée si elle existe, sinon la version alternative la plus proche,
+// sinon la version de base.
 export function pickOptcgImage(json, ids) {
-  const list = [].concat(json?.data || json || []).filter((c) => c && typeof c === 'object');
-  for (const id of ids) {
-    const hit = list.find((c) => String(c.card_image_id || '').toUpperCase() === id.toUpperCase() && c.card_image);
-    if (hit) return hit.card_image;
+  const list = [].concat(json?.data || json || []).filter((c) => c && typeof c === 'object' && c.card_image);
+  const idOf = (c) => String(c.card_image_id || '').toUpperCase();
+  const exact = list.find((c) => idOf(c) === ids[0].toUpperCase());
+  if (exact) return { url: exact.card_image, exact: true };
+  const wanted = parseInt(ids[0].split('_p')[1], 10);
+  if (wanted) {
+    const parallels = list
+      .map((c) => ({ c, n: parseInt(idOf(c).split('_P')[1], 10) }))
+      .filter((x) => x.n)
+      .sort((a, b) => Math.abs(a.n - wanted) - Math.abs(b.n - wanted));
+    if (parallels.length) return { url: parallels[0].c.card_image, exact: false };
   }
-  return list.find((c) => c.card_image)?.card_image || null;
+  const base = list.find((c) => !idOf(c).includes('_P')) || list[0];
+  return base ? { url: base.card_image, exact: !wanted } : null;
 }
 
 // Photo de la fiche Cardmarket : product-images.s3.cardmarket.com/<jeu>/<extension>/<id>/<id>.jpg.
@@ -45,30 +56,36 @@ export function createCardImageService() {
   const cache = new Map(); // clé -> { buf, type, source, lang, exact, at } | { fail, tried, at }
   const inflight = new Map();
 
-  async function candidates({ code, variant, idProduct, exp, gameId }) {
+  async function candidates({ code, variant, idProduct, exp, gameId }, exactUrls) {
     const urls = [...cardmarketImageUrls(gameId, exp, idProduct)];
     const ids = imageIds(code, variant);
     const kind = /^ST/i.test(code) ? 'decks' : 'sets';
     try {
       const { json } = await fetchJson(`https://optcgapi.com/api/${kind}/card/${code.toUpperCase()}/`, { timeoutMs: 8000 });
-      const url = pickOptcgImage(json, ids);
-      if (url) urls.push(url);
+      const pick = pickOptcgImage(json, ids);
+      if (pick) {
+        urls.push(pick.url);
+        exactUrls.add(pick.exact ? pick.url : '');
+      }
     } catch {
       /* base indisponible ou carte absente : sites officiels */
     }
     for (const id of ids) for (const host of OFFICIAL_HOSTS) urls.push(`${host}/images/cardlist/card/${id}.png`);
+    // Image officielle sous l'identifiant exact de la version : illustration exacte.
+    for (const host of OFFICIAL_HOSTS) exactUrls.add(`${host}/images/cardlist/card/${ids[0]}.png`);
     return [...new Set(urls)];
   }
 
   async function resolve(params) {
     const tried = [];
-    for (const url of await candidates(params)) {
+    const exactUrls = new Set();
+    for (const url of await candidates(params, exactUrls)) {
       try {
         const img = await fetchBinary(url, { timeoutMs: 10000, maxBytes: 3 * 1024 * 1024 });
         if (/^image\//.test(img.type) && img.buf.length > 1000) {
           const lang = languageFromSource(url, params.exp);
           // Photo Cardmarket = illustration exacte de la fiche ; sinon illustration indicative (version de base possible).
-          return { buf: img.buf, type: img.type, source: url, lang, exact: !!lang, tried };
+          return { buf: img.buf, type: img.type, source: url, lang, exact: !!lang || exactUrls.has(url), tried };
         }
         tried.push(`${url} → pas une image (${img.type || 'type inconnu'})`);
       } catch (err) {
