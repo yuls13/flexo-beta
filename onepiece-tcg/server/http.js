@@ -41,6 +41,11 @@ export function detectBlock(status, headers, body = '') {
   if (headers?.get?.('x-sucuri-id') || /sucuri website firewall/i.test(body)) return 'bloqué par le pare-feu Sucuri';
   if (headers?.get?.('x-datadome') || /datadome/i.test(body.slice(0, 5000))) return 'protection anti-robots DataDome';
   if (/wordfence/i.test(body.slice(0, 20000))) return 'bloqué par le pare-feu Wordfence';
+  if (server.includes('o2switch') && [403, 429, 503].includes(status)) return 'protection anti-robots de l’hébergeur o2switch';
+  // Pages génériques « vérification du navigateur » qui exigent JavaScript.
+  if (/security check|test de s[ée]curit[ée]|checking your browser|v[ée]rification de (votre )?navigateur|(enable|activer|activez) javascript|please turn javascript on/i.test(body.slice(0, 20000)) && [403, 429, 503].includes(status)) {
+    return 'protection anti-robots (test JavaScript)';
+  }
   if (status === 401 && /rest_(cannot_access|not_logged_in|forbidden)|rest api/i.test(body)) return 'API WordPress désactivée pour le public';
   if (status === 429) return 'trop de requêtes (limite atteinte)';
   return null;

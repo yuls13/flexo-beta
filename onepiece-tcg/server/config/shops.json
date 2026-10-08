@@ -58,7 +58,7 @@
       "name": "Cards Hunter",
       "domain": "www.cardshunter.fr",
       "base": "https://www.cardshunter.fr",
-      "platform": "woocommerce",
+      "platform": "link",
       "country": "FR",
       "flags": {
         "pokescamVerified": true
@@ -67,7 +67,8 @@
         "https://www.trustpilot.com/review/cardshunter.fr",
         "https://pokescam.com/sites-fiables/"
       ],
-      "searchUrl": "https://www.cardshunter.fr/?s={q}&post_type=product"
+      "searchUrl": "https://www.cardshunter.fr/?s={q}&post_type=product",
+      "notes": "Site protégé par le pare-feu anti-robots de son hébergeur (o2switch) : prix non lisibles automatiquement, lien direct vers sa recherche."
     },
     {
       "id": "nexthobby",
