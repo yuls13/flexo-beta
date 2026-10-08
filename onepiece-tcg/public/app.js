@@ -2,7 +2,16 @@
 import { createAccount, mergePrefs } from './account.js';
 
 const $ = (sel) => document.querySelector(sel);
-const LANG_FLAGS = { FR: '🇫🇷', EN: '🇬🇧', JP: '🇯🇵' };
+// Drapeaux dessinés en SVG : les emoji drapeaux s'affichent en lettres (« FR », « GB ») sous Windows.
+const FLAG_SVG = {
+  FR: '<svg viewBox="0 0 3 2"><path fill="#002654" d="M0 0h1v2H0z"/><path fill="#fff" d="M1 0h1v2H1z"/><path fill="#CE1126" d="M2 0h1v2H2z"/></svg>',
+  EN: '<svg viewBox="0 0 60 30"><path fill="#012169" d="M0 0h60v30H0z"/><path d="M0 0l60 30M60 0L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30M60 0L0 30" stroke="#C8102E" stroke-width="2.5"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></svg>',
+  JP: '<svg viewBox="0 0 3 2"><path fill="#fff" d="M0 0h3v2H0z"/><circle cx="1.5" cy="1" r=".6" fill="#BC002D"/></svg>',
+};
+function flag(lang) {
+  const L = String(lang || '').toUpperCase();
+  return FLAG_SVG[L] ? `<span class="flag" role="img" aria-label="${LANG_NAMES[L]}" title="${LANG_NAMES[L]}">${FLAG_SVG[L]}</span>` : '';
+}
 const LANG_NAMES = { FR: 'Français', EN: 'Anglais', JP: 'Japonais' };
 const TYPE_ORDER = ['display', 'booster', 'duo', 'starter', 'coffret'];
 const eur = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
@@ -104,6 +113,9 @@ async function init() {
   const prefs = store.get('prefs', {});
   Object.assign(state, { lang: prefs.lang || 'all', type: prefs.type || 'all', stock: ['buyable', 'preorder', 'all'].includes(prefs.stock) ? prefs.stock : 'buyable' });
 
+  for (const b of document.querySelectorAll('#langFilter button[data-v]')) {
+    if (FLAG_SVG[b.dataset.v]) b.innerHTML = flag(b.dataset.v);
+  }
   renderTabs();
   renderTypeFilter();
   syncFilters();
@@ -211,13 +223,13 @@ function renderHead() {
   const dates = Object.entries(s.release || {})
     .map(([l, d]) => {
       const L = l.toUpperCase();
-      return `<span class="date ${d > today() ? 'future' : ''}">${LANG_FLAGS[L] || ''} ${L} · ${d > today() ? 'sortie ' : ''}${dateFmt.format(new Date(d))}</span>`;
+      return `<span class="date ${d > today() ? 'future' : ''}">${flag(L)} ${d > today() ? 'sortie ' : ''}${dateFmt.format(new Date(d))}</span>`;
     })
     .join('');
   const future = Object.entries(s.release || {}).filter(([, d]) => d > today());
   const banner = future.length
     ? `<div class="preo-banner">🗓️ ${
-        isUpcoming(s) ? 'Série pas encore sortie' : `Pas encore sortie en ${future.map(([l]) => l.toUpperCase()).join(', ')}`
+        isUpcoming(s) ? 'Série pas encore sortie' : `Pas encore sortie en ${future.map(([l]) => flag(l)).join(' ')}`
       } : les offres commandables sont des <b>précommandes</b>. Préférez les boutiques bien notées, payez par CB/PayPal et méfiez-vous des précommandes sans date ni délai.</div>`
     : '';
   const isFav = state.favSeries.includes(s.id);
@@ -309,7 +321,7 @@ function renderBest(data) {
         <span class="pin"></span>
         <div class="w-title">WANTED</div>
         <div class="w-sub">${o.preorder ? 'Meilleure préco' : 'Meilleur prix'}</div>
-        <div class="w-product">${esc(productLabel(o))} ${o.lang ? LANG_FLAGS[o.lang] : ''}</div>
+        <div class="w-product">${esc(productLabel(o))} ${flag(o.lang)}</div>
         <div class="w-price">${esc(eur.format(o.total).replace(/\s?€/, ''))}<small> €</small></div>
         <div class="w-detail">${esc(eur.format(o.price))} + port ~${esc(eur.format(o.shipping))}${o.perBooster ? ` · ${esc(eur.format(o.perBooster))}/booster` : ''}</div>
         <div class="w-shop">${shopLogo(o.shopId, o.shopName, 'xs')} chez ${esc(o.shopName)}</div>
@@ -327,7 +339,7 @@ function offerRow(o, isTop) {
       <div class="offer-shop">${favStar(o.shopId)}${shopLogo(o.shopId, o.shopName)}${isTop ? '👑 ' : ''}${esc(o.shopName)} ${o.custom ? '<span class="tag mine">⭐ Ma boutique</span>' : ''} ${trustBadge(o.shopId)}</div>
       <p class="offer-title">${esc(o.title)}</p>
       <div class="tags">
-        <span class="tag">${o.lang ? `${LANG_FLAGS[o.lang]} ${LANG_NAMES[o.lang]}` : 'Langue ?'}</span>
+        <span class="tag">${o.lang ? `${flag(o.lang)} ${LANG_NAMES[o.lang]}` : 'Langue ?'}</span>
         ${stockTag(o)}${flags}
       </div>
       ${o.flags.map((f) => `<p class="muted" style="margin:4px 0 0">${f.kind === 'suspect' ? '⚠️' : 'ℹ️'} ${esc(f.text)}</p>`).join('')}
@@ -784,7 +796,7 @@ async function showDiagnose(shopId) {
     .join('');
   const prods = r.products
     .slice(0, 40)
-    .map((p) => `<li class="${p.verdict.ok ? 'ok' : 'no'}"><span>${p.verdict.ok ? '✔' : '✖'}</span><span>${esc(p.title)}<small>${p.price != null ? esc(eur.format(p.price)) + ' · ' : ''}${esc(p.verdict.reason)}</small></span></li>`)
+    .map((p) => `<li class="${p.verdict.ok ? 'ok' : 'no'}"><span>${p.verdict.ok ? '✔' : '✖'}</span><span>${esc(p.title)}<small>${p.price != null ? esc(eur.format(p.price)) + ' · ' : ''}${esc(p.verdict.reason).replace(/ · (FR|EN|JP)$/, (_, l) => ` · ${flag(l)}`)}</small></span></li>`)
     .join('');
   const report = [
     `Diagnostic ${name} (${r.shop.domain}) · série ${r.series} · plateforme ${r.shop.platform}`,

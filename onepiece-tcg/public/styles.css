@@ -438,3 +438,9 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 .diag-prods li.no { color: var(--muted); }
 .diag-prods small { display: block; }
 .report { width: 100%; min-height: 160px; margin-top: 8px; font: 0.75rem ui-monospace, monospace; background: var(--bg); color: var(--text); border: 1px solid var(--line); border-radius: 8px; }
+
+/* ---------- Drapeaux ---------- */
+.flag { display: inline-flex; vertical-align: -0.12em; line-height: 0; }
+.flag svg { height: 0.95em; width: auto; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18); }
+#langFilter .flag svg { height: 1.05em; }
+.w-product .flag svg { height: 0.85em; }
