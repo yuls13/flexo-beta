@@ -46,6 +46,38 @@ export function detectBlock(status, headers, body = '') {
   return null;
 }
 
+// Indices sur une page HTML (pour le diagnostic) : titre, moteur de recherche externe, liens produits.
+const SEARCH_ENGINES = [
+  ['Doofinder', /doofinder/i],
+  ['Algolia', /algolia/i],
+  ['Klevu', /klevu/i],
+  ['Searchanise', /searchanise/i],
+  ['Luigi’s Box', /luigisbox/i],
+  ['Empathy', /empathy\.co|empathybroker/i],
+  ['Sooqr', /sooqr/i],
+  ['Clerk.io', /clerk\.io/i],
+  ['Boost Commerce', /boost-?commerce|boostsd/i],
+  ['Elasticsearch (module)', /elasticsuite|ambjolisearch|ps_elasticsearch/i],
+  ['Hawksearch / AddSearch', /hawksearch|addsearch/i],
+];
+export function htmlHints(html) {
+  const hints = [];
+  const title = html.match(/<title[^>]*>([^<]{1,120})/i)?.[1]?.replace(/\s+/g, ' ').trim();
+  if (title) hints.push(`titre « ${title} »`);
+  const engines = SEARCH_ENGINES.filter(([, re]) => re.test(html)).map(([n]) => n);
+  if (engines.length) hints.push(`moteur de recherche externe : ${engines.join(', ')} (résultats chargés en JavaScript)`);
+  const jsonLd = (html.match(/application\/ld\+json/gi) || []).length;
+  if (jsonLd) hints.push(`${jsonLd} bloc(s) JSON-LD`);
+  const miniatures = (html.match(/product-miniature|ajax_block_product|product-container|type-product|product-card|product-item/gi) || []).length;
+  hints.push(`${miniatures} vignette(s) produit repérée(s)`);
+  if (/<noscript>[^<]*javascript/i.test(html) || html.length < 3000) hints.push('page quasi vide sans JavaScript');
+  return hints;
+}
+
+function snippet(text) {
+  return text.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+}
+
 export async function fetchText(url, { headers = {}, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
   const started = Date.now();
   let res;
@@ -62,12 +94,23 @@ export async function fetchText(url, { headers = {}, timeoutMs = DEFAULT_TIMEOUT
   }
   const text = await res.text();
   const block = res.ok ? null : detectBlock(res.status, res.headers, text);
+  const type = (res.headers.get('content-type') || '').split(';')[0];
+  const extra = {};
+  if (traceStore.getStore()) {
+    if (!res.ok) {
+      extra.server = res.headers.get('server') || undefined;
+      extra.snippet = snippet(text) || undefined;
+    } else if (/html/.test(type)) {
+      extra.hints = htmlHints(text);
+    }
+  }
   record({
+    ...extra,
     url,
     finalUrl: res.url && res.url !== url ? res.url : undefined,
     status: res.status,
     ms: Date.now() - started,
-    type: (res.headers.get('content-type') || '').split(';')[0],
+    type,
     bytes: text.length,
     note: block || undefined,
   });
@@ -84,7 +127,10 @@ export async function fetchJson(url, opts = {}) {
     return { json: JSON.parse(text), ...rest };
   } catch {
     const block = detectBlock(rest.status, rest.headers, text);
-    throw new HttpError(block || 'réponse non JSON (page HTML au lieu des données)', rest.status);
+    const msg = block || 'réponse non JSON (page HTML au lieu des données)';
+    const trace = traceStore.getStore();
+    if (trace?.length) trace[trace.length - 1].note = msg;
+    throw new HttpError(msg, rest.status);
   }
 }
 

@@ -103,3 +103,24 @@ test('searchShop : tout bloqué → erreur explicite', async () => {
     globalThis.fetch = realFetch;
   }
 });
+
+test('htmlHints : titre, moteur externe, vignettes', async () => {
+  const { htmlHints } = await import('../server/http.js');
+  const hints = htmlHints('<title>Recherche - Philibert</title><script src="https://cdn.doofinder.com/x.js"></script>' + 'x'.repeat(4000));
+  assert.ok(hints.includes('titre « Recherche - Philibert »'));
+  assert.ok(hints.some((h) => /Doofinder/.test(h)));
+  assert.ok(hints.includes('0 vignette(s) produit repérée(s)'));
+});
+
+test('diagnostic : contenu et serveur d’une réponse en erreur', async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async () => new Response('<html><body><h1>Service Unavailable</h1><p>Maintenance en cours</p></body></html>', { status: 503, headers: { server: 'nginx' } });
+  try {
+    const { fetchText } = await import('../server/http.js');
+    const { trace } = await withTrace(() => fetchText('https://x.fr/'));
+    assert.equal(trace[0].server, 'nginx');
+    assert.equal(trace[0].snippet, 'Service Unavailable Maintenance en cours');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

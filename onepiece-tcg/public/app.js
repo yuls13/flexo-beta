@@ -802,7 +802,8 @@ async function showDiagnose(shopId) {
         /* adresse brute */
       }
       const cls = q.status >= 200 && q.status < 300 ? 'ok' : 'bad';
-      return `<li><span class="code ${cls}">${q.status || '—'}</span><span class="req-path">${esc(path)}</span>${q.note ? `<small class="err-msg">${esc(q.note)}</small>` : ''}</li>`;
+      const info = [q.type, q.server && `serveur ${q.server}`, ...(q.hints || [])].filter(Boolean).join(' · ');
+      return `<li><span class="code ${cls}">${q.status || '—'}</span><span class="req-path">${esc(path)}</span>${q.note ? `<small class="err-msg">${esc(q.note)}</small>` : ''}${info ? `<small class="muted">${esc(info)}</small>` : ''}${q.snippet ? `<small class="muted">« ${esc(q.snippet)} »</small>` : ''}</li>`;
     })
     .join('');
   const prods = r.products
@@ -814,7 +815,10 @@ async function showDiagnose(shopId) {
     `Méthode : ${r.strategies.join(', ') || 'aucune'} · ${r.ms} ms`,
     `Erreurs : ${r.errors.join(' | ') || 'aucune'}`,
     'Requêtes :',
-    ...r.requests.map((q) => `  ${q.status || '---'} ${q.url}${q.note ? ` (${q.note})` : ''}`),
+    ...r.requests.flatMap((q) => [
+      `  ${q.status || '---'} ${q.url}${q.note ? ` (${q.note})` : ''}`,
+      ...[q.type, q.server && `serveur ${q.server}`, ...(q.hints || []), q.snippet && `contenu : « ${q.snippet} »`].filter(Boolean).map((h) => `      ↳ ${h}`),
+    ]),
     'Produits :',
     ...r.products.map((p) => `  ${p.verdict.ok ? 'OK ' : 'NON'} ${p.title} — ${p.price ?? '?'} € — ${p.verdict.reason}`),
   ].join('\n');
