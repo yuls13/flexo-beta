@@ -91,6 +91,17 @@ test('searchShop : API WooCommerce fermée (401) → repli sur la page de recher
     await searchShop(shop, 'Bataille Décisive');
     assert.equal(calls.length, 1); // méthode qui marche essayée en premier
     assert.match(calls[0], /\?s=/);
+    // Page de recherche vide (aucune méthode mémorisée) : l'API refusée (401) n'est pas réessayée.
+    const shop2 = { id: 'ludo2', domain: 'ludo2-test.fr', base: 'https://ludo2-test.fr', platform: 'woocommerce' };
+    globalThis.fetch = async (url) => {
+      calls.push(String(url));
+      if (String(url).includes('/wp-json/')) return new Response('{"code":"rest_not_logged_in"}', { status: 401 });
+      return new Response('<title>Vous avez cherché OP17</title>', { status: 200, headers: { 'content-type': 'text/html' } });
+    };
+    calls.length = 0;
+    await searchShop(shop2, 'OP17');
+    await searchShop(shop2, 'OP-17');
+    assert.equal(calls.filter((u) => u.includes('/wp-json/')).length, 1);
   } finally {
     globalThis.fetch = realFetch;
   }

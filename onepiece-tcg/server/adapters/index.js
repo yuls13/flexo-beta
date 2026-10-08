@@ -74,11 +74,20 @@ export const PLATFORM_STRATEGIES = {
 export const PLATFORMS = Object.keys(PLATFORM_STRATEGIES);
 
 const memo = new Map(); // domaine -> méthode qui a fonctionné
+const refused = new Map(); // « domaine|méthode » -> date jusqu'à laquelle la méthode est mise de côté
+const REFUSED_TTL_MS = 60 * 60 * 1000; // une méthode refusée (401/403) n'est pas réessayée pendant 1 h
+
+export function resetStrategyMemory() {
+  memo.clear();
+  refused.clear();
+}
 
 export async function searchShop(shop, query) {
   const names = PLATFORM_STRATEGIES[shop.platform] || [];
   const preferred = memo.get(shop.domain);
-  const order = preferred && names.includes(preferred) ? [preferred, ...names.filter((n) => n !== preferred)] : names;
+  const ordered = preferred && names.includes(preferred) ? [preferred, ...names.filter((n) => n !== preferred)] : names;
+  const usable = ordered.filter((n) => !((refused.get(`${shop.domain}|${n}`) || 0) > Date.now()));
+  const order = usable.length ? usable : ordered;
   const errors = [];
   let answered = false;
   for (const name of order) {
@@ -92,6 +101,8 @@ export async function searchShop(shop, query) {
       }
     } catch (err) {
       errors.push(err);
+      // Accès refusé à cette méthode précise : inutile de la réessayer à chaque requête.
+      if ([401, 403].includes(err.status)) refused.set(`${shop.domain}|${name}`, Date.now() + REFUSED_TTL_MS);
     }
   }
   if (answered) return { items: [], strategy: null };
