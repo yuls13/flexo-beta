@@ -394,15 +394,21 @@ function render() {
         .join('')
     : `<div class="empty">Aucune offre trouvée avec ces filtres.${state.stock !== 'all' ? ' Essayez le filtre « Tout » (inclut les ruptures).' : ''}<br>Pensez aussi aux liens « Vérifier aussi sur » ci-dessous.</div>`;
 
-  const st = { ok: '✔ offres trouvées', empty: '○ rien pour cette série', error: '✖ injoignable', protected: '🛡 site protégé (anti-robots)' };
+  const st = { ok: '✔ Offres trouvées', empty: '○ Rien pour cette série', error: '✖ Injoignable', protected: '🛡 Site protégé (anti-robots)' };
   $('#shopList').innerHTML = data.shops
-    .map(
-      (s) => `<div class="shop-row ${s.custom ? 'mine' : ''}"><div><div class="shop-name">${favStar(s.id)}${shopLogo(s.id, s.name)}<b>${esc(s.name)}</b></div>
-        ${s.custom ? '<span class="tag mine">⭐ Ajoutée par vous</span> ' : ''}${trustBadge(s.id)}</div>
-      <div class="st-col"><div class="st ${s.status}" title="${esc(s.error || '')}">${st[s.status]}${s.matched ? ` (${s.matched})` : ''}${s.error ? `<br><small>${esc(s.error)}</small>` : ''}</div>
-        <button class="diag-btn" type="button" data-diagnose="${esc(s.id)}" title="Voir ce que la boutique a répondu">🔍 Diagnostic</button>
-        ${['error', 'protected'].includes(s.status) && shopSearchUrl(s.id) ? `<a class="diag-btn" href="${esc(shopSearchUrl(s.id))}" target="_blank" rel="noopener noreferrer">Voir sur le site ↗</a>` : ''}</div></div>`
-    )
+    .map((s) => {
+      const link = ['error', 'protected'].includes(s.status) ? shopSearchUrl(s.id) : null;
+      return `<div class="shop-card ${s.custom ? 'mine' : ''}">
+        <div class="sc-head">${favStar(s.id)}${shopLogo(s.id, s.name)}<b class="sc-name" title="${esc(s.name)}">${esc(s.name)}</b></div>
+        <div class="sc-badges">${trustBadge(s.id)}${s.custom ? '<span class="tag mine">⭐ Ajoutée par vous</span>' : ''}</div>
+        <div class="sc-status st-${s.status}">${st[s.status]}${s.matched ? ` (${s.matched})` : ''}</div>
+        ${s.error ? `<small class="sc-error" title="${esc(s.error)}">${esc(s.error.replace(/^HTTP (\d+) – /, '$1 · '))}</small>` : ''}
+        <div class="sc-actions">
+          <button class="diag-btn" type="button" data-diagnose="${esc(s.id)}" title="Voir ce que la boutique a répondu">🔍 Diagnostic</button>
+          ${link ? `<a class="diag-btn" href="${esc(link)}" target="_blank" rel="noopener noreferrer">Voir sur le site ↗</a>` : ''}
+        </div>
+      </div>`;
+    })
     .join('');
   const ok = data.shops.filter((s) => s.status === 'ok').length;
   const err = data.shops.filter((s) => s.status === 'error').length;
@@ -449,9 +455,14 @@ function renderMyShops() {
   list.innerHTML = state.customShops.length
     ? state.customShops
         .map(
-          (c) => `<div class="shop-row"><div><div class="shop-name">${favStar(c.id)}${shopLogo(c.id, c.name)}<b>${esc(c.name)}</b></div><span class="muted">${esc(c.domain)}</span><br>
-          <span class="tag">${esc(PLATFORM_NAMES[c.platform] || c.platform)}</span> ${trustBadge(c.id)}</div>
-          <button class="icon-btn" type="button" data-remove-shop="${esc(c.id)}" title="Retirer" aria-label="Retirer ${esc(c.name)}">🗑</button></div>`
+          (c) => `<div class="shop-card mine">
+          <div class="sc-head">${favStar(c.id)}${shopLogo(c.id, c.name)}<b class="sc-name" title="${esc(c.name)}">${esc(c.name)}</b></div>
+          <small class="sc-domain" title="${esc(c.domain)}">${esc(c.domain)}</small>
+          <div class="sc-badges">${trustBadge(c.id)}<span class="tag">${esc(PLATFORM_NAMES[c.platform] || c.platform)}</span></div>
+          <div class="sc-actions">
+            <button class="diag-btn" type="button" data-remove-shop="${esc(c.id)}" aria-label="Retirer ${esc(c.name)}">🗑 Retirer</button>
+          </div>
+        </div>`
         )
         .join('')
     : '<p class="muted">Aucune boutique ajoutée. Ajoutez une boutique que vous connaissez : elle sera vérifiée puis interrogée à chaque actualisation.</p>';
@@ -971,12 +982,12 @@ document.addEventListener('click', (e) => {
   // Confirmation en deux clics (les boîtes confirm() sont bloquées dans certains navigateurs intégrés).
   if (rm.dataset.armed !== '1') {
     rm.dataset.armed = '1';
-    rm.textContent = 'Retirer ?';
+    rm.textContent = 'Confirmer ?';
     rm.classList.add('armed');
     setTimeout(() => {
       if (rm.isConnected) {
         rm.dataset.armed = '';
-        rm.textContent = '🗑';
+        rm.textContent = '🗑 Retirer';
         rm.classList.remove('armed');
       }
     }, 4000);

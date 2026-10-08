@@ -259,13 +259,23 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; text-decoration: none; font-weight: 700; font-size: 0.85rem; }
 .chip:hover { border-color: var(--red); }
-.shop-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; margin-top: 10px; }
-.shop-row { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 0.85rem; }
-.shop-row .st { font-size: 0.75rem; font-weight: 800; }
-.st.ok { color: var(--ok); }
-.st.empty { color: var(--muted); }
-.st.error { color: var(--bad); }
-.st.protected { color: var(--warn); }
+.shop-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); grid-auto-rows: 1fr; gap: 10px; margin-top: 10px; }
+/* Case boutique : structure fixe (nom, badges, état, boutons en bas), même taille pour toutes. */
+.shop-card { display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); font-size: 0.85rem; }
+.shop-card.mine { border-color: var(--straw-dark); }
+.sc-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sc-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.95rem; }
+.sc-domain { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: -4px; }
+.sc-badges { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sc-badges .trust, .sc-badges .tag { white-space: nowrap; }
+.sc-status { font-weight: 800; font-size: 0.82rem; }
+.st-ok { color: var(--ok); }
+.st-empty { color: var(--muted); }
+.st-error { color: var(--bad); }
+.st-protected { color: var(--warn); }
+.sc-error { color: var(--muted); font-size: 0.75rem; line-height: 1.35; margin-top: -4px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+.sc-actions { margin-top: auto; display: flex; flex-wrap: wrap; gap: 6px; }
+.sc-actions .diag-btn { flex: 1 1 auto; text-align: center; }
 
 .foot { text-align: center; color: var(--muted); font-size: 0.78rem; padding: 0 16px 32px; max-width: 800px; margin: 0 auto; }
 
@@ -423,11 +433,10 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 .dlg-shop { display: flex; align-items: center; gap: 10px; }
 
 /* ---------- Diagnostic ---------- */
-.st-col { display: grid; justify-items: end; gap: 6px; text-align: right; }
-.diag-btn { white-space: nowrap; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 999px; padding: 3px 10px; font-size: 0.75rem; font-weight: 800; }
+.diag-btn { white-space: nowrap; display: inline-block; border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 999px; padding: 3px 10px; font-size: 0.75rem; font-weight: 800; }
 .diag-btn:hover { border-color: var(--sea); }
+.diag-btn.armed, .diag-btn[data-armed='1'] { background: var(--bad); border-color: var(--bad); color: #fff; }
 a.diag-btn { text-decoration: none; }
-.shop-row.mine { border-color: var(--straw-dark); }
 .diag-list, .diag-prods { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; font-size: 0.82rem; }
 .diag-list li { display: grid; grid-template-columns: 42px 1fr; gap: 2px 8px; align-items: baseline; }
 .diag-list li small { grid-column: 2; }
