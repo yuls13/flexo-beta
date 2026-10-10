@@ -1,0 +1,25 @@
+{
+  "_comment": "Domaines ayant fait l'objet de signalements publics. Ils ne sont jamais interrogés et l'outil « Vérifier un site » les signale. Chaque entrée cite sa source.",
+  "domains": [
+    {
+      "domain": "boutique-one-piece.fr",
+      "reason": "Signalement de non-livraison après paiement (signal-arnaques.com, déc. 2020)",
+      "source": "https://www.signal-arnaques.com/"
+    },
+    {
+      "domain": "laboutique-onepiece.com",
+      "reason": "Signalement de commande jamais livrée (signal-arnaques.com, déc. 2020)",
+      "source": "https://www.signal-arnaques.com/"
+    },
+    {
+      "domain": "cardgameshopus.com",
+      "reason": "Classé frauduleux par un scanner automatique (Gridinsoft)",
+      "source": "https://fr.gridinsoft.com/online-virus-scanner/url/cardgameshopus-com"
+    },
+    {
+      "domain": "tcgcardsdistributionjpn.com",
+      "reason": "Classé suspect par un scanner automatique (domaine très récent, aucun avis)",
+      "source": "https://fr.gridinsoft.com/online-virus-scanner/url/tcgcardsdistributionjpn-com"
+    }
+  ]
+}

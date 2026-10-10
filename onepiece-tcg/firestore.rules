@@ -1,0 +1,29 @@
+rules_version = '2';
+
+// Règles de sécurité Firestore pour Berry Radar.
+// Chaque utilisateur connecté ne peut lire, écrire et supprimer que SON document users/{uid}.
+// L'historique des prix est public en lecture ; seul le serveur (compte de service) écrit.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['favoriteSeries', 'favoriteShops', 'customShops', 'owned', 'alerts', 'pushSubscriptions', 'updatedAt'])
+        && request.resource.data.favoriteSeries is list && request.resource.data.favoriteSeries.size() <= 50
+        && request.resource.data.favoriteShops is list && request.resource.data.favoriteShops.size() <= 100
+        && request.resource.data.customShops is list && request.resource.data.customShops.size() <= 10
+        && request.resource.data.owned is map && request.resource.data.owned.size() <= 2000
+        && (!('alerts' in request.resource.data) || (request.resource.data.alerts is list && request.resource.data.alerts.size() <= 30))
+        && (!('pushSubscriptions' in request.resource.data) || (request.resource.data.pushSubscriptions is list && request.resource.data.pushSubscriptions.size() <= 5));
+    }
+    match /history/{seriesId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    // Tout le reste est fermé.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

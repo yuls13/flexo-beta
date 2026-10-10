@@ -1,0 +1,307 @@
+{
+  "_comment": "Liste blanche des boutiques interrogées. platform: shopify | woocommerce | prestashop | link (lien de recherche seulement, pas de lecture automatique des prix). shipping: estimation du port vers la France (small = booster/double pack, large = display/coffret), modifiable. Les champs 'flags' sont des vérifications manuelles documentées par 'refs'.",
+  "shippingDefaults": {
+    "FR": {
+      "small": 4.9,
+      "large": 7.9
+    },
+    "EU": {
+      "small": 9.9,
+      "large": 14.9
+    }
+  },
+  "shops": [
+    {
+      "id": "philibert",
+      "name": "Philibert",
+      "domain": "www.philibertnet.com",
+      "base": "https://www.philibertnet.com",
+      "platform": "prestashop",
+      "country": "FR",
+      "flags": {
+        "physicalStore": true,
+        "establishedRetailer": true
+      },
+      "notes": "Grande boutique de jeux à Strasbourg, magasin physique.",
+      "searchUrl": "https://www.philibertnet.com/fr/recherche?search_query={q}",
+      "searchPath": "/fr/recherche"
+    },
+    {
+      "id": "variantes",
+      "name": "Variantes Paris",
+      "domain": "www.variantes.com",
+      "base": "https://www.variantes.com",
+      "platform": "prestashop",
+      "country": "FR",
+      "flags": {
+        "physicalStore": true,
+        "establishedRetailer": true
+      },
+      "notes": "Boutique de jeux historique à Paris. Certaines offres sont réservées au magasin / click & collect.",
+      "searchUrl": "https://www.variantes.com/recherche?controller=search&s={q}"
+    },
+    {
+      "id": "gentlemen",
+      "name": "Les Gentlemen du Jeu",
+      "domain": "lesgentlemendujeu.com",
+      "base": "https://lesgentlemendujeu.com",
+      "platform": "link",
+      "country": "FR",
+      "flags": {
+        "physicalStore": true
+      },
+      "searchUrl": "https://lesgentlemendujeu.com/recherche?controller=search&s={q}",
+      "notes": "Site protégé par Cloudflare (vérification anti-robots) : prix non lisibles automatiquement, lien direct vers sa recherche."
+    },
+    {
+      "id": "cardshunter",
+      "name": "Cards Hunter",
+      "domain": "www.cardshunter.fr",
+      "base": "https://www.cardshunter.fr",
+      "platform": "link",
+      "country": "FR",
+      "flags": {
+        "pokescamVerified": true
+      },
+      "refs": [
+        "https://www.trustpilot.com/review/cardshunter.fr",
+        "https://pokescam.com/sites-fiables/"
+      ],
+      "searchUrl": "https://www.cardshunter.fr/?s={q}&post_type=product",
+      "notes": "Site protégé par le pare-feu anti-robots de son hébergeur (o2switch) : prix non lisibles automatiquement, lien direct vers sa recherche."
+    },
+    {
+      "id": "nexthobby",
+      "name": "Next Hobby",
+      "domain": "nexthobby.fr",
+      "base": "https://nexthobby.fr",
+      "platform": "link",
+      "country": "FR",
+      "flags": {},
+      "refs": [
+        "https://www.trustpilot.com/review/nexthobby.fr"
+      ],
+      "searchUrl": "https://nexthobby.fr/?s={q}&post_type=product",
+      "notes": "Site protégé par Cloudflare (vérification anti-robots) : prix non lisibles automatiquement, lien direct vers sa recherche."
+    },
+    {
+      "id": "ecardstore",
+      "name": "eCardStore",
+      "domain": "ecardstore.fr",
+      "base": "https://ecardstore.fr",
+      "platform": "woocommerce",
+      "country": "FR",
+      "flags": {},
+      "searchUrl": "https://ecardstore.fr/?s={q}&post_type=product"
+    },
+    {
+      "id": "ludotrotter",
+      "name": "Ludotrotter",
+      "domain": "ludotrotter.fr",
+      "base": "https://ludotrotter.fr",
+      "platform": "woocommerce",
+      "country": "FR",
+      "flags": {},
+      "searchUrl": "https://ludotrotter.fr/?s={q}&post_type=product"
+    },
+    {
+      "id": "vcollect",
+      "name": "VCollect",
+      "domain": "vcollect.fr",
+      "base": "https://vcollect.fr",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {
+        "pokescamVerified": true
+      },
+      "refs": [
+        "https://pokescam.com/sites-fiables/vcollect-fr/"
+      ],
+      "searchUrl": "https://vcollect.fr/search?q={q}&type=product"
+    },
+    {
+      "id": "konotoree",
+      "name": "Konotoree",
+      "domain": "konotoree.com",
+      "base": "https://konotoree.com",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {},
+      "refs": [
+        "https://www.trustpilot.com/review/konotoree.com"
+      ],
+      "searchUrl": "https://konotoree.com/search?q={q}&type=product"
+    },
+    {
+      "id": "lorenzone",
+      "name": "LorenZone",
+      "domain": "lorenzone.fr",
+      "base": "https://lorenzone.fr",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {},
+      "searchUrl": "https://lorenzone.fr/search?q={q}&type=product"
+    },
+    {
+      "id": "hikaru",
+      "name": "Hikaru Distribution",
+      "domain": "hikarudistribution.com",
+      "base": "https://hikarudistribution.com",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {},
+      "notes": "Import Japon, stock en Île-de-France.",
+      "searchUrl": "https://hikarudistribution.com/search?q={q}&type=product"
+    },
+    {
+      "id": "repairecollectionneur",
+      "name": "Le Repaire du Collectionneur",
+      "domain": "www.lerepaireducollectionneur.fr",
+      "base": "https://www.lerepaireducollectionneur.fr",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {},
+      "searchUrl": "https://www.lerepaireducollectionneur.fr/search?q={q}&type=product"
+    },
+    {
+      "id": "tcgspeed",
+      "name": "TCG Speed",
+      "domain": "tcgspeed.com",
+      "base": "https://tcgspeed.com",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {},
+      "searchUrl": "https://tcgspeed.com/search?q={q}&type=product"
+    },
+    {
+      "id": "bookaddict",
+      "name": "Bookaddict TCG",
+      "domain": "bookaddicttcg.com",
+      "base": "https://bookaddicttcg.com",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {},
+      "searchUrl": "https://bookaddicttcg.com/search?q={q}&type=product"
+    },
+    {
+      "id": "pokezenith",
+      "name": "PokéZenith",
+      "domain": "www.pokezenith.com",
+      "base": "https://www.pokezenith.com",
+      "platform": "prestashop",
+      "country": "FR",
+      "flags": {},
+      "searchUrl": "https://www.pokezenith.com/recherche?controller=search&s={q}"
+    },
+    {
+      "id": "investcollect",
+      "name": "Invest Collect",
+      "domain": "investcollect.com",
+      "base": "https://investcollect.com",
+      "platform": "prestashop",
+      "country": "FR",
+      "flags": {},
+      "searchUrl": "https://investcollect.com/recherche?controller=search&s={q}"
+    },
+    {
+      "id": "blazingtail",
+      "name": "Blazingtail",
+      "domain": "www.blazingtail.fr",
+      "base": "https://www.blazingtail.fr",
+      "platform": "prestashop",
+      "country": "FR",
+      "flags": {
+        "pokescamVerified": true
+      },
+      "notes": "Avis clients contrastés (livraisons partielles signalées) : préférer un paiement CB/PayPal.",
+      "refs": [
+        "https://www.trustpilot.com/review/www.blazingtail.fr"
+      ],
+      "searchUrl": "https://www.blazingtail.fr/recherche?controller=search&s={q}"
+    },
+    {
+      "id": "cardcosmos",
+      "name": "CardCosmos (DE)",
+      "domain": "cardcosmos.de",
+      "base": "https://cardcosmos.de",
+      "platform": "shopify",
+      "country": "EU",
+      "flags": {},
+      "notes": "Boutique allemande, livre en France (versions EN/JP).",
+      "searchUrl": "https://cardcosmos.de/search?q={q}&type=product"
+    },
+    {
+      "id": "cardmarket",
+      "name": "Cardmarket",
+      "domain": "www.cardmarket.com",
+      "platform": "link",
+      "country": "EU",
+      "flags": {
+        "establishedRetailer": true,
+        "buyerProtection": true
+      },
+      "notes": "Marketplace européenne avec protection acheteur. Prix non lus automatiquement (site protégé contre les robots).",
+      "searchUrl": "https://www.cardmarket.com/fr/OnePiece/Products/Search?searchString={q}"
+    },
+    {
+      "id": "fnac",
+      "name": "Fnac",
+      "domain": "www.fnac.com",
+      "platform": "link",
+      "country": "FR",
+      "flags": {
+        "establishedRetailer": true,
+        "physicalStore": true
+      },
+      "searchUrl": "https://www.fnac.com/SearchResult/ResultList.aspx?Search={q}"
+    },
+    {
+      "id": "cultura",
+      "name": "Cultura",
+      "domain": "www.cultura.com",
+      "platform": "link",
+      "country": "FR",
+      "flags": {
+        "establishedRetailer": true,
+        "physicalStore": true
+      },
+      "searchUrl": "https://www.cultura.com/search/results?search_query={q}"
+    },
+    {
+      "id": "micromania",
+      "name": "Micromania",
+      "domain": "www.micromania.fr",
+      "platform": "link",
+      "country": "FR",
+      "flags": {
+        "establishedRetailer": true,
+        "physicalStore": true
+      },
+      "searchUrl": "https://www.micromania.fr/search?q={q}"
+    },
+    {
+      "id": "playin",
+      "name": "Play-In",
+      "domain": "www.play-in.com",
+      "platform": "link",
+      "country": "FR",
+      "flags": {
+        "establishedRetailer": true,
+        "physicalStore": true
+      },
+      "searchUrl": "https://www.play-in.com/fr/recherche?search={q}"
+    },
+    {
+      "id": "amazon",
+      "name": "Amazon (vendu par Amazon)",
+      "domain": "www.amazon.fr",
+      "platform": "link",
+      "country": "FR",
+      "flags": {
+        "establishedRetailer": true
+      },
+      "notes": "Attention aux vendeurs tiers qui gonflent les prix : vérifier « Expédié et vendu par Amazon ».",
+      "searchUrl": "https://www.amazon.fr/s?k={q}"
+    }
+  ]
+}
