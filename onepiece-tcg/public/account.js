@@ -3,7 +3,9 @@
 // En mode démo, un compte simulé est gardé dans le navigateur.
 
 const FIREBASE_VERSION = '10.14.1';
-export const EMPTY_PREFS = { favoriteSeries: [], favoriteShops: [], customShops: [], owned: {} };
+export const EMPTY_PREFS = { favoriteSeries: [], favoriteShops: [], customShops: [], owned: {}, alerts: [], pushSubscriptions: [] };
+export const MAX_ALERTS = 30;
+export const MAX_DEVICES = 5;
 
 // Fusion des préférences du compte avec celles déjà présentes sur l'appareil
 // (boutiques ajoutées et cartes cochées avant la connexion ne sont pas perdues).
@@ -12,11 +14,17 @@ export function mergePrefs(remote, local) {
   const l = { ...EMPTY_PREFS, ...(local || {}) };
   const shops = [...r.customShops];
   for (const s of l.customShops) if (!shops.some((x) => x.id === s.id)) shops.push(s);
+  const alerts = [...r.alerts];
+  for (const a of l.alerts) if (!alerts.some((x) => x.id === a.id)) alerts.push(a);
+  const subs = [...r.pushSubscriptions];
+  for (const s of l.pushSubscriptions) if (!subs.some((x) => x.endpoint === s.endpoint)) subs.push(s);
   return {
     favoriteSeries: [...new Set([...r.favoriteSeries, ...l.favoriteSeries])],
     favoriteShops: [...new Set([...r.favoriteShops, ...l.favoriteShops])],
     customShops: shops.slice(0, 10),
     owned: { ...l.owned, ...r.owned },
+    alerts: alerts.slice(0, MAX_ALERTS),
+    pushSubscriptions: subs.slice(-MAX_DEVICES),
   };
 }
 
@@ -111,7 +119,8 @@ async function firebaseBackend(config) {
       return snap.exists() ? snap.data() : null;
     },
     async save(uid, prefs) {
-      await fs.setDoc(ref(uid), { ...prefs, updatedAt: fs.serverTimestamp() });
+      // merge : les champs tenus par le serveur (appareils désinscrits retirés) ne sont pas écrasés à l'aveugle.
+      await fs.setDoc(ref(uid), { ...prefs, updatedAt: fs.serverTimestamp() }, { merge: true });
     },
     async remove(uid) {
       await fs.deleteDoc(ref(uid));

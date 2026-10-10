@@ -12,6 +12,10 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "demo": "DEMO=1 node server/index.js",
-    "test": "node --test"
+    "test": "node --test",
+    "vapid": "web-push generate-vapid-keys"
+  },
+  "dependencies": {
+    "web-push": "3.6.7"
   }
 }

@@ -1,17 +1,22 @@
 // Serveur HTTP sans dépendance : fichiers statiques (public/) + API JSON.
 import http from 'node:http';
+import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { compileSeries, PRODUCT_TYPES } from './classify.js';
 import { createPriceService } from './prices.js';
 import { createTrustService, computeScore, sanitizeDomain, rootDomain, LEVEL_LABELS } from './trust.js';
-import { demoSearch, demoTrust, demoCards } from './demo.js';
+import { demoSearch, demoTrust, demoCards, demoHistory } from './demo.js';
 import { inspectShop, parseCustomParam, customShopId, MAX_CUSTOM_SHOPS } from './customShops.js';
 import { createCardmarketService } from './cardmarket.js';
 import { createChaseService } from './chase.js';
 import { createLogoService, googleFavicon } from './logos.js';
 import { createCardImageService, validCode } from './cardImages.js';
+import { parseServiceAccount, createFirestoreAdmin } from './firestoreAdmin.js';
+import { createHistoryService, snapshotFromOffers } from './history.js';
+import { createPushService, validSubscription } from './push.js';
+import { createAlertService } from './alerts.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -62,6 +67,76 @@ const cardService = DEMO
       const cardmarket = createCardmarketService();
       return { ...createChaseService({ cardmarket }), gameId: cardmarket.gameId };
     })();
+// Historique et alertes : le serveur écrit dans Firestore avec un compte de service
+// (FIREBASE_SERVICE_ACCOUNT) et envoie les notifications push avec des clés VAPID.
+const serviceAccount = DEMO ? null : parseServiceAccount(process.env.FIREBASE_SERVICE_ACCOUNT);
+if (process.env.FIREBASE_SERVICE_ACCOUNT && !serviceAccount) console.warn('FIREBASE_SERVICE_ACCOUNT illisible : historique et alertes désactivés.');
+const db = createFirestoreAdmin(serviceAccount);
+const historyService = DEMO
+  ? { record: async () => false, get: async (id) => ({ available: true, demo: true, data: demoHistory(id, snapshotFromOffers((await priceService.getSeries(id)).offers)) }) }
+  : createHistoryService({ db });
+const pushService = createPushService({ publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY, subject: process.env.VAPID_SUBJECT });
+const alertService = createAlertService({ db, push: pushService });
+const FEATURES = {
+  history: DEMO || !!db,
+  alerts: DEMO || (!!db && pushService.available && !!AUTH),
+  pushKey: pushService.publicKey,
+};
+
+// Après un relevé complet (hors boutiques personnelles) : point d'historique et alertes.
+async function afterCollect(seriesId, data) {
+  if (DEMO || !db || data.cached) return;
+  const own = { ...data, offers: data.offers.filter((o) => !String(o.shopId).startsWith('custom:')) };
+  try {
+    await historyService.record(seriesId, own);
+  } catch (err) {
+    console.error(`historique ${seriesId} :`, err.message);
+  }
+  try {
+    const { sent } = await alertService.evaluate(seriesId, own);
+    if (sent) console.log(`alertes ${seriesId} : ${sent} notification(s)`);
+  } catch (err) {
+    console.error(`alertes ${seriesId} :`, err.message);
+  }
+}
+
+// Relevé programmé (appelé par un service de cron externe toutes les 6 h).
+const cron = { running: false, lastStart: 0, last: null };
+async function collectAll() {
+  cron.running = true;
+  cron.lastStart = Date.now();
+  const report = [];
+  for (const s of series) {
+    try {
+      const data = await priceService.getSeries(s.id, { force: true });
+      await afterCollect(s.id, data);
+      report.push({ series: s.id, offers: data.offers.length, cached: !!data.cached });
+    } catch (err) {
+      report.push({ series: s.id, error: err.message });
+    }
+  }
+  cron.running = false;
+  cron.last = { at: new Date().toISOString(), ms: Date.now() - cron.lastStart, report };
+  console.log(`relevé programmé terminé en ${Math.round(cron.last.ms / 1000)} s`);
+}
+
+function readBody(req, limit = 8192) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    const chunks = [];
+    req.on('data', (c) => {
+      size += c.length;
+      if (size > limit) {
+        reject(new Error('Requête trop volumineuse'));
+        req.destroy();
+      } else chunks.push(c);
+    });
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+const pushTestTimes = new Map();
+
 const knownDomains = new Set(shops.map((s) => rootDomain(s.domain)));
 const logoService = createLogoService();
 const diagnoseTimes = new Map();
@@ -108,6 +183,7 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, {
       demo: DEMO,
       auth: AUTH,
+      features: FEATURES,
       series: rawSeries.map(({ id, code, names, release, special }) => ({ id, code, names, release, special: !!special })),
       shops: shops.map(publicShop),
       productTypes: PRODUCT_TYPES,
@@ -121,6 +197,7 @@ async function handleApi(req, res, url) {
     if (!s) return sendJson(res, 404, { error: 'Série inconnue' });
     const { shops: extraShops, rejected } = await parseCustomParam(url.searchParams.get('custom'), { knownDomains, blacklist, resolve });
     const data = await priceService.getSeries(id, { force: url.searchParams.get('refresh') === '1', extraShops });
+    if (!extraShops.length) afterCollect(id, data);
     // Les boutiques personnelles écartées restent visibles dans « Boutiques interrogées », avec la raison.
     return sendJson(res, 200, { ...data, shops: [...data.shops, ...rejected], demo: DEMO });
   }
@@ -241,6 +318,46 @@ async function handleApi(req, res, url) {
     if (!s) return sendJson(res, 404, { error: 'Série inconnue' });
     if (s.special) return sendJson(res, 200, { available: false, cards: [], error: 'Pas de chase cards pour cet onglet' });
     return sendJson(res, 200, { ...(await cardService.getChase(s.id)), demo: DEMO });
+  }
+
+  if (url.pathname === '/api/history') {
+    const id = url.searchParams.get('series');
+    if (!series.some((x) => x.id === id)) return sendJson(res, 404, { error: 'Série inconnue' });
+    return sendJson(res, 200, await historyService.get(id));
+  }
+
+  if (url.pathname === '/api/cron/collect') {
+    const secret = process.env.CRON_SECRET;
+    if (!secret) return sendJson(res, 503, { error: 'CRON_SECRET non configuré sur le serveur' });
+    const given = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || url.searchParams.get('key') || '';
+    const a = Buffer.from(given);
+    const b = Buffer.from(secret);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return sendJson(res, 401, { error: 'Clé invalide' });
+    if (cron.running) return sendJson(res, 200, { status: 'déjà en cours', since: new Date(cron.lastStart).toISOString() });
+    // Deux appels rapprochés (réveil du serveur puis relance) : un seul relevé.
+    if (Date.now() - cron.lastStart < 30 * 60 * 1000) return sendJson(res, 200, { status: 'relevé récent', last: cron.last });
+    collectAll().catch((err) => {
+      cron.running = false;
+      console.error('relevé programmé :', err);
+    });
+    return sendJson(res, 202, { status: 'relevé lancé', series: series.length, history: !!db, alerts: FEATURES.alerts && !DEMO });
+  }
+
+  if (url.pathname === '/api/push/test' && req.method === 'POST') {
+    if (!pushService.available) return sendJson(res, 503, { error: 'Notifications non configurées sur ce serveur (clés VAPID manquantes)' });
+    let sub;
+    try {
+      sub = JSON.parse(await readBody(req)).subscription;
+    } catch {
+      return sendJson(res, 400, { error: 'Requête invalide' });
+    }
+    if (!validSubscription(sub)) return sendJson(res, 400, { error: 'Abonnement invalide' });
+    const last = pushTestTimes.get(sub.endpoint) || 0;
+    if (Date.now() - last < 20000) return sendJson(res, 429, { error: 'Patientez quelques secondes avant un nouvel essai.' });
+    pushTestTimes.set(sub.endpoint, Date.now());
+    if (pushTestTimes.size > 500) pushTestTimes.delete(pushTestTimes.keys().next().value);
+    const r = await pushService.send(sub, { title: '🔔 Berry Radar', body: 'Les notifications fonctionnent sur cet appareil. Vous serez prévenu dès qu’un prix passe sous votre seuil.', url: '/', tag: 'test' });
+    return r.ok ? sendJson(res, 200, { ok: true }) : sendJson(res, 502, { error: `Envoi refusé par le service de notifications (${r.error})`, gone: r.gone });
   }
 
   return sendJson(res, 404, { error: 'Route inconnue' });

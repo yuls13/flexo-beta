@@ -1,5 +1,6 @@
 // Berry Radar — interface (vanilla JS, sans build).
-import { createAccount, mergePrefs } from './account.js';
+import { createAccount, mergePrefs, MAX_ALERTS } from './account.js';
+import { drawHistoryChart, summarize, pushSupport, currentSubscription, subscribePush } from './tracking.js';
 
 const $ = (sel) => document.querySelector(sel);
 // Drapeaux dessinés en SVG : les emoji drapeaux s'affichent en lettres (« FR », « GB ») sous Windows.
@@ -34,6 +35,9 @@ const state = {
   favSeries: [], // séries préférées (compte)
   favShops: [], // boutiques préférées (compte)
   favOnly: false, // filtre « boutiques préférées seulement »
+  alerts: [], // alertes de prix (compte) : { id, series, type, lang, maxPrice, active, createdAt }
+  pushSubs: [], // appareils abonnés aux notifications (compte)
+  history: {}, // seriesId -> { data, at }
   firstAuth: true,
 };
 
@@ -324,9 +328,10 @@ function productLabel(o) {
 function renderBest(data) {
   const best = bestOf(filtered(data.offers))
     .sort((a, b) => TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type) || (a.lang || 'Z').localeCompare(b.lang || 'Z'));
+  const f = state.config.features || {};
   $('#best').innerHTML = best
     .map(
-      (o) => `<a class="wanted" href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener noreferrer">
+      (o) => `<div class="wanted-wrap"><a class="wanted" href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener noreferrer">
         <span class="pin"></span>
         <div class="w-title">WANTED</div>
         <div class="w-sub">${o.preorder ? 'Meilleure préco' : 'Meilleur prix'}</div>
@@ -335,7 +340,15 @@ function renderBest(data) {
         <div class="w-detail">${esc(eur.format(o.price))} + port ~${esc(eur.format(o.shipping))}${o.perBooster ? ` · ${esc(eur.format(o.perBooster))}/booster` : ''}</div>
         <div class="w-shop">${shopLogo(o.shopId, o.shopName, 'xs')} chez ${esc(o.shopName)}</div>
         ${o.preorder ? `<div class="w-detail">Précommande${o.releaseDate ? ` · sortie ${esc(shortDate(o.releaseDate))}` : ''}</div>` : ''}
-      </a>`
+      </a>${
+        f.alerts || f.history
+          ? `<div class="w-actions">${
+              f.alerts
+                ? `<button type="button" class="w-act ${hasAlert(o) ? 'on' : ''}" data-alert-new="${esc(`${o.type}|${o.lang || ''}`)}" title="Être prévenu quand le prix baisse">🔔<span>${hasAlert(o) ? 'Alerte active' : 'Alerte'}</span></button>`
+                : ''
+            }${f.history ? `<button type="button" class="w-act" data-history="${esc(`${o.type}|${o.lang || ''}`)}" title="Évolution du meilleur prix">📈<span>Historique</span></button>` : ''}</div>`
+          : ''
+      }</div>`
     )
     .join('');
 }
@@ -644,6 +657,229 @@ document.addEventListener(
   true
 );
 
+// ---------- Alertes de prix ----------
+
+const LANG_LABEL = { FR: 'Français', EN: 'Anglais', JP: 'Japonais', any: 'Toutes langues' };
+const typeLabel = (type) => state.config.productTypes[type]?.label.replace(' (24 boosters)', '') || type;
+const seriesLabel = (id) => {
+  const s = state.config.series.find((x) => x.id === id);
+  return s?.special ? 'Starters & coffrets' : id;
+};
+
+function hasAlert(o) {
+  return state.alerts.some((a) => a.active !== false && a.series === state.series.id && a.type === o.type && (a.lang === 'any' || a.lang === (o.lang || 'any')));
+}
+
+function thisDevice() {
+  return currentSubscription()
+    .then((sub) => (sub ? state.pushSubs.find((x) => x.endpoint === sub.endpoint) || null : null))
+    .catch(() => null);
+}
+
+function showAlertForm(type, lang) {
+  if (!requireAccount('Connectez-vous pour créer des alertes de prix : elles sont enregistrées dans votre compte.')) return;
+  const sid = state.series.id;
+  const offers = state.data[sid]?.offers || [];
+  const best = bestOf(offers.filter((o) => o.type === type && (o.lang || null) === lang && (o.quantity || 1) === 1))[0];
+  const suggestion = best ? Math.floor(best.total * 0.95) : '';
+  const types = TYPE_ORDER.filter((t) => offers.some((o) => o.type === t) || t === type);
+  openDialog(`<h2>🔔 Nouvelle alerte</h2>
+    <p class="muted">Vous recevez une notification dès qu’une boutique vérifiée propose ce produit en stock (ou en précommande) sous votre prix, <b>port compris</b>. Les prix sont relevés toutes les 6 heures.</p>
+    <div class="alert-form">
+      <label class="field">Série<input value="${esc(seriesLabel(sid))}" disabled></label>
+      <label class="field">Produit<select id="alType">${types.map((t) => `<option value="${t}" ${t === type ? 'selected' : ''}>${esc(typeLabel(t))}</option>`).join('')}</select></label>
+      <label class="field">Langue<select id="alLang">${['FR', 'EN', 'JP', 'any'].map((l) => `<option value="${l}" ${l === (lang || 'any') ? 'selected' : ''}>${LANG_LABEL[l]}</option>`).join('')}</select></label>
+      <label class="field">Prix maximum, port compris (€)<input id="alMax" type="number" inputmode="decimal" min="1" step="0.5" value="${suggestion}" required></label>
+    </div>
+    ${best ? `<p class="muted small">Meilleur prix actuel : <b>${esc(eur.format(best.total))}</b> chez ${esc(best.shopName)}. Suggestion : 5 % en dessous.</p>` : ''}
+    <p id="alError" class="err-msg" hidden></p>
+    <div class="account-actions">
+      <button class="btn btn-ghost-dark" type="button" data-my-alerts>Mes alertes (${state.alerts.length})</button>
+      <button class="btn btn-red" id="alSave" type="button">Créer l’alerte</button>
+    </div>`);
+  $('#alSave').addEventListener('click', async () => {
+    const max = Number(String($('#alMax').value).replace(',', '.'));
+    const err = $('#alError');
+    if (!(max >= 1 && max < 100000)) {
+      err.textContent = 'Indiquez un prix maximum valide.';
+      err.hidden = false;
+      return;
+    }
+    if (state.alerts.length >= MAX_ALERTS) {
+      err.textContent = `Vous avez atteint ${MAX_ALERTS} alertes : supprimez-en une d’abord.`;
+      err.hidden = false;
+      return;
+    }
+    const alert = {
+      id: Math.random().toString(36).slice(2, 10),
+      series: sid,
+      type: $('#alType').value,
+      lang: $('#alLang').value,
+      maxPrice: Math.round(max * 100) / 100,
+      active: true,
+      createdAt: new Date().toISOString(),
+    };
+    state.alerts = [...state.alerts, alert];
+    syncAccount(0);
+    render();
+    // Le clic sert aussi à demander l'autorisation des notifications si cet appareil n'est pas abonné.
+    if (!(await thisDevice())) await enablePush(null, true);
+    showMyAlerts(alert.id);
+  });
+}
+
+async function enablePush(btn, quiet) {
+  if (state.account?.demo) {
+    toast('Version démo : les notifications sont simulées.');
+    return false;
+  }
+  if (btn) btn.disabled = true;
+  try {
+    const sub = await subscribePush(state.config.features?.pushKey);
+    state.pushSubs = [...state.pushSubs.filter((x) => x.endpoint !== sub.endpoint), sub].slice(-5);
+    syncAccount(0);
+    toast('Notifications activées sur cet appareil 🔔');
+    if (!quiet) showMyAlerts();
+    return true;
+  } catch (err) {
+    toast(err.message);
+    if (btn) btn.disabled = false;
+    return false;
+  }
+}
+
+async function testPush(btn) {
+  const sub = await currentSubscription().catch(() => null);
+  if (!sub) return toast('Activez d’abord les notifications sur cet appareil.');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/push/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub.toJSON() }),
+    });
+    const body = await res.json().catch(() => ({}));
+    toast(res.ok ? 'Notification de test envoyée : elle arrive dans quelques secondes.' : body.error || `Erreur ${res.status}`);
+  } finally {
+    setTimeout(() => (btn.disabled = false), 3000);
+  }
+}
+
+async function showMyAlerts(highlight) {
+  if (!requireAccount('Connectez-vous pour gérer vos alertes de prix.')) return;
+  const device = state.account?.demo ? { device: 'Appareil de démo' } : await thisDevice();
+  const support = pushSupport();
+  const list = [...state.alerts].sort((a, b) => a.series.localeCompare(b.series) || TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type));
+  const devices = state.pushSubs.length
+    ? `<ul class="device-list">${state.pushSubs
+        .map(
+          (d) => `<li><span>📱 ${esc(d.device || 'Appareil')}${device?.endpoint === d.endpoint ? ' <b>(cet appareil)</b>' : ''}</span>
+          <button type="button" class="chip-x" data-push-remove="${esc(d.endpoint)}" aria-label="Retirer cet appareil">✕</button></li>`
+        )
+        .join('')}</ul>`
+    : '';
+  openDialog(`<h2>🔔 Mes alertes de prix</h2>
+    ${
+      list.length
+        ? `<ul class="alert-list">${list
+            .map(
+              (a) => `<li class="${a.active === false ? 'off' : ''} ${a.id === highlight ? 'new' : ''}">
+            <div><b>${esc(seriesLabel(a.series))} · ${esc(typeLabel(a.type))}</b> ${a.lang === 'any' ? '<span class="muted small">toutes langues</span>' : flag(a.lang)}
+              <br><span class="muted small">sous ${esc(eur.format(a.maxPrice))} port compris${a.active === false ? ' · en pause' : ''}</span></div>
+            <div class="alert-btns">
+              <button type="button" class="btn btn-ghost-dark btn-sm" data-alert-toggle="${esc(a.id)}">${a.active === false ? 'Réactiver' : 'Pause'}</button>
+              <button type="button" class="chip-x" data-alert-del="${esc(a.id)}" aria-label="Supprimer l’alerte">✕</button>
+            </div></li>`
+            )
+            .join('')}</ul>`
+        : '<p class="muted">Aucune alerte. Créez-en une avec le bouton 🔔 sous un avis de recherche WANTED.</p>'
+    }
+    <h3 class="sub-h">Notifications</h3>
+    ${
+      device
+        ? '<p class="ok-msg">✓ Cet appareil reçoit vos alertes.</p>'
+        : support.ok
+          ? '<p class="muted small">Cet appareil ne reçoit pas encore les notifications.</p>'
+          : `<p class="notice">${esc(support.reason)}</p>`
+    }
+    ${devices}
+    <div class="account-actions">
+      ${!device && support.ok ? '<button class="btn btn-red" type="button" data-push-enable>Activer sur cet appareil</button>' : ''}
+      ${device && !state.account?.demo ? '<button class="btn btn-ghost-dark" type="button" data-push-test>Envoyer une notification de test</button>' : ''}
+    </div>
+    <p class="muted small">Une même offre n’est notifiée qu’une fois par jour. Les alertes portent sur les boutiques suivies (pas sur vos boutiques ajoutées).</p>`);
+}
+
+// ---------- Historique des prix ----------
+
+const histView = { seriesId: null, key: null, range: '90' };
+
+async function showHistory(type, lang) {
+  const sid = state.series.id;
+  Object.assign(histView, { seriesId: sid, key: `${type}_${lang || 'XX'}` });
+  openDialog(`<h2>📈 Historique des prix</h2><div id="histBody"><p class="muted">Chargement…</p></div>`);
+  const hit = state.history[sid];
+  if (!hit || Date.now() - hit.at > 5 * 60 * 1000) {
+    try {
+      const res = await api(`/api/history?series=${encodeURIComponent(sid)}`);
+      state.history[sid] = { data: res.data || {}, available: res.available, reason: res.reason, at: Date.now() };
+    } catch (err) {
+      if ($('#histBody')) $('#histBody').innerHTML = `<p class="err-msg">Historique indisponible : ${esc(err.message)}</p>`;
+      return;
+    }
+  }
+  drawHistory();
+}
+
+function drawHistory() {
+  const body = $('#histBody');
+  const h = state.history[histView.seriesId];
+  if (!body || !h) return;
+  if (!h.available) {
+    body.innerHTML = `<p class="notice">${esc(h.reason || 'Historique non configuré sur ce serveur.')}</p>`;
+    return;
+  }
+  const keys = Object.keys(h.data).sort((a, b) => TYPE_ORDER.indexOf(a.split('_')[0]) - TYPE_ORDER.indexOf(b.split('_')[0]) || a.localeCompare(b));
+  if (!keys.includes(histView.key) && keys.length) keys.unshift(histView.key);
+  const label = (k) => {
+    const [type, lang] = k.split('_');
+    return `${typeLabel(type)}${lang !== 'XX' ? ` ${lang}` : ''}`;
+  };
+  const all = h.data[histView.key] || [];
+  const days = { 30: 30, 90: 90, all: Infinity }[histView.range];
+  const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 16);
+  const points = all.filter((p) => p.t >= since);
+  const shopName = (id) => state.config.shops.find((x) => x.id === id)?.name || id;
+  const s = summarize(points);
+  const [type, lang] = histView.key.split('_');
+  body.innerHTML = `
+    <div class="hist-head">
+      <select id="histKey" aria-label="Produit">${keys.map((k) => `<option value="${esc(k)}" ${k === histView.key ? 'selected' : ''}>${esc(label(k))}</option>`).join('')}</select>
+      <div class="seg seg-sm">${[['30', '30 j'], ['90', '90 j'], ['all', 'Tout']].map(([v, l]) => `<button type="button" data-hist-range="${v}" class="${histView.range === v ? 'on' : ''}">${l}</button>`).join('')}</div>
+    </div>
+    <p class="muted small">${esc(seriesLabel(histView.seriesId))} · ${esc(typeLabel(type))} ${lang !== 'XX' ? flag(lang) : ''} · meilleur prix en stock, port compris, parmi les boutiques suivies</p>
+    ${
+      s && points.length > 1
+        ? `<div class="hist-stats">
+            <div><span>Actuel</span><b>${esc(eur.format(s.last.tot))}</b></div>
+            <div><span>Plus bas</span><b class="good">${esc(eur.format(s.low.tot))}</b><small>${esc(shortDate(s.low.t.slice(0, 10)))}</small></div>
+            <div><span>Plus haut</span><b>${esc(eur.format(s.high.tot))}</b><small>${esc(shortDate(s.high.t.slice(0, 10)))}</small></div>
+            <div><span>Évolution</span><b class="${s.change < 0 ? 'good' : s.change > 0 ? 'bad' : ''}">${s.change > 0 ? '+' : ''}${esc(eur.format(s.change))}</b></div>
+          </div>
+          <div id="histChart" class="hist-chart"></div>`
+        : `<p class="notice">${
+            all.length
+              ? `L’historique vient de démarrer (premier relevé le ${esc(shortDate(all[0].t.slice(0, 10)))}). Un point est ajouté toutes les 6 heures : la courbe apparaîtra au prochain relevé.`
+              : 'Pas encore de relevé pour ce produit. Les prix sont enregistrés toutes les 6 heures : revenez un peu plus tard.'
+          }</p>`
+    }`;
+  $('#histKey').addEventListener('change', (e) => {
+    histView.key = e.target.value;
+    drawHistory();
+  });
+  if ($('#histChart')) drawHistoryChart($('#histChart'), points, { shopName });
+}
+
 // ---------- Compte ----------
 
 async function setupAccount(pickFavorite) {
@@ -657,6 +893,8 @@ async function setupAccount(pickFavorite) {
         const remote = await state.account.load(user.uid);
         const before = state.customShops.map((c) => c.id).join();
         const merged = mergePrefs(remote, { customShops: state.customShops, owned: state.owned });
+        state.alerts = merged.alerts;
+        state.pushSubs = merged.pushSubscriptions;
         state.favSeries = merged.favoriteSeries;
         state.favShops = merged.favoriteShops;
         state.customShops = merged.customShops;
@@ -675,6 +913,8 @@ async function setupAccount(pickFavorite) {
       state.favSeries = [];
       state.favShops = [];
       state.favOnly = false;
+      state.alerts = [];
+      state.pushSubs = [];
     }
     state.firstAuth = false;
     if (user && $('#googleSignIn')) {
@@ -692,7 +932,14 @@ async function setupAccount(pickFavorite) {
 }
 
 function accountPrefs() {
-  return { favoriteSeries: state.favSeries, favoriteShops: state.favShops, customShops: state.customShops, owned: state.owned };
+  return {
+    favoriteSeries: state.favSeries,
+    favoriteShops: state.favShops,
+    customShops: state.customShops,
+    owned: state.owned,
+    alerts: state.alerts,
+    pushSubscriptions: state.pushSubs,
+  };
 }
 
 let saveTimer = null;
@@ -742,6 +989,7 @@ function showAccount(reason) {
       <ul class="perks">
         <li>★ <b>vos séries préférées</b>, affichées en premier ;</li>
         <li>★ <b>vos boutiques préférées</b>, avec un filtre pour ne voir qu’elles ;</li>
+        ${state.config.features?.alerts ? '<li>🔔 <b>des alertes de prix</b> : une notification dès qu’un produit passe sous votre prix ;</li>' : ''}
         <li>vos boutiques ajoutées et les cartes cochées « Je l’ai ».</li>
       </ul>
       <button class="btn-google" id="googleSignIn" type="button">${GOOGLE_G}<span>Continuer avec Google</span></button>
@@ -764,6 +1012,7 @@ function showAccount(reason) {
     ${acc.demo ? '<p class="notice">Compte de démonstration (connexion simulée).</p>' : ''}
     <h3 class="sub-h">★ Mes séries préférées</h3>${chips(state.favSeries, 'series', seriesName)}
     <h3 class="sub-h">★ Mes boutiques préférées</h3>${chips(state.favShops, 'shop', shopName)}
+    ${state.config.features?.alerts ? `<button class="btn btn-ghost-dark btn-wide" type="button" data-my-alerts>🔔 Mes alertes de prix (${state.alerts.length})</button>` : ''}
     <p class="muted small">${state.customShops.length} boutique${state.customShops.length > 1 ? 's' : ''} ajoutée${state.customShops.length > 1 ? 's' : ''} · ${Object.keys(state.owned).length} carte${Object.keys(state.owned).length > 1 ? 's' : ''} cochée${Object.keys(state.owned).length > 1 ? 's' : ''} « Je l’ai » · synchronisé avec votre compte</p>
     <div class="account-actions">
       <button class="btn btn-ghost-dark" id="signOutBtn" type="button">Se déconnecter</button>
@@ -966,6 +1215,47 @@ document.addEventListener('click', async (e) => {
   if (unB) {
     toggleFavShop(unB.dataset.unfavShop);
     return showAccount();
+  }
+  const newAlert = t.closest('[data-alert-new]');
+  if (newAlert) {
+    const [type, lang] = newAlert.dataset.alertNew.split('|');
+    return showAlertForm(type, lang || null);
+  }
+  const hist = t.closest('[data-history]');
+  if (hist) {
+    const [type, lang] = hist.dataset.history.split('|');
+    return showHistory(type, lang || null);
+  }
+  if (t.closest('[data-my-alerts]')) return showMyAlerts();
+  if (t.closest('[data-push-enable]')) return enablePush(t.closest('[data-push-enable]'));
+  if (t.closest('[data-push-test]')) return testPush(t.closest('[data-push-test]'));
+  const rmDevice = t.closest('[data-push-remove]');
+  if (rmDevice) {
+    state.pushSubs = state.pushSubs.filter((x) => x.endpoint !== rmDevice.dataset.pushRemove);
+    const mine = await currentSubscription().catch(() => null);
+    if (mine?.endpoint === rmDevice.dataset.pushRemove) await mine.unsubscribe().catch(() => {});
+    syncAccount(0);
+    return showMyAlerts();
+  }
+  const alertToggle = t.closest('[data-alert-toggle]');
+  if (alertToggle) {
+    const a = state.alerts.find((x) => x.id === alertToggle.dataset.alertToggle);
+    if (a) a.active = a.active === false;
+    syncAccount();
+    render();
+    return showMyAlerts();
+  }
+  const alertDel = t.closest('[data-alert-del]');
+  if (alertDel) {
+    state.alerts = state.alerts.filter((x) => x.id !== alertDel.dataset.alertDel);
+    syncAccount();
+    render();
+    return showMyAlerts();
+  }
+  const histRange = t.closest('[data-hist-range]');
+  if (histRange) {
+    histView.range = histRange.dataset.histRange;
+    return drawHistory();
   }
   if (t.closest('#googleSignIn')) {
     const err = $('#signInError');

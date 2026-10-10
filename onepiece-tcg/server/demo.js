@@ -77,3 +77,23 @@ export function demoCards(series) {
     .sort((a, b) => b.price - a.price);
   return { available: true, demo: true, lang: 'EN/FR', updatedAt: new Date().toISOString(), cards };
 }
+
+// Historique FICTIF pour le mode démo : 120 jours de relevés (toutes les 6 h) qui aboutissent
+// au meilleur prix actuel de chaque produit.
+export function demoHistory(seriesId, snapshot, now = Date.now()) {
+  const data = {};
+  for (const [key, cur] of Object.entries(snapshot || {})) {
+    const r = rand(seriesId + key + 'hist');
+    const points = [];
+    let v = cur.tot;
+    for (let i = 0; i < 480; i++) {
+      const t = new Date(now - i * 6 * 3600 * 1000).toISOString().slice(0, 16);
+      points.push({ t, p: Math.round((v - (cur.tot - cur.p)) * 100) / 100, tot: Math.round(v * 100) / 100, s: cur.s });
+      // En remontant le temps, les prix étaient un peu plus hauts en moyenne, avec des à-coups.
+      if (r() < 0.1) v *= 1 + (r() - 0.4) * 0.05;
+      v = Math.max(cur.tot * 0.8, v);
+    }
+    data[key] = points.reverse();
+  }
+  return data;
+}

@@ -70,6 +70,38 @@ La connexion utilise **Firebase** (Google), gratuit à ce volume. Les préféren
 
 Ces valeurs identifient le projet Firebase mais ne sont pas des secrets : la sécurité repose sur les règles Firestore. Sans cette configuration, le bouton « Se connecter » explique que la connexion n'est pas encore activée. En mode démo (`npm run demo`), la connexion est simulée.
 
+## Alertes de prix et historique
+
+Sous chaque affiche **WANTED** :
+- **🔔 Alerte** : l'utilisateur connecté choisit le produit, la langue (ou toutes) et un **prix maximum port compris**. Dès qu'une boutique suivie propose ce produit en stock ou en précommande sous ce prix, il reçoit une **notification push** sur ses appareils. Une même offre au même prix n'est notifiée qu'une fois par 24 h. « Mon compte → Mes alertes » permet de mettre en pause, supprimer, voir les appareils abonnés et envoyer une notification de test.
+- **📈 Historique** : courbe du meilleur prix en stock (port compris, hors prix suspects) sur 30 j, 90 j ou depuis le début, avec le plus bas, le plus haut et l'évolution. Survoler ou toucher la courbe affiche le prix, la boutique et la date.
+
+Le serveur relève les prix de toutes les séries **toutes les 6 heures**, appelé par un service de cron externe, puisque la formule gratuite de Render met le serveur en veille. Chaque relevé enregistre un point d'historique par produit (document `history/{série}` dans Firestore) puis vérifie les alertes. Les consultations normales ajoutent aussi des points, au plus un par heure. Au-delà de 14 jours, le plus bas prix de chaque tranche de 6 h est gardé. Au-delà de 60 jours, c'est le plus bas prix du jour, sur un an au maximum.
+
+Sur iPhone/iPad, les notifications ne fonctionnent que si l'app est **ajoutée à l'écran d'accueil** (iOS 16.4 ou plus récent) puis ouverte depuis son icône.
+
+### Configuration (en plus des comptes Google ci-dessus)
+
+1. **Règles Firestore** : recopier le nouveau contenu de `firestore.rules` dans *Firestore → Règles*, puis **Publier**. Elles autorisent les champs `alerts` et `pushSubscriptions` et la lecture de `history`.
+2. **Clé de compte de service**, pour que le serveur écrive l'historique et lise les alertes sans que l'app soit ouverte :
+   - *Paramètres du projet (⚙️) → Comptes de service → Générer une nouvelle clé privée*. Un fichier JSON est téléchargé. Il est **secret** : ne le mettez jamais dans le dépôt.
+   - Sur Render, ajouter la variable `FIREBASE_SERVICE_ACCOUNT` et y coller **tout le contenu** du fichier JSON (ou ce contenu encodé en base64).
+3. **Clés de notification (VAPID)** : lancer `npx web-push generate-vapid-keys` sur n'importe quel ordinateur avec Node (ou `npm run vapid` dans ce dossier), puis ajouter sur Render :
+   - `VAPID_PUBLIC_KEY` : la *Public Key* ;
+   - `VAPID_PRIVATE_KEY` : la *Private Key*, qui est secrète ;
+   - `VAPID_SUBJECT` : `mailto:votre@email.fr`.
+
+   Ne changez plus ces clés ensuite : les appareils déjà abonnés devraient se réabonner.
+4. **Secret du relevé programmé** : ajouter `CRON_SECRET`, une longue chaîne aléatoire (par exemple le résultat de `openssl rand -hex 24`).
+5. **Relevé toutes les 6 h** avec [cron-job.org](https://cron-job.org), gratuit :
+   - créer un compte, puis *Create cronjob* ;
+   - URL : `https://VOTRE-APP.onrender.com/api/cron/collect?key=VOTRE_CRON_SECRET` ;
+   - planification *Custom* : minutes `0,5`, heures `*/6` (toutes les 6 h, à h00 et h05). Le premier appel réveille le serveur, le second lance le relevé si le premier est arrivé trop tôt. Les appels rapprochés ne lancent qu'un seul relevé.
+
+   La réponse `202 relevé lancé` (ou `200 relevé récent`) confirme que tout va bien. Le relevé dure quelques minutes en arrière-plan.
+
+Sans `FIREBASE_SERVICE_ACCOUNT`, les boutons 🔔 et 📈 sont masqués. Sans clés VAPID, seul l'historique est actif. En mode démo, l'historique est fictif et les notifications sont simulées.
+
 ## Lancer en local
 
 Node.js 20 ou plus récent. **Aucune dépendance à installer.**
@@ -88,7 +120,7 @@ npm test           # tests unitaires
    - **Branch** : la branche contenant l'app.
    - **Root Directory** : `onepiece-tcg`
    - **Runtime** : Node
-   - **Build Command** : `npm install` (aucune dépendance, cette étape est instantanée)
+   - **Build Command** : `npm install` (une seule dépendance, `web-push`, pour les notifications)
    - **Start Command** : `npm start`
    - **Instance type** : Free
 3. Une fois déployé, ouvrir l'URL `https://….onrender.com` sur le téléphone, puis :

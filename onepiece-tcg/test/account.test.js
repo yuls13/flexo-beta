@@ -22,5 +22,5 @@ test('mergePrefs : le compte prime, les ajouts faits sur l’appareil sont conse
 
 test('mergePrefs : premier compte (aucune donnée distante)', () => {
   const m = mergePrefs(null, { customShops: [], owned: {} });
-  assert.deepEqual(m, { favoriteSeries: [], favoriteShops: [], customShops: [], owned: {} });
+  assert.deepEqual(m, { favoriteSeries: [], favoriteShops: [], customShops: [], owned: {}, alerts: [], pushSubscriptions: [] });
 });
