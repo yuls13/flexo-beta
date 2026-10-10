@@ -108,7 +108,7 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, {
       demo: DEMO,
       auth: AUTH,
-      series: rawSeries.map(({ id, code, names, release, special }) => ({ id, code, names, release, special: !!special })),
+      series: rawSeries.map(({ id, code, names, release, special, cover }) => ({ id, code, names, release, special: !!special, cover: cover || null })),
       shops: shops.map(publicShop),
       productTypes: PRODUCT_TYPES,
       blacklist,

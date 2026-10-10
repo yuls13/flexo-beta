@@ -493,3 +493,29 @@ a.diag-btn { text-decoration: none; }
 .chase-nav.prev { left: -10px; }
 .chase-nav.next { right: -10px; }
 @media (max-width: 640px) { .chase-nav { display: none; } .chase-row .chase { flex-basis: 112px; } }
+
+/* Illustration de la série en fond d'onglet : cadrée sur le haut de la carte (le dessin),
+   très atténuée et voilée pour garder le code et le nom lisibles. */
+.tab.has-cover { position: relative; overflow: hidden; isolation: isolate; }
+.tab.has-cover::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: var(--cover, none) center 22% / cover no-repeat;
+  opacity: 0.32;
+  filter: saturate(1.15);
+  transition: opacity 0.2s;
+}
+.tab.has-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(11, 31, 58, 0.78) 0%, rgba(11, 31, 58, 0.45) 100%);
+}
+.tab.has-cover:hover::before { opacity: 0.45; }
+.tab.has-cover.on::before { opacity: 0.28; }
+.tab.has-cover.on::after { background: linear-gradient(90deg, rgba(242, 193, 78, 0.92) 0%, rgba(242, 193, 78, 0.72) 100%); }
+.tab.has-cover b, .tab.has-cover small { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55); }
+.tab.has-cover.on b, .tab.has-cover.on small { text-shadow: 0 1px 1px rgba(255, 255, 255, 0.4); }
