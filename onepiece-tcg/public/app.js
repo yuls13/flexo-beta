@@ -423,9 +423,16 @@ function renderLinks() {
   $('#links').innerHTML =
     state.config.shops
       .filter((s) => s.platform === 'link' && s.searchUrl)
-      .map((s) => `<a class="chip" href="${esc(safeUrl(s.searchUrl.replace('{q}', encodeURIComponent(q))))}" target="_blank" rel="noopener noreferrer">${shopLogo(s.id, s.name, 'xs')}${esc(s.name)} ↗</a> ${trustBadge(s.id)}`)
-      .join('') +
-    '';
+      // Une case par boutique : lien vers sa recherche et score de confiance réunis.
+      .map(
+        (s) => `<div class="link-card">
+          <a class="link-main" href="${esc(safeUrl(s.searchUrl.replace('{q}', encodeURIComponent(q))))}" target="_blank" rel="noopener noreferrer" title="Chercher ${esc(q)} sur ${esc(s.name)}">
+            ${shopLogo(s.id, s.name)}<span class="link-name">${esc(s.name)}</span><span class="link-go" aria-hidden="true">↗</span>
+          </a>
+          ${trustBadge(s.id)}
+        </div>`
+      )
+      .join('');
 }
 
 // ---------- Mes boutiques ----------

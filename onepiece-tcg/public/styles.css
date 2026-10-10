@@ -159,7 +159,11 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 .filters { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 8px; }
 .seg { display: inline-flex; flex-wrap: wrap; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; }
 .seg button { border: 0; background: transparent; color: var(--text); padding: 5px 10px; border-radius: 7px; font-weight: 700; font-size: 0.85rem; }
-.seg button.on { background: var(--navy); color: #fff; }
+.seg button:hover { background: var(--line); }
+/* Option choisie : jaune paille bien contrasté dans les deux thèmes. */
+.seg button.on { background: var(--straw); color: var(--navy); font-weight: 800; box-shadow: 0 2px 0 var(--straw-dark), 0 0 0 1px var(--straw-dark) inset; }
+.seg button.on .flag svg { box-shadow: 0 0 0 2px var(--navy); }
+.seg button:focus-visible, .fav-toggle:focus-visible { outline: 2px solid var(--straw); outline-offset: 2px; }
 .toggle { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 0.85rem; }
 .toggle input { width: 18px; height: 18px; accent-color: var(--red); }
 
@@ -493,3 +497,13 @@ a.diag-btn { text-decoration: none; }
 .chase-nav.prev { left: -10px; }
 .chase-nav.next { right: -10px; }
 @media (max-width: 640px) { .chase-nav { display: none; } .chase-row .chase { flex-basis: 112px; } }
+
+/* « Vérifier aussi sur » : une case par boutique (lien + note) */
+.link-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 8px; margin-top: 10px; }
+.link-card { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); transition: border-color 0.15s; }
+.link-card:hover { border-color: var(--straw-dark); }
+.link-main { display: flex; align-items: center; gap: 8px; min-width: 0; text-decoration: none; font-weight: 800; }
+.link-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.link-go { margin-left: auto; color: var(--muted); font-weight: 800; }
+.link-main:hover .link-go { color: var(--red); }
+.link-card .trust { align-self: flex-start; white-space: nowrap; }
