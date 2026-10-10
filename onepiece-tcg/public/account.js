@@ -73,6 +73,23 @@ function demoBackend() {
   };
 }
 
+// Messages d'erreur de connexion compréhensibles.
+function explain(err, config) {
+  const host = location.host;
+  if (err?.code === 'auth/unauthorized-domain') {
+    return new Error(`Le site ${host} n’est pas autorisé dans Firebase (Authentication → Paramètres → Domaines autorisés).`);
+  }
+  if (err?.code === 'auth/network-request-failed') return new Error('Connexion réseau interrompue, réessayez.');
+  if (err?.code === 'auth/web-storage-unsupported' || /storage|partition|missing initial state/i.test(err?.message || '')) {
+    return new Error(
+      config.authDomain === host
+        ? 'Le navigateur a bloqué la connexion (stockage désactivé). Réessayez depuis le navigateur, hors navigation privée.'
+        : 'Le navigateur bloque la connexion dans l’app installée. Réglage à faire côté serveur : voir le README, « Connexion dans l’app installée ».'
+    );
+  }
+  return new Error(`${err?.message || err}${err?.code ? ` (${err.code})` : ''}`);
+}
+
 async function firebaseBackend(config) {
   const base = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}`;
   const [{ initializeApp }, authMod, fs] = await Promise.all([
@@ -89,12 +106,17 @@ async function firebaseBackend(config) {
   const ref = (uid) => fs.doc(db, 'users', uid);
   const standalone = window.matchMedia?.('(display-mode: standalone)').matches;
 
-  // Retour d'une connexion par redirection (app installée sur l'écran d'accueil).
-  authMod.getRedirectResult(auth).catch(() => {});
+  // Retour d'une connexion par redirection (app installée sur l'écran d'accueil) : l'erreur
+  // éventuelle est remontée à l'interface au lieu d'être ignorée.
+  const redirectResult = authMod.getRedirectResult(auth).then(
+    () => null,
+    (err) => explain(err, config)
+  );
 
   return {
     available: true,
     demo: false,
+    redirectResult,
     onChange(cb) {
       authMod.onAuthStateChanged(auth, (u) => cb(toUser(u)));
     },
@@ -107,10 +129,7 @@ async function firebaseBackend(config) {
           return authMod.signInWithRedirect(auth, provider);
         }
         if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') return;
-        if (err.code === 'auth/unauthorized-domain') {
-          throw new Error('Ce site n’est pas autorisé dans Firebase (Authentication → Paramètres → Domaines autorisés).');
-        }
-        throw err;
+        throw explain(err, config);
       }
     },
     signOut: () => authMod.signOut(auth),

@@ -886,6 +886,16 @@ async function setupAccount(pickFavorite) {
   state.account = await createAccount(state.config.auth);
   renderAccountBtn();
   if (!state.account.available) return;
+  state.account.redirectResult?.then((err) => {
+    if (err) {
+      showAccount();
+      const box = $('#signInError');
+      if (box) {
+        box.textContent = `Connexion impossible : ${err.message}`;
+        box.hidden = false;
+      } else toast(`Connexion impossible : ${err.message}`);
+    }
+  });
   state.account.onChange(async (user) => {
     state.user = user;
     if (user) {

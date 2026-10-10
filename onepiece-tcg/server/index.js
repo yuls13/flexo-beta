@@ -363,6 +363,34 @@ async function handleApi(req, res, url) {
   return sendJson(res, 404, { error: 'Route inconnue' });
 }
 
+// Connexion Google depuis l'app installée : les navigateurs bloquent le stockage « tiers » du domaine
+// firebaseapp.com, ce qui fait échouer la connexion par redirection. En relayant les pages /__/auth/
+// de Firebase sur notre propre domaine (FIREBASE_AUTH_DOMAIN = adresse du site), tout reste
+// sur le même domaine. Méthode recommandée par Firebase (« reverse proxy »).
+const AUTH_PROXY_HEADERS = ['content-type', 'cache-control', 'expires', 'last-modified', 'etag'];
+async function proxyFirebaseAuth(req, res, url) {
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  if (!projectId || !/^[a-z0-9-]{4,40}$/.test(projectId) || req.method !== 'GET') {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Introuvable');
+    return;
+  }
+  try {
+    const upstream = await fetch(`https://${projectId}.firebaseapp.com${url.pathname}${url.search}`, {
+      headers: { Accept: req.headers.accept || '*/*', 'Accept-Language': req.headers['accept-language'] || 'fr' },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(15000),
+    });
+    const headers = {};
+    for (const h of AUTH_PROXY_HEADERS) if (upstream.headers.get(h)) headers[h] = upstream.headers.get(h);
+    if (upstream.headers.get('location')) headers.location = upstream.headers.get('location');
+    res.writeHead(upstream.status, headers);
+    res.end(Buffer.from(await upstream.arrayBuffer()));
+  } catch (err) {
+    console.error('relais connexion Firebase :', err.message);
+    if (!res.headersSent) res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Connexion Google momentanément indisponible');
+  }
+}
+
 async function serveStatic(res, url) {
   let rel = decodeURIComponent(url.pathname);
   if (rel === '/') rel = '/index.html';
@@ -388,6 +416,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   try {
     if (url.pathname.startsWith('/api/')) await handleApi(req, res, url);
+    else if (url.pathname.startsWith('/__/auth/') || url.pathname === '/__/firebase/init.json') await proxyFirebaseAuth(req, res, url);
     else await serveStatic(res, url);
   } catch (err) {
     console.error(err);

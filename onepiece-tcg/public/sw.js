@@ -1,6 +1,6 @@
 // Service worker : interface disponible hors ligne ; l'API n'est jamais mise en cache ici
 // (les derniers prix sont conservés côté page dans localStorage).
-const CACHE = 'berry-radar-v4';
+const CACHE = 'berry-radar-v5';
 const ASSETS = ['./', 'index.html', 'styles.css', 'app.js', 'account.js', 'tracking.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {
@@ -15,7 +15,7 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
+  if (e.request.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/__/')) return;
   // Réseau d'abord, cache en secours.
   e.respondWith(
     fetch(e.request)

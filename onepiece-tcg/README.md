@@ -68,6 +68,14 @@ La connexion utilise **Firebase** (Google), gratuit à ce volume. Les préféren
      ```
 7. Dans **Authentication → Paramètres → Domaines autorisés**, ajouter l'adresse du site, par exemple `mon-app.onrender.com`. `localhost` est autorisé par défaut.
 
+### Connexion dans l'app installée (écran d'accueil)
+
+Dans l'app installée, la connexion se fait par redirection vers Google. Les navigateurs récents (Safari, Chrome) bloquent alors le stockage du domaine `….firebaseapp.com`, et l'on revient dans l'app sans être connecté. Le serveur relaie donc les pages de connexion Firebase (`/__/auth/…`) sur le domaine du site, pour que tout se passe sur la même adresse. Pour l'activer :
+
+1. Sur Render, remplacer la valeur de `FIREBASE_AUTH_DOMAIN` par l'adresse du site, **sans** `https://` (par exemple `mon-app.onrender.com`), puis enregistrer.
+2. Sur [console.cloud.google.com](https://console.cloud.google.com), sélectionner le même projet, puis ouvrir **API et services → Identifiants**. Dans **ID clients OAuth 2.0**, ouvrir *Web client (auto created by Google Service)*. Dans **URI de redirection autorisés**, ajouter `https://mon-app.onrender.com/__/auth/handler`, puis **Enregistrer**. La prise en compte peut prendre quelques minutes.
+3. Vérifier que `mon-app.onrender.com` figure dans *Firebase → Authentication → Paramètres → Domaines autorisés*.
+
 Ces valeurs identifient le projet Firebase mais ne sont pas des secrets : la sécurité repose sur les règles Firestore. Sans cette configuration, le bouton « Se connecter » explique que la connexion n'est pas encore activée. En mode démo (`npm run demo`), la connexion est simulée.
 
 ## Alertes de prix et historique
