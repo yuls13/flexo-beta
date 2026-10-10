@@ -72,7 +72,7 @@ export function demoCards(series) {
       const variant = 2 + (i % 3);
       const price = Math.round((8 + r() ** 2 * 900) * 100) / 100;
       const code = `${series.id}-${String(20 + i * 7).padStart(3, '0')}`;
-      return { idProduct: `demo-${series.id}-${i}`, name, code, variant, avg7: price, trend: price * (0.9 + r() * 0.2), price, images: [], url: '#' };
+      return { idProduct: `demo-${series.id}-${i}`, name, code, variant, eur: price, priceSource: i % 3 ? 'tcgplayer' : 'cardmarket', usd: i % 3 ? Math.round(price / 0.92) : null, avg7: i % 3 ? null : price, price, images: [], url: '#' };
     })
     .sort((a, b) => b.price - a.price);
   return { available: true, demo: true, lang: 'EN/FR', updatedAt: new Date().toISOString(), cards };

@@ -1,6 +1,7 @@
 // Chase cards d'une série : versions alternatives (illustrations _p1, _p2…) d'après la base OPTCG API,
 // prix EN/FR d'après Cardmarket (extension occidentale), prix TCGplayer (EN, USD) en repli.
 import { fetchJson, pool } from './http.js';
+import { usdToEur } from './rates.js';
 
 const TTL_MS = 12 * 60 * 60 * 1000;
 const CODE_RE = /^(OP|EB|ST|PRB|P)\d{0,2}-\d{3}$/i;
@@ -89,6 +90,7 @@ export function createChaseService({ cardmarket }) {
 
   async function build(seriesId) {
     const cm = await cardmarket.westernByCode(seriesId);
+    const rate = await usdToEur();
     const list = await setList(seriesId);
     let source = 'optcg';
     // Codes à examiner : liste OPTCG de la série ; à défaut, cartes à plusieurs fiches chez Cardmarket.
@@ -135,18 +137,19 @@ export function createChaseService({ cardmarket }) {
           variant: v.variant,
           name,
           rarity: v.rarity,
-          eur: cmPrice?.eur ?? null,
+          // Prix en euros : moyenne 7 j Cardmarket (EN/FR), sinon prix TCGplayer converti au taux BCE.
+          eur: cmPrice?.eur ?? (v.usd ? Math.round(v.usd * rate.usdEur * 100) / 100 : null),
           avg7: cmPrice?.avg7 ?? null,
           trend: cmPrice?.trend ?? null,
           usd: cmPrice?.eur ? null : v.usd,
           priceSource: cmPrice?.eur ? 'cardmarket' : v.usd ? 'tcgplayer' : null,
-          price: cmPrice?.eur ?? null,
+          price: cmPrice?.eur ?? (v.usd ? Math.round(v.usd * rate.usdEur * 100) / 100 : null),
           images: [`/api/card-image?code=${encodeURIComponent(code)}&v=${v.variant}`],
           url: `https://www.cardmarket.com/fr/OnePiece/Products/Search?searchString=${encodeURIComponent(`${name} ${code}`)}`,
         });
       }
     }
-    cards.sort((a, b) => (b.eur ?? (b.usd ?? -1) * 0.9) - (a.eur ?? (a.usd ?? -1) * 0.9) || a.code.localeCompare(b.code) || a.variant - b.variant);
+    cards.sort((a, b) => (b.eur ?? -1) - (a.eur ?? -1) || a.code.localeCompare(b.code) || a.variant - b.variant);
     return {
       available: true,
       lang: 'EN/FR',
@@ -154,6 +157,7 @@ export function createChaseService({ cardmarket }) {
       updatedAt: cm.updatedAt || new Date().toISOString(),
       cardmarket: { western: cm.western, method: cm.method, candidates: cm.expansions, error: cm.error || null },
       stats: { optcgCards: list.length, codesChecked: versionsByCode.size, chase: cards.length },
+      rate: { usdEur: rate.usdEur, date: rate.date, source: rate.source },
       cards,
     };
   }

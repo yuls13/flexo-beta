@@ -63,3 +63,32 @@ test('chase cards : versions alternatives, prix EUR sinon USD, repli Cardmarket 
     globalThis.fetch = realFetch;
   }
 });
+
+test('taux BCE : 1 $ en euros, et conversion des prix TCGplayer', async () => {
+  const { parseEcbUsd } = await import('../server/rates.js');
+  const xml = "<Cube time='2026-10-09'><Cube currency='USD' rate='1.0850'/><Cube currency='JPY' rate='160.2'/></Cube>";
+  assert.deepEqual(parseEcbUsd(xml), { usdEur: 0.9217, date: '2026-10-09' });
+  assert.equal(parseEcbUsd('<xml/>'), null);
+
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    if (u.includes('ecb.europa.eu')) return new Response(xml, { status: 200, headers: { 'content-type': 'text/xml' } });
+    if (u.endsWith('/api/sets/OP-16/')) return Response.json([{ card_set_id: 'OP16-065' }, { card_set_id: 'OP16-065' }]);
+    if (u.endsWith('/api/sets/card/OP16-065/')) {
+      return Response.json([
+        { card_set_id: 'OP16-065', card_image_id: 'OP16-065', card_image: 'a' },
+        { card_set_id: 'OP16-065', card_image_id: 'OP16-065_p1', card_image: 'b', market_price: 1000 },
+      ]);
+    }
+    return new Response('x', { status: 404 });
+  };
+  try {
+    const svc = createChaseService({ cardmarket: { westernByCode: async () => ({ byCode: new Map() }) } });
+    const r = await svc.getChase('OP16');
+    assert.deepEqual([r.cards[0].priceSource, r.cards[0].usd, r.cards[0].eur], ['tcgplayer', 1000, 921.7]);
+    assert.equal(r.rate.source, 'BCE');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});

@@ -476,8 +476,20 @@ a.diag-btn { text-decoration: none; }
 .chase figcaption .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.7rem; }
 .chase-price { font-weight: 800; color: var(--red); font-size: 0.92rem; font-variant-numeric: tabular-nums; }
 .chase-price.usd { color: var(--warn); }
-.chase-price small { font-size: 0.6rem; font-weight: 700; color: var(--muted); }
+.chase-price small { display: block; font-size: 0.6rem; font-weight: 700; color: var(--muted); line-height: 1.2; }
+.chase figcaption { grid-template-rows: auto auto minmax(2.2em, auto) auto; }
 .chase .have-box { font-size: 0.74rem; margin-top: 2px; }
 .chase .have-box input { width: 16px; height: 16px; }
 .chase-more { margin: 12px auto 0; display: flex; }
 @media (max-width: 520px) { .chase-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; } }
+
+/* Chase cards sur une seule ligne, défilement horizontal */
+.chase-wrap { position: relative; }
+.chase-row { display: flex; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; padding: 2px 2px 10px; scrollbar-width: thin; }
+.chase-row:focus-visible { outline: 2px solid var(--straw); outline-offset: 2px; border-radius: 10px; }
+.chase-row .chase { flex: 0 0 132px; scroll-snap-align: start; }
+.chase-nav { position: absolute; top: 38%; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); color: var(--text); font-size: 1.4rem; line-height: 1; box-shadow: var(--shadow); display: grid; place-items: center; }
+.chase-nav:hover { border-color: var(--straw-dark); }
+.chase-nav.prev { left: -10px; }
+.chase-nav.next { right: -10px; }
+@media (max-width: 640px) { .chase-nav { display: none; } .chase-row .chase { flex-basis: 112px; } }
