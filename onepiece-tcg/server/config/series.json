@@ -1,5 +1,5 @@
 {
-  "_comment": "Séries suivies. 'queries' = termes envoyés aux moteurs de recherche des boutiques ; 'match' = motifs (regex, insensibles à la casse) qui rattachent un titre de produit à la série ; 'exclude' = motifs qui empêchent le rattachement. Dates au format AAAA-MM-JJ. 'cover' = code d'une carte dont l'illustration sert de fond à l'onglet (carte n°001, en général le leader).",
+  "_comment": "Séries suivies. 'queries' = termes envoyés aux moteurs de recherche des boutiques ; 'match' = motifs (regex, insensibles à la casse) qui rattachent un titre de produit à la série ; 'exclude' = motifs qui empêchent le rattachement. Dates au format AAAA-MM-JJ.",
   "series": [
     {
       "id": "OP18",
@@ -20,8 +20,7 @@
       "match": [
         "\\bOP-?18\\b",
         "dominance of god"
-      ],
-      "cover": "OP18-001"
+      ]
     },
     {
       "id": "EB05",
@@ -41,8 +40,7 @@
       "match": [
         "\\bEB-?05\\b",
         "heroines edition (vol\\.? ?2|2)"
-      ],
-      "cover": "EB05-001"
+      ]
     },
     {
       "id": "OP17",
@@ -67,8 +65,7 @@
         "\\bOP-?17\\b",
         "strongest warriors?",
         "guerriers les plus puissants"
-      ],
-      "cover": "OP17-001"
+      ]
     },
     {
       "id": "OP16",
@@ -93,8 +90,7 @@
         "\\bOP-?16\\b",
         "time of battle",
         "bataille d[ée]cisive"
-      ],
-      "cover": "OP16-001"
+      ]
     },
     {
       "id": "OP15",
@@ -118,8 +114,7 @@
         "\\bOP-?15\\b",
         "kami'?s island",
         "[îi]le de dieu"
-      ],
-      "cover": "OP15-001"
+      ]
     },
     {
       "id": "OP14",
@@ -143,8 +138,7 @@
         "\\bOP-?14\\b",
         "azure sea'?s seven",
         "mer d'azur"
-      ],
-      "cover": "OP14-001"
+      ]
     },
     {
       "id": "OP13",
@@ -166,8 +160,7 @@
         "\\bOP-?13\\b",
         "carrying on his will",
         "successeurs"
-      ],
-      "cover": "OP13-001"
+      ]
     },
     {
       "id": "EB04",
@@ -193,8 +186,7 @@
         "kami'?s island",
         "mer d'azur",
         "[îi]le de dieu"
-      ],
-      "cover": "EB04-001"
+      ]
     },
     {
       "id": "EB03",
@@ -217,8 +209,7 @@
       ],
       "exclude": [
         "\\bEB-?05\\b"
-      ],
-      "cover": "EB03-001"
+      ]
     },
     {
       "id": "PRB02",
@@ -238,8 +229,7 @@
       "match": [
         "\\bPRB-?02\\b",
         "the best vol\\.? ?2"
-      ],
-      "cover": "PRB02-001"
+      ]
     },
     {
       "id": "STARTERS",
@@ -271,8 +261,7 @@
       "types": [
         "starter",
         "coffret"
-      ],
-      "cover": "ST01-001"
+      ]
     }
   ]
 }
