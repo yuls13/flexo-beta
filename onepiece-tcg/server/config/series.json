@@ -1,5 +1,5 @@
 {
-  "_comment": "Séries suivies. 'queries' = termes envoyés aux moteurs de recherche des boutiques ; 'match' = motifs (regex, insensibles à la casse) qui rattachent un titre de produit à la série ; 'exclude' = motifs qui empêchent le rattachement. Dates au format AAAA-MM-JJ. Fond d'onglet : pochette du booster lue sur la page produit officielle ; 'coverUrl' (optionnel) = adresse d'une image à utiliser à la place ; 'cover' = carte de secours (n°001).",
+  "_comment": "Séries suivies. 'queries' = termes envoyés aux moteurs de recherche des boutiques ; 'match' = motifs (regex, insensibles à la casse) qui rattachent un titre de produit à la série ; 'exclude' = motifs qui empêchent le rattachement. Dates au format AAAA-MM-JJ. 'cover' = code d'une carte dont l'illustration sert de fond à l'onglet (carte n°001, en général le leader).",
   "series": [
     {
       "id": "OP18",

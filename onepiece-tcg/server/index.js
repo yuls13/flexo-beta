@@ -12,7 +12,6 @@ import { createCardmarketService } from './cardmarket.js';
 import { createChaseService } from './chase.js';
 import { createLogoService, googleFavicon } from './logos.js';
 import { createCardImageService, validCode } from './cardImages.js';
-import { createSeriesCoverService } from './seriesCovers.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -57,7 +56,6 @@ const trustService = DEMO
   : createTrustService({ shops, blacklist });
 
 const cardImageService = createCardImageService();
-const seriesCoverService = createSeriesCoverService({ series: rawSeries });
 const cardService = DEMO
   ? { getChase: async (id) => demoCards(rawSeries.find((s) => s.id === id)), gameId: () => null }
   : (() => {
@@ -212,31 +210,6 @@ async function handleApi(req, res, url) {
     }
     res.writeHead(302, { Location: googleFavicon(rootDomain(clean.host)), 'Cache-Control': 'public, max-age=86400' });
     return res.end();
-  }
-
-  if (url.pathname === '/api/series-cover') {
-    // Pochette du booster de la série ; repli sur l'illustration de la carte n°001.
-    const s = rawSeries.find((x) => x.id === url.searchParams.get('series'));
-    if (!s) return sendJson(res, 404, { error: 'Série inconnue' });
-    const cover = DEMO ? { fail: true, tried: ['mode démo'] } : await seriesCoverService.get(s.id);
-    if (url.searchParams.get('debug') === '1') {
-      return sendJson(res, 200, { series: s.id, source: cover.source || null, page: cover.page || null, tried: cover.tried || [] });
-    }
-    if (cover.buf) {
-      res.writeHead(200, {
-        'Content-Type': cover.type,
-        'Cache-Control': 'public, max-age=604800',
-        'X-Content-Type-Options': 'nosniff',
-        'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'",
-      });
-      return res.end(cover.buf);
-    }
-    if (s.cover && validCode(s.cover)) {
-      res.writeHead(302, { Location: `/api/card-image?code=${encodeURIComponent(s.cover)}&v=1`, 'Cache-Control': 'public, max-age=21600' });
-      return res.end();
-    }
-    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-    return res.end('Illustration introuvable');
   }
 
   if (url.pathname === '/api/card-image') {

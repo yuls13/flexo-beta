@@ -196,9 +196,9 @@ function renderTabs() {
   $('#tabs').innerHTML = list
     .map((s) => {
       const sub = s.special ? 'ST · coffrets' : s.names.fr || s.names.en || '';
-      // Pochette du booster de la série en fond, très atténuée (servie par /api/series-cover).
-      const cover = !s.special && !state.config.demo ? ` style="--cover: url('/api/series-cover?series=${encodeURIComponent(s.id)}')"` : '';
-      return `<button class="tab ${!s.special ? 'has-cover' : ''} ${state.series?.id === s.id ? 'on' : ''} ${fav(s) ? 'fav' : ''}" data-id="${esc(s.id)}" type="button"${cover}>
+      // Illustration de la série en fond, très atténuée (carte n°001 servie par /api/card-image).
+      const cover = s.cover && !state.config.demo ? ` style="--cover: url('/api/card-image?code=${encodeURIComponent(s.cover)}&v=1')"` : '';
+      return `<button class="tab ${s.cover ? 'has-cover' : ''} ${state.series?.id === s.id ? 'on' : ''} ${fav(s) ? 'fav' : ''}" data-id="${esc(s.id)}" type="button"${cover}>
         <b>${fav(s) ? '<span class="tab-star" aria-label="Série préférée">★</span>' : ''}${esc(s.special ? 'Starters' : s.id)}${isUpcoming(s) ? '<span class="soon">bientôt</span>' : ''}</b>
         <small>${esc(sub.length > 26 ? sub.slice(0, 25) + '…' : sub)}</small></button>`;
     })
