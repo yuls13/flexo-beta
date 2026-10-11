@@ -107,7 +107,7 @@ Sur iPhone/iPad, les notifications ne fonctionnent que si l'app est **ajoutée �
    - URL : `https://VOTRE-APP.onrender.com/api/cron/collect?key=VOTRE_CRON_SECRET` ;
    - planification *Custom* : minutes `0,5`, heures `*/6` (toutes les 6 h, à h00 et h05). Le premier appel réveille le serveur, le second lance le relevé si le premier est arrivé trop tôt. Les appels rapprochés ne lancent qu'un seul relevé.
 
-   La réponse `202 relevé lancé` (ou `200 relevé récent`) confirme que tout va bien. Le relevé dure quelques minutes en arrière-plan.
+   La réponse `{"ok":true,"status":"lancé"}` (ou `"récent"`) confirme que tout va bien. Le relevé dure quelques minutes en arrière-plan. Le bilan du dernier relevé se lit sur `https://VOTRE-APP.onrender.com/api/cron/status?key=VOTRE_CRON_SECRET`.
 
 Sans `FIREBASE_SERVICE_ACCOUNT`, les boutons 🔔 et 📈 sont masqués. Sans clés VAPID, seul l'historique est actif. En mode démo, l'historique est fictif et les notifications sont simulées.
 

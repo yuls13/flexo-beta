@@ -326,21 +326,26 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, await historyService.get(id));
   }
 
-  if (url.pathname === '/api/cron/collect') {
+  if (url.pathname === '/api/cron/collect' || url.pathname === '/api/cron/status') {
     const secret = process.env.CRON_SECRET;
     if (!secret) return sendJson(res, 503, { error: 'CRON_SECRET non configuré sur le serveur' });
     const given = (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || url.searchParams.get('key') || '';
     const a = Buffer.from(given);
     const b = Buffer.from(secret);
     if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return sendJson(res, 401, { error: 'Clé invalide' });
-    if (cron.running) return sendJson(res, 200, { status: 'déjà en cours', since: new Date(cron.lastStart).toISOString() });
+    // Bilan détaillé du dernier relevé (à ouvrir dans un navigateur).
+    if (url.pathname === '/api/cron/status') {
+      return sendJson(res, 200, { running: cron.running, lastStart: cron.lastStart ? new Date(cron.lastStart).toISOString() : null, history: !!db, alerts: FEATURES.alerts && !DEMO, last: cron.last });
+    }
+    // Réponses très courtes : les services de cron refusent les réponses volumineuses.
+    if (cron.running) return sendJson(res, 200, { ok: true, status: 'en cours' });
     // Deux appels rapprochés (réveil du serveur puis relance) : un seul relevé.
-    if (Date.now() - cron.lastStart < 30 * 60 * 1000) return sendJson(res, 200, { status: 'relevé récent', last: cron.last });
+    if (Date.now() - cron.lastStart < 30 * 60 * 1000) return sendJson(res, 200, { ok: true, status: 'récent' });
     collectAll().catch((err) => {
       cron.running = false;
       console.error('relevé programmé :', err);
     });
-    return sendJson(res, 202, { status: 'relevé lancé', series: series.length, history: !!db, alerts: FEATURES.alerts && !DEMO });
+    return sendJson(res, 202, { ok: true, status: 'lancé' });
   }
 
   if (url.pathname === '/api/push/test' && req.method === 'POST') {
