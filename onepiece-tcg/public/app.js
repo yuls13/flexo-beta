@@ -239,7 +239,13 @@ function renderHead() {
   const isFav = state.favSeries.includes(s.id);
   const favBtn = `<button class="fav-btn ${isFav ? 'on' : ''}" type="button" data-fav-series="${esc(s.id)}" aria-pressed="${isFav}">
     ${isFav ? '★ Série suivie' : '☆ Ajouter à mes séries'}</button>`;
-  $('#seriesHead').innerHTML = `<div><div class="title-row"><h2>${esc(s.special ? 'Starter decks & coffrets' : s.code)}</h2>${favBtn}</div>
+  // Série (ou langue) pas encore sortie : alerte à l'ouverture des précommandes.
+  const preoOn = state.alerts.some((a) => a.kind === 'preorder' && a.series === s.id && a.active !== false);
+  const preoBtn =
+    future.length && !s.special && state.config.features?.alerts
+      ? `<button class="fav-btn preo-btn ${preoOn ? 'on' : ''}" type="button" data-preo-alert>${preoOn ? '🔔 Alerte précos active' : '🔔 Prévenez-moi des précos'}</button>`
+      : '';
+  $('#seriesHead').innerHTML = `<div><div class="title-row"><h2>${esc(s.special ? 'Starter decks & coffrets' : s.code)}</h2>${favBtn}${preoBtn}</div>
     <p class="names">${esc(names.join(' · '))}</p></div><div class="dates">${dates}</div>${banner}`;
 }
 
@@ -667,13 +673,53 @@ const seriesLabel = (id) => {
 };
 
 function hasAlert(o) {
-  return state.alerts.some((a) => a.active !== false && a.series === state.series.id && a.type === o.type && (a.lang === 'any' || a.lang === (o.lang || 'any')));
+  return state.alerts.some((a) => a.kind !== 'preorder' && a.active !== false && a.series === state.series.id && a.type === o.type && (a.lang === 'any' || a.lang === (o.lang || 'any')));
 }
 
 function thisDevice() {
   return currentSubscription()
     .then((sub) => (sub ? state.pushSubs.find((x) => x.endpoint === sub.endpoint) || null : null))
     .catch(() => null);
+}
+
+function showPreorderAlertForm() {
+  if (!requireAccount('Connectez-vous pour être prévenu de l’ouverture des précommandes.')) return;
+  const s = state.series;
+  const future = Object.entries(s.release || {}).filter(([, d]) => d > today()).map(([l]) => l.toUpperCase());
+  const existing = state.alerts.filter((a) => a.kind === 'preorder' && a.series === s.id);
+  const open = new Set((state.data[s.id]?.offers || []).filter((o) => o.preorder && o.available !== false && !o.flags.some((f) => f.kind === 'suspect')).map((o) => o.shopId));
+  openDialog(`<h2>🗓️ Ouverture des précommandes</h2>
+    <p class="muted">Recevez une notification dès qu’une boutique vérifiée met <b>${esc(s.code)}</b> en précommande, puis à chaque nouvelle boutique qui l’ouvre (une notification par relevé au plus, toutes les 6 heures).</p>
+    <label class="field">Langue<select id="preLang">${['any', 'FR', 'EN', 'JP']
+      .map((l) => `<option value="${l}" ${l === (future.length === 1 ? future[0] : 'any') ? 'selected' : ''}>${LANG_LABEL[l]}${future.includes(l) ? ' (pas encore sortie)' : ''}</option>`)
+      .join('')}</select></label>
+    ${open.size ? `<p class="notice">Déjà en précommande chez ${open.size} boutique${open.size > 1 ? 's' : ''} : elles vous seront signalées au prochain relevé.</p>` : ''}
+    ${existing.length ? `<p class="muted small">Déjà active : ${existing.map((a) => esc(LANG_LABEL[a.lang] || a.lang)).join(', ')}.</p>` : ''}
+    <p id="alError" class="err-msg" hidden></p>
+    <div class="account-actions">
+      <button class="btn btn-ghost-dark" type="button" data-my-alerts>Mes alertes (${state.alerts.length})</button>
+      <button class="btn btn-red" id="preSave" type="button">Me prévenir</button>
+    </div>`);
+  $('#preSave').addEventListener('click', async () => {
+    const lang = $('#preLang').value;
+    const err = $('#alError');
+    if (existing.some((a) => a.lang === lang)) {
+      err.textContent = 'Cette alerte existe déjà (voir Mes alertes).';
+      err.hidden = false;
+      return;
+    }
+    if (state.alerts.length >= MAX_ALERTS) {
+      err.textContent = `Vous avez atteint ${MAX_ALERTS} alertes : supprimez-en une d’abord.`;
+      err.hidden = false;
+      return;
+    }
+    const alert = { id: Math.random().toString(36).slice(2, 10), kind: 'preorder', series: s.id, lang, active: true, createdAt: new Date().toISOString() };
+    state.alerts = [...state.alerts, alert];
+    syncAccount(0);
+    renderHead();
+    if (!(await thisDevice())) await enablePush(null, true);
+    showMyAlerts(alert.id);
+  });
 }
 
 function showAlertForm(type, lang) {
@@ -784,15 +830,15 @@ async function showMyAlerts(highlight) {
         ? `<ul class="alert-list">${list
             .map(
               (a) => `<li class="${a.active === false ? 'off' : ''} ${a.id === highlight ? 'new' : ''}">
-            <div><b>${esc(seriesLabel(a.series))} · ${esc(typeLabel(a.type))}</b> ${a.lang === 'any' ? '<span class="muted small">toutes langues</span>' : flag(a.lang)}
-              <br><span class="muted small">sous ${esc(eur.format(a.maxPrice))} port compris${a.active === false ? ' · en pause' : ''}</span></div>
+            <div><b>${esc(seriesLabel(a.series))} · ${a.kind === 'preorder' ? '🗓️ Ouverture des précos' : esc(typeLabel(a.type))}</b> ${a.lang === 'any' ? '<span class="muted small">toutes langues</span>' : flag(a.lang)}
+              <br><span class="muted small">${a.kind === 'preorder' ? 'chaque nouvelle boutique' : `sous ${esc(eur.format(a.maxPrice))} port compris`}${a.active === false ? ' · en pause' : ''}</span></div>
             <div class="alert-btns">
               <button type="button" class="btn btn-ghost-dark btn-sm" data-alert-toggle="${esc(a.id)}">${a.active === false ? 'Réactiver' : 'Pause'}</button>
               <button type="button" class="chip-x" data-alert-del="${esc(a.id)}" aria-label="Supprimer l’alerte">✕</button>
             </div></li>`
             )
             .join('')}</ul>`
-        : '<p class="muted">Aucune alerte. Créez-en une avec le bouton 🔔 sous un avis de recherche WANTED.</p>'
+        : '<p class="muted">Aucune alerte. Créez-en une avec le bouton 🔔 sous un avis de recherche WANTED, ou « Prévenez-moi des précos » sur une série pas encore sortie.</p>'
     }
     <h3 class="sub-h">Notifications</h3>
     ${
@@ -1237,6 +1283,7 @@ document.addEventListener('click', async (e) => {
     return showHistory(type, lang || null);
   }
   if (t.closest('[data-my-alerts]')) return showMyAlerts();
+  if (t.closest('[data-preo-alert]')) return showPreorderAlertForm();
   if (t.closest('[data-push-enable]')) return enablePush(t.closest('[data-push-enable]'));
   if (t.closest('[data-push-test]')) return testPush(t.closest('[data-push-test]'));
   const rmDevice = t.closest('[data-push-remove]');
@@ -1253,6 +1300,7 @@ document.addEventListener('click', async (e) => {
     if (a) a.active = a.active === false;
     syncAccount();
     render();
+    renderHead();
     return showMyAlerts();
   }
   const alertDel = t.closest('[data-alert-del]');
@@ -1260,6 +1308,7 @@ document.addEventListener('click', async (e) => {
     state.alerts = state.alerts.filter((x) => x.id !== alertDel.dataset.alertDel);
     syncAccount();
     render();
+    renderHead();
     return showMyAlerts();
   }
   const histRange = t.closest('[data-hist-range]');

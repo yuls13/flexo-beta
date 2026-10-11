@@ -24,6 +24,35 @@ export function matchAlert(alert, offers) {
   );
 }
 
+// Alerte « ouverture des précommandes » : offres commandables de la série (en précommande ou
+// déjà en stock), hors prix suspects, dans la langue voulue. La moins chère par boutique.
+export function preorderOffers(alert, offers) {
+  const byShop = new Map();
+  for (const o of offers || []) {
+    if (o.available === false || (!o.preorder && o.available !== true)) continue;
+    if (alert.lang && alert.lang !== 'any' && o.lang !== alert.lang) continue;
+    if ((o.flags || []).some((f) => f.kind === 'suspect')) continue;
+    const cur = byShop.get(o.shopId);
+    if (!cur || o.total < cur.total) byShop.set(o.shopId, o);
+  }
+  return [...byShop.values()].sort((a, b) => a.total - b.total);
+}
+
+export function preorderMessage(alert, newOffers, totalShops) {
+  const euros = (n) => `${n.toFixed(2).replace('.', ',')} €`;
+  const first = newOffers[0];
+  const lang = alert.lang && alert.lang !== 'any' ? ` ${LANG_NAMES[alert.lang]}` : '';
+  const others = newOffers.length - 1;
+  return {
+    title: `🗓️ ${alert.series}${lang} : précommandes ouvertes !`,
+    body: `Chez ${first.shopName}${others > 0 ? ` et ${others} autre${others > 1 ? 's' : ''} boutique${others > 1 ? 's' : ''}` : ''}, dès ${euros(first.total)} port compris${
+      totalShops > newOffers.length ? ` (${totalShops} boutiques au total)` : ''
+    }`,
+    url: first.url,
+    tag: `preorder-${alert.id}`,
+  };
+}
+
 export function alertMessage(alert, offer) {
   const type = PRODUCT_TYPES[alert.type]?.label.replace(' (24 boosters)', '') || alert.type;
   const lang = offer.lang ? ` ${LANG_NAMES[offer.lang]}` : '';
@@ -57,6 +86,24 @@ export function createAlertService({ db, push }) {
       const updates = {};
       const gone = new Set();
       for (const alert of alerts) {
+        if (alert.kind === 'preorder') {
+          // Prévenu à chaque nouvelle boutique qui ouvre les précommandes (une seule notification par relevé).
+          const found = preorderOffers(alert, priceData.offers);
+          const known = new Set(state.notified?.[alert.id]?.shops || []);
+          const fresh = found.filter((o) => !known.has(o.shopId));
+          if (!fresh.length) continue;
+          let delivered = false;
+          for (const sub of subs) {
+            const r = await push.send(sub, preorderMessage(alert, fresh, found.length));
+            if (r.ok) delivered = true;
+            if (r.gone) gone.add(sub.endpoint);
+          }
+          if (delivered) {
+            sent++;
+            updates[alert.id] = { shops: [...known, ...fresh.map((o) => o.shopId)].slice(-100), at: new Date().toISOString() };
+          }
+          continue;
+        }
         const offer = matchAlert(alert, priceData.offers);
         if (!offer) continue;
         const key = `${offer.url}|${offer.total}`;

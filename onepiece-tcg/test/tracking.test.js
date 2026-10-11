@@ -134,3 +134,32 @@ test('mergePrefs : alertes et appareils fusionnés sans doublon', () => {
   assert.deepEqual(m.alerts.map((a) => a.id), ['a', 'b']);
   assert.deepEqual(m.pushSubscriptions.map((s) => s.endpoint), ['e1', 'e2']);
 });
+
+test('Alerte précommandes : prévenu à chaque nouvelle boutique, une notification par relevé', async () => {
+  const { preorderOffers, preorderMessage } = await import('../server/alerts.js');
+  const docs = {
+    'users/u1': { alerts: [{ id: 'p1', kind: 'preorder', series: 'OP18', lang: 'EN' }], pushSubscriptions: [{ endpoint: 'https://push.example/1', keys: { p256dh: 'k', auth: 'a' } }] },
+  };
+  const db = {
+    get: async (p) => docs[p] || null,
+    set: async (p, d) => (docs[p] = { ...(docs[p] || {}), ...d }),
+    list: async (c) => Object.entries(docs).filter(([k]) => k.startsWith(`${c}/`)).map(([k, data]) => ({ id: k.split('/')[1], data })),
+  };
+  const sent = [];
+  const alerts = createAlertService({ db, push: { available: true, send: async (s, m) => (sent.push(m), { ok: true }) } });
+  const pre = (o) => offer({ lang: 'EN', preorder: true, available: null, ...o });
+  // Rien de commandable : pas de notification.
+  assert.equal((await alerts.evaluate('OP18', { offers: [offer({ lang: 'EN', available: false })] })).sent, 0);
+  await alerts.evaluate('OP18', { offers: [pre({ shopId: 'a', shopName: 'A', total: 140 }), pre({ shopId: 'b', shopName: 'B', total: 130 }), pre({ shopId: 'c', lang: 'FR' })] });
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].title, '🗓️ OP18 EN : précommandes ouvertes !');
+  assert.equal(sent[0].body, 'Chez B et 1 autre boutique, dès 130,00 € port compris');
+  // Mêmes boutiques : rien ; une nouvelle boutique : nouvelle notification.
+  await alerts.evaluate('OP18', { offers: [pre({ shopId: 'a', total: 140 }), pre({ shopId: 'b', total: 130 })] });
+  assert.equal(sent.length, 1);
+  await alerts.evaluate('OP18', { offers: [pre({ shopId: 'a', total: 140 }), pre({ shopId: 'b', total: 130 }), pre({ shopId: 'd', shopName: 'D', total: 150 })] });
+  assert.equal(sent.length, 2);
+  assert.equal(sent[1].body, 'Chez D, dès 150,00 € port compris (3 boutiques au total)');
+  assert.equal(preorderOffers({ lang: 'any' }, [pre({ flags: [{ kind: 'suspect' }] })]).length, 0);
+  assert.ok(preorderMessage({ id: 'x', series: 'EB05', lang: 'any' }, [pre({})], 1).title.startsWith('🗓️ EB05 :'));
+});
