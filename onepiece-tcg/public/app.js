@@ -102,19 +102,30 @@ async function api(path) {
   return body;
 }
 
-// ---------- Écran d'accueil (pendant le réveil du serveur) ----------
+// ---------- Écran d'accueil (réveil du serveur puis recherche des prix) ----------
 
 const splash = {
   start: Date.now(),
+  phaseStart: Date.now(),
   timer: null,
-  messages: ['⚓ Le navire lève l’ancre…', '🧭 Le Log Pose cherche la prochaine île…', '🌊 Cap sur Grand Line…', '🔭 La vigie scrute les boutiques…'],
+  messages: ['⚓ Le navire lève l’ancre…', '🧭 Le Log Pose cherche la prochaine île…', '🌊 Cap sur Grand Line…'],
+  slow: '😴 L’équipage faisait la sieste : réveil en cours (jusqu’à 1 min)…',
   run() {
     let i = 0;
+    clearInterval(this.timer);
     this.timer = setInterval(() => {
       i++;
-      const slow = Date.now() - this.start > 6000;
-      this.say(slow && i % 2 ? '😴 L’équipage faisait la sieste : réveil en cours (jusqu’à 1 min)…' : this.messages[i % this.messages.length]);
+      const slow = this.slow && Date.now() - this.phaseStart > 8000;
+      this.say(slow && i % 3 === 0 ? this.slow : this.messages[i % this.messages.length]);
     }, 2200);
+  },
+  // Deuxième étape : le serveur répond, la recherche des prix commence.
+  phase(messages, slow) {
+    this.messages = messages;
+    this.slow = slow;
+    this.phaseStart = Date.now();
+    this.say(messages[0]);
+    this.run();
   },
   say(text) {
     const el = document.getElementById('splashMsg');
@@ -153,7 +164,6 @@ async function init() {
     $('#status').innerHTML = `<span class="err">Serveur injoignable : ${esc(err.message)}</span>`;
     return;
   }
-  splash.hide();
   $('#demoBanner').hidden = !state.config.demo;
   state.data = store.get('prices', {});
   state.customShops = store.get('customShops', []);
@@ -179,6 +189,21 @@ async function init() {
   selectSeries(first.id);
   loadTrust();
   setupAccount(!fromHash);
+
+  // L'écran d'accueil reste affiché pendant la recherche des prix (au plus 1 min ; les prix
+  // déjà en mémoire depuis moins de 10 min s'affichent tout de suite).
+  if (state.loading) {
+    const n = state.config.shops.filter((s) => s.platform !== 'link').length;
+    splash.phase(
+      [`🔭 La vigie scrute ${n} boutiques…`, `💰 Chasse au meilleur prix ${state.series.code}…`, '🛡️ Inspection des pavillons (boutiques vérifiées)…', '🗺️ Relevé des précommandes…'],
+      '⏳ Certaines boutiques mettent du temps à répondre, encore un instant…'
+    );
+    const until = Date.now() + 60000;
+    while (state.loading && Date.now() < until) {
+      await Promise.race([state.loadPromise, new Promise((r) => setTimeout(r, until - Date.now()))]);
+    }
+  }
+  splash.hide();
 }
 
 async function loadTrust() {
@@ -207,14 +232,17 @@ function selectSeries(id) {
   renderHead();
   renderLinks();
   render();
-  const cached = state.data[id];
-  const stale = !cached || Date.now() - new Date(cached.fetchedAt) > 10 * 60 * 1000;
-  if (stale) load(false);
+  if (isStale(id)) load(false);
   loadCards();
 }
 
-async function load(refresh) {
-  if (state.loading) return;
+function load(refresh) {
+  if (state.loading) return state.loadPromise;
+  state.loadPromise = runLoad(refresh);
+  return state.loadPromise;
+}
+
+async function runLoad(refresh) {
   const id = state.series.id;
   state.loading = true;
   const btn = $('#refreshBtn');
@@ -235,7 +263,14 @@ async function load(refresh) {
     btn.disabled = false;
     btn.classList.remove('loading');
     if (state.series.id === id) render();
+    // Série changée pendant la recherche (ex. série préférée après connexion) : on la charge à son tour.
+    else if (isStale(state.series.id)) load(false);
   }
+}
+
+function isStale(id) {
+  const cached = state.data[id];
+  return !cached || Date.now() - new Date(cached.fetchedAt) > 10 * 60 * 1000;
 }
 
 // ---------- Rendu ----------
