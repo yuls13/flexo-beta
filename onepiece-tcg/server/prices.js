@@ -75,7 +75,7 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
     for (const item of result.items) {
       if (!item?.url || seen.has(item.url)) continue;
       seen.add(item.url);
-      products.push({ title: item.title, price: item.price, available: item.available, url: item.url, verdict: explain(item.title, s, item.price) });
+      products.push({ title: item.title, price: item.price, available: item.available, url: item.url, verdict: explain(item.title, s, item.price, item.url) });
     }
     return {
       shop: { id: shop.id, name: shop.name, domain: shop.domain, platform: shop.platform },
@@ -104,7 +104,7 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
         const key = item.url.replace(/[?#].*$/, '').replace(/\/$/, '');
         if (seen.has(key)) continue;
         seen.add(key);
-        const cls = classify(item.title, s, item.price);
+        const cls = classify(item.title, s, item.price, item.url);
         if (!cls) continue;
         matched++;
         offers.push(buildOffer(shop, item, cls, shippingDefaults, s));

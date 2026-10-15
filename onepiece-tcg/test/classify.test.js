@@ -69,3 +69,22 @@ test('type déduit du prix quand le titre ne le précise pas', async () => {
   assert.equal(inferType(60, 'FR'), null);
   assert.equal(inferType(60, 'JP'), 'display');
 });
+
+test('Autres jeux écartés, même sans le mot « Pokémon » (codes EB des extensions Épée et Bouclier)', () => {
+  // Cas réel : Hikaru Distribution, extension Pokémon EB05 « Styles de Combat ».
+  assert.equal(classify('Display - Style de Combat - EB05 - Français', S.EB05, 559.9), null);
+  assert.equal(classify('Display EB04 Voltage Éclatant', S.EB04, 150), null);
+  assert.equal(classify('Pokémon EB05 Booster', S.EB05, 5), null);
+  assert.equal(classify('Booster Box Disney Lorcana', S.OP13, 140), null);
+  // Code EB seul : il faut « One Piece », le nom de la série ou une adresse de fiche One Piece.
+  assert.equal(classify('Display EB05 Français', S.EB05, 150), null);
+  assert.equal(classify('Display EB05 Français', S.EB05, 150, 'https://shop.fr/products/display-one-piece-eb05-fr')?.type, 'display');
+  assert.equal(classify('Display EB05 Français', S.EB05, 150, 'https://shop.fr/products/display-pokemon-eb05-fr'), null);
+  assert.equal(classify('Display - EB05 - FR', S.EB05, 150, 'https://shop.fr/fr/pokemon/123-display-eb05.html'), null);
+  // Vrais produits One Piece : toujours reconnus.
+  assert.equal(classify('One Piece Card Game EB-05 Heroines Edition Vol.2 Display (EN)', S.EB05)?.type, 'display');
+  assert.equal(classify('Display Heroines Edition vol.2 EB05 FR', S.EB05)?.lang, 'FR');
+  assert.equal(classify('Display One Piece EB-04 Egghead Crisis FR', S.EB04)?.type, 'display');
+  assert.equal(classify('Booster OP16 Français', S.OP16)?.type, 'booster');
+  assert.equal(classify('Booster PRB02 The Best Vol.2', S.PRB02)?.type, 'booster');
+});

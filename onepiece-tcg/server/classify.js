@@ -15,10 +15,36 @@ const EXCLUDE = [
   /\b(psa|bgs|cgc|grad[ée]e?|carte [àa] l'unit[ée])\b/i,
   /\b(case|carton)\b/i,
   /\b([2-9]|\d{2}) ?displays\b/i,
-  /\b(pok[ée]mon|lorcana|dragon ball|digimon|yu-?gi-?oh|magic|union arena)\b/i,
   /\bcarte(s)? promo\b|\bpromo card\b/i,
   /\b(vide|empty)\b/i,
 ];
+
+// Autres jeux de cartes. Certaines boutiques omettent le nom du jeu (« Display - Style de Combat -
+// EB05 - Français » est une extension Pokémon) : noms des jeux, de leurs gammes et de leurs extensions.
+const OTHER_GAMES = [
+  /\b(pok[ée]mon|pikachu|dracaufeu|charizard|lorcana|disney|dragon ?ball|digimon|yu-?gi-?oh|magic|mtg|union arena|flesh and blood|star wars|riftbound|league of legends|weiss|vanguard|battle spirits|gundam|naruto|altered|sorcery|final fantasy|metazoo)\b/i,
+  /[ée]p[ée]e (et|&) bouclier|sword (and|&) shield|[ée]carlate (et|&) violet|scarlet (and|&) violet|dresseur d'?[ée]lite|elite trainer|\betb\b/i,
+  /clash des rebelles|t[ée]n[èe]bres embras[ée]es|voie du ma[iî]tre|voltage [ée]clatant|destin[ée]es radieuses|styles? de combat|r[èe]gne de glace|[ée]volution c[ée]leste|poing de fusion|stars [ée]tincelantes|astres radieux|origine perdue|temp[êe]te argent[ée]e|z[ée]nith supr[êe]me/i,
+  /rebel clash|darkness ablaze|vivid voltage|battle styles|chilling reign|evolving skies|fusion strike|brilliant stars|astral radiance|lost origin|silver tempest|crown zenith/i,
+];
+export const isOtherGame = (title) => OTHER_GAMES.some((re) => re.test(title));
+
+// Les codes EB-xx et PRB-xx existent aussi ailleurs (EB = extensions Pokémon Épée et Bouclier) :
+// pour ces séries, le titre (ou l'adresse de la fiche) doit mentionner One Piece ou le nom de la série.
+const OP_EVIDENCE = /one ?piece|\bopcg\b|ワンピース/i;
+const AMBIGUOUS_SERIES = /^EB/i;
+function lacksEvidence(title, series, slug = '') {
+  return AMBIGUOUS_SERIES.test(series.id) && !OP_EVIDENCE.test(`${title} ${slug}`) && !series.nameRe.some((re) => re.test(title));
+}
+
+// Chemin de la fiche produit, mots séparés (« /products/display-pokemon-eb05 » → « products display pokemon eb05 »).
+export function urlSlug(url) {
+  try {
+    return decodeURIComponent(new URL(url).pathname).replace(/[-_/.+]+/g, ' ');
+  } catch {
+    return '';
+  }
+}
 
 const TYPE_RULES = [
   ['duo', /\b(double[- ]?pack|duo[- ]?pack|bi-?pack|dp-?\d{1,2}|2 boosters?)\b/i],
@@ -46,7 +72,7 @@ export function detectType(title) {
 }
 
 export function isExcluded(title) {
-  return EXCLUDE.some((re) => re.test(title));
+  return EXCLUDE.some((re) => re.test(title)) || isOtherGame(title);
 }
 
 export function compileSeries(series) {
@@ -54,6 +80,8 @@ export function compileSeries(series) {
     ...s,
     matchRe: (s.match || []).map((m) => new RegExp(m, 'i')),
     excludeRe: (s.exclude || []).map((m) => new RegExp(m, 'i')),
+    // Motifs « nom de série » (tout sauf le code du type \bEB-?05\b).
+    nameRe: (s.match || []).filter((m) => !/^\\b[A-Z]+-\?/.test(m)).map((m) => new RegExp(m, 'i')),
   }));
 }
 
@@ -80,10 +108,13 @@ export function inferType(price, lang) {
 }
 
 // Renvoie { type, lang, quantity, inferred } si le titre correspond à la série et à un type suivi, sinon null.
-export function classify(title, series, price = null) {
+// url (facultative) : l'adresse de la fiche sert d'indice supplémentaire sur le jeu (« …/pokemon-… »).
+export function classify(title, series, price = null, url = null) {
   const t = String(title || '').replace(/\s+/g, ' ').trim();
-  if (!t || isExcluded(t)) return null;
+  const slug = url ? urlSlug(url) : '';
+  if (!t || isExcluded(t) || isOtherGame(slug)) return null;
   if (!matchesSeries(t, series)) return null;
+  if (lacksEvidence(t, series, slug)) return null;
   if (series.special && !/one ?piece|\bST-?\d{2}\b/i.test(t)) return null;
   const lang = detectLang(t);
   let type = detectType(t);
@@ -100,14 +131,17 @@ export function classify(title, series, price = null) {
 }
 
 // Explication lisible du sort d'un produit (outil de diagnostic).
-export function explain(title, series, price) {
+export function explain(title, series, price, url = null) {
   const t = String(title || '').replace(/\s+/g, ' ').trim();
+  const slug = url ? urlSlug(url) : '';
   if (!t) return { ok: false, reason: 'titre vide' };
   if (EXCLUDE[0].test(t)) return { ok: false, reason: 'carte à l’unité' };
-  if (isExcluded(t)) return { ok: false, reason: 'hors périmètre (accessoire, autre jeu, lot de displays…)' };
+  if (isOtherGame(t) || isOtherGame(slug)) return { ok: false, reason: 'autre jeu de cartes (Pokémon, Lorcana…)' };
+  if (isExcluded(t)) return { ok: false, reason: 'hors périmètre (accessoire, lot de displays…)' };
   if (!matchesSeries(t, series)) return { ok: false, reason: `pas la série ${series.id}` };
+  if (lacksEvidence(t, series, slug)) return { ok: false, reason: `code ${series.id} sans mention « One Piece » ni nom de la série (risque d’un autre jeu)` };
   if (price == null || !(price > 0)) return { ok: false, reason: 'prix absent ou nul sur la boutique' };
-  const cls = classify(t, series, price);
+  const cls = classify(t, series, price, url);
   if (!cls) {
     const type = detectType(t);
     return { ok: false, reason: type ? `type « ${type} » affiché dans un autre onglet` : 'type de produit non reconnu (ni dans le titre, ni d’après le prix)' };
