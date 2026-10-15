@@ -609,3 +609,7 @@ a.diag-btn { text-decoration: none; }
   .rel { padding: 0 9px; gap: 5px; }
   .rel-label { padding-right: 9px; letter-spacing: 1px; }
 }
+
+/* Pictogrammes des types de produit */
+.t-ico { display: inline-block; margin-right: 5px; font-size: 0.95em; line-height: 1; font-style: normal; font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; text-shadow: none; }
+.group h3 .t-ico { margin-right: 0; }

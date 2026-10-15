@@ -15,6 +15,9 @@ function flag(lang) {
 }
 const LANG_NAMES = { FR: 'Français', EN: 'Anglais', JP: 'Japonais' };
 const TYPE_ORDER = ['display', 'booster', 'duo', 'starter', 'coffret'];
+// Pictogramme de chaque type de produit (filtres, affiches WANTED, listes d'offres).
+const TYPE_EMOJI = { display: '📦', booster: '🎴', duo: '✌️', starter: '🃏', coffret: '🎁' };
+const typeIcon = (t) => (TYPE_EMOJI[t] ? `<span class="t-ico" aria-hidden="true">${TYPE_EMOJI[t]}</span>` : '');
 const eur = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
 const dateFmt = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -295,7 +298,7 @@ function renderTypeFilter() {
   const pt = state.config.productTypes;
   $('#typeFilter').innerHTML =
     `<button data-v="all" class="${state.type === 'all' ? 'on' : ''}">Tous</button>` +
-    types.map((t) => `<button data-v="${t}" class="${state.type === t ? 'on' : ''}">${esc(pt[t].label.replace(' (24 boosters)', ''))}</button>`).join('');
+    types.map((t) => `<button data-v="${t}" class="${state.type === t ? 'on' : ''}">${typeIcon(t)}${esc(pt[t].label.replace(' (24 boosters)', ''))}</button>`).join('');
 }
 
 function syncFilters() {
@@ -437,7 +440,7 @@ function renderBest(data) {
         <span class="pin"></span>
         <div class="w-title">WANTED</div>
         <div class="w-sub">${o.preorder ? 'Meilleure préco' : 'Meilleur prix'}</div>
-        <div class="w-product">${esc(productLabel(o))} ${flag(o.lang)}</div>
+        <div class="w-product">${typeIcon(o.type)}${esc(productLabel(o))} ${flag(o.lang)}</div>
         <div class="w-price">${esc(eur.format(o.total).replace(/\s?€/, ''))}<small> €</small></div>
         <div class="w-detail">${esc(eur.format(o.price))} + port ~${esc(eur.format(o.shipping))}${o.perBooster ? ` · ${esc(eur.format(o.perBooster))}/booster` : ''}</div>
         <div class="w-shop">${shopLogo(o.shopId, o.shopName, 'xs')} chez ${esc(o.shopName)}</div>
@@ -504,7 +507,7 @@ function render() {
   $('#offers').innerHTML = groups.length
     ? groups
         .map(
-          ([t, list]) => `<section class="group"><h3>${esc(state.config.productTypes[t].label)} <span class="count">${list.length} offre${list.length > 1 ? 's' : ''}</span></h3>
+          ([t, list]) => `<section class="group"><h3>${typeIcon(t)}${esc(state.config.productTypes[t].label)} <span class="count">${list.length} offre${list.length > 1 ? 's' : ''}</span></h3>
           ${list.map((o, i) => offerRow(o, i === 0 && o.available !== false && !o.flags.some((f) => f.kind === 'suspect'))).join('')}</section>`
         )
         .join('')
