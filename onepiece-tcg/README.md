@@ -137,6 +137,8 @@ npm test           # tests unitaires
    - iPhone/Safari : bouton Partager → *Sur l'écran d'accueil*.
 
 > La formule gratuite de Render met le serveur en veille après 15 min d'inactivité. La première ouverture prend alors environ 30 à 50 s, ensuite c'est instantané.
+>
+> Pour éviter cette attente, et la page « Application loading » de Render, gardez le serveur éveillé avec une seconde tâche [cron-job.org](https://cron-job.org) qui appelle `https://VOTRE-APP.onrender.com/api/ping` **toutes les 10 minutes**. Les 750 heures gratuites mensuelles de Render suffisent pour un service allumé en permanence. Si le serveur dort malgré tout, l'app installée s'ouvre depuis sa copie locale et affiche un écran d'accueil pendant le réveil.
 
 Toute autre plateforme Node fonctionne aussi (Railway, Fly.io, un VPS, un Raspberry Pi…), car le serveur écoute sur `PORT`.
 

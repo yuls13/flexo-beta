@@ -15,6 +15,31 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+  <div id="splash" class="splash" role="status" aria-live="polite">
+    <svg class="splash-sea" viewBox="0 0 400 260" aria-hidden="true">
+      <defs>
+        <linearGradient id="spSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1f3a"/><stop offset="1" stop-color="#1f6fb2"/></linearGradient>
+        <linearGradient id="spSun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2c14e"/><stop offset="1" stop-color="#e2711d"/></linearGradient>
+      </defs>
+      <rect width="400" height="260" fill="url(#spSky)"/>
+      <g class="sp-stars" fill="#fff"><circle cx="40" cy="30" r="1.4"/><circle cx="110" cy="58" r="1"/><circle cx="330" cy="26" r="1.5"/><circle cx="270" cy="70" r="1"/><circle cx="360" cy="90" r="1.2"/><circle cx="70" cy="96" r="1"/></g>
+      <circle cx="200" cy="178" r="58" fill="url(#spSun)" opacity="0.9"/>
+      <g class="sp-ship">
+        <path d="M132 168h136l-16 26H150z" fill="#7a4e2d"/>
+        <path d="M132 168h136" stroke="#3b2a1a" stroke-width="3"/>
+        <circle cx="168" cy="178" r="3" fill="#3b2a1a"/><circle cx="200" cy="178" r="3" fill="#3b2a1a"/><circle cx="232" cy="178" r="3" fill="#3b2a1a"/>
+        <path d="M200 74v94" stroke="#3b2a1a" stroke-width="5"/>
+        <path d="M200 66l26 7-26 7z" fill="#c8102e"/>
+        <path d="M156 88q44-8 88 0q6 34 0 66q-44-8-88 0q-6-34 0-66z" fill="#fbf5e6" stroke="#e6cf9c" stroke-width="2"/>
+        <image href="icons/icon.svg" x="178" y="98" width="44" height="44"/>
+      </g>
+      <path class="sp-wave w1" d="M0 196q25-12 50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0V260H0z" fill="#12457a"/>
+      <path class="sp-wave w2" d="M0 212q25-10 50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0V260H0z" fill="#0b1f3a" opacity="0.85"/>
+    </svg>
+    <h1 class="splash-title">Berry Radar</h1>
+    <div class="logpose" aria-hidden="true"><span class="lp-needle"></span></div>
+    <p id="splashMsg" class="splash-msg">⚓ Le navire lève l’ancre…</p>
+  </div>
   <header class="top">
     <div class="top-inner">
       <a class="brand" href="#" aria-label="Berry Radar">

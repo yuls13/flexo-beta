@@ -95,18 +95,65 @@ function ago(iso) {
 
 async function api(path) {
   const res = await fetch(path, { headers: { Accept: 'application/json' } });
+  // Serveur en veille : l'hébergeur répond par une page HTML d'attente au lieu de nos données.
+  if (!(res.headers.get('content-type') || '').includes('json')) throw new Error('Le serveur se réveille, réessayez dans quelques secondes.');
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(body.error || `Erreur ${res.status}`);
   return body;
 }
 
+// ---------- Écran d'accueil (pendant le réveil du serveur) ----------
+
+const splash = {
+  start: Date.now(),
+  timer: null,
+  messages: ['⚓ Le navire lève l’ancre…', '🧭 Le Log Pose cherche la prochaine île…', '🌊 Cap sur Grand Line…', '🔭 La vigie scrute les boutiques…'],
+  run() {
+    let i = 0;
+    this.timer = setInterval(() => {
+      i++;
+      const slow = Date.now() - this.start > 6000;
+      this.say(slow && i % 2 ? '😴 L’équipage faisait la sieste : réveil en cours (jusqu’à 1 min)…' : this.messages[i % this.messages.length]);
+    }, 2200);
+  },
+  say(text) {
+    const el = document.getElementById('splashMsg');
+    if (el) el.textContent = text;
+  },
+  hide() {
+    clearInterval(this.timer);
+    const el = document.getElementById('splash');
+    if (!el) return;
+    // Visible au moins un court instant pour ne pas « clignoter ».
+    setTimeout(() => {
+      el.classList.add('gone');
+      setTimeout(() => el.remove(), 600);
+    }, Math.max(0, 900 - (Date.now() - this.start)));
+  },
+};
+splash.run();
+
+// Configuration du serveur, en réessayant tant que le serveur se réveille (jusqu'à 2 min).
+async function loadConfig() {
+  for (;;) {
+    try {
+      return await api('/api/config');
+    } catch (err) {
+      if (Date.now() - splash.start > 120000) throw err;
+      await new Promise((r) => setTimeout(r, 2500));
+    }
+  }
+}
+
 async function init() {
   try {
-    state.config = await api('/api/config');
+    state.config = await loadConfig();
   } catch (err) {
+    splash.hide();
     $('#status').innerHTML = `<span class="err">Serveur injoignable : ${esc(err.message)}</span>`;
     return;
   }
+  splash.hide();
   $('#demoBanner').hidden = !state.config.demo;
   state.data = store.get('prices', {});
   state.customShops = store.get('customShops', []);

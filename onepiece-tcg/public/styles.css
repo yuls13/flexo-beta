@@ -566,3 +566,28 @@ a.diag-btn { text-decoration: none; }
 :root[data-theme='dark'] .hist-line { stroke: #6fb3ec; }
 :root[data-theme='dark'] .hist-area, :root[data-theme='dark'] .hist-dot:not(.low) { fill: #6fb3ec; }
 #accountBtn .avatar { display: inline-grid !important; }
+
+/* ---------- Écran d'accueil ---------- */
+.splash { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(#0b1f3a, #12457a); color: #fbf5e6; padding: 24px; text-align: center; transition: opacity 0.5s, visibility 0.5s; }
+.splash.gone { opacity: 0; visibility: hidden; }
+.splash-sea { width: min(360px, 88vw); height: auto; border-radius: 22px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45); overflow: hidden; }
+.splash-title { font-family: 'Pirata One', serif; font-size: 2.6rem; color: #f2c14e; margin: 8px 0 0; letter-spacing: 2px; text-shadow: 0 3px 0 #9b0c23; }
+.splash-msg { margin: 4px 0 0; font-weight: 700; min-height: 2.6em; max-width: 320px; opacity: 0.92; }
+.sp-ship { transform-origin: 200px 190px; transform-box: view-box; animation: sp-bob 3s ease-in-out infinite; }
+.sp-wave { animation: sp-wave 4s linear infinite; }
+.sp-wave.w2 { animation-duration: 2.8s; animation-direction: reverse; }
+.sp-stars circle { animation: sp-twinkle 2.4s ease-in-out infinite alternate; }
+.sp-stars circle:nth-child(2n) { animation-delay: 1.2s; }
+@keyframes sp-bob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(5px) rotate(3deg); } }
+@keyframes sp-wave { from { transform: translateX(0); } to { transform: translateX(-100px); } }
+@keyframes sp-twinkle { from { opacity: 0.25; } to { opacity: 1; } }
+/* Log Pose : boussole en verre dont l'aiguille oscille. */
+.logpose { width: 46px; height: 46px; border-radius: 50%; position: relative; background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.55), rgba(95, 211, 255, 0.15) 60%);
+  border: 3px solid #7a4e2d; box-shadow: 0 0 0 3px #e6cf9c inset, 0 2px 8px rgba(0, 0, 0, 0.4); }
+.lp-needle { position: absolute; left: 50%; top: 6px; bottom: 6px; width: 4px; margin-left: -2px; border-radius: 2px;
+  background: linear-gradient(#c8102e 50%, #fbf5e6 50%); animation: lp-swing 1.8s ease-in-out infinite; }
+@keyframes lp-swing { 0%, 100% { transform: rotate(-35deg); } 50% { transform: rotate(40deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .sp-ship, .sp-wave, .sp-stars circle, .lp-needle { animation: none; }
+}

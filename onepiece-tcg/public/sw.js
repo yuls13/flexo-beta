@@ -1,6 +1,6 @@
 // Service worker : interface disponible hors ligne ; l'API n'est jamais mise en cache ici
 // (les derniers prix sont conservés côté page dans localStorage).
-const CACHE = 'berry-radar-v5';
+const CACHE = 'berry-radar-v6';
 const ASSETS = ['./', 'index.html', 'styles.css', 'app.js', 'account.js', 'tracking.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {
@@ -16,15 +16,25 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/__/')) return;
-  // Réseau d'abord, cache en secours.
+  // Réseau d'abord (au plus 2,5 s), copie locale sinon. Quand le serveur gratuit est en veille,
+  // l'hébergeur renvoie sa propre page d'attente : elle n'a pas notre en-tête X-App, elle n'est
+  // donc ni affichée ni mise en cache, et l'app s'ouvre aussitôt depuis la copie locale.
+  const ours = (res) => res && res.ok && res.headers.get('X-App') === 'berry-radar';
+  const net = fetch(e.request).then((res) => {
+    if (ours(res)) {
+      const copy = res.clone();
+      caches.open(CACHE).then((c) => c.put(e.request.mode === 'navigate' ? './' : e.request, copy));
+    }
+    return res;
+  });
+  e.waitUntil(net.catch(() => {}));
   e.respondWith(
-    fetch(e.request)
-      .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy));
-        return res;
-      })
-      .catch(() => caches.match(e.request))
+    (async () => {
+      const cached = (await caches.match(e.request, { ignoreSearch: true })) || (e.request.mode === 'navigate' ? await caches.match('./') : undefined);
+      if (!cached) return net;
+      const res = await Promise.race([net.catch(() => null), new Promise((r) => setTimeout(() => r(null), 2500))]);
+      return ours(res) ? res : cached;
+    })()
   );
 });
 

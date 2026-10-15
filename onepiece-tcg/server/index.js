@@ -179,6 +179,9 @@ function publicShop(s) {
 }
 
 async function handleApi(req, res, url) {
+  // Réveil / maintien en éveil du serveur (appelé par le service de cron).
+  if (url.pathname === '/api/ping') return sendJson(res, 200, { ok: true });
+
   if (url.pathname === '/api/config') {
     return sendJson(res, 200, {
       demo: DEMO,
@@ -410,6 +413,8 @@ async function serveStatic(res, url) {
     res.writeHead(200, {
       'Content-Type': MIME[ext] || 'application/octet-stream',
       'Cache-Control': ext === '.html' || file.endsWith('sw.js') ? 'no-cache' : 'public, max-age=3600',
+      // Permet au service worker de distinguer nos fichiers de la page d'attente de l'hébergeur.
+      'X-App': 'berry-radar',
     });
     res.end(data);
   } catch {
