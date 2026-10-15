@@ -150,7 +150,6 @@ main { max-width: 1100px; margin: 0 auto; padding: 8px 16px 32px; }
 .series-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px; margin: 6px 0 12px; }
 .series-head h2 { margin: 0; font-size: 2.2rem; line-height: 1; color: var(--red); }
 .series-head .names { margin: 4px 0 0; color: var(--muted); font-weight: 600; }
-.dates { display: flex; flex-wrap: wrap; gap: 6px; }
 .date { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; font-size: 0.8rem; }
 .preo-banner { flex-basis: 100%; background: #fff1d6; color: #7a4a00; border: 1px solid #f2c14e; border-radius: 10px; padding: 8px 12px; font-size: 0.88rem; }
 .date.future { border-color: var(--red); color: var(--red); font-weight: 700; }
@@ -590,4 +589,23 @@ a.diag-btn { text-decoration: none; }
 @keyframes lp-swing { 0%, 100% { transform: rotate(-35deg); } 50% { transform: rotate(40deg); } }
 @media (prefers-reduced-motion: reduce) {
   .sp-ship, .sp-wave, .sp-stars circle, .lp-needle { animation: none; }
+}
+
+/* ---------- Dates de sortie (bandeau d'une ligne, distinct des filtres) ---------- */
+.release { flex-basis: 100%; display: flex; align-items: center; flex-wrap: nowrap; white-space: nowrap; overflow-x: auto; scrollbar-width: none;
+  border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); padding: 6px 0; font-size: 0.85rem; }
+.release::-webkit-scrollbar { display: none; }
+.rel-label { font-weight: 800; font-size: 0.72rem; letter-spacing: 1.5px; text-transform: uppercase; color: var(--heading); padding-right: 12px; }
+.rel { display: inline-flex; align-items: center; gap: 6px; padding: 0 12px; border-left: 1px solid var(--line); color: var(--text); }
+.rel b { font-weight: 700; }
+.rel-flags { display: inline-flex; gap: 3px; }
+.rel { --soon: var(--red); }
+.rel.future b { color: var(--soon); }
+.rel.future::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--soon); animation: sp-twinkle 1.2s ease-in-out infinite alternate; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .rel { --soon: #ff7a7a; } }
+:root[data-theme='dark'] .rel { --soon: #ff7a7a; }
+@media (max-width: 520px) {
+  .release { font-size: 0.8rem; }
+  .rel { padding: 0 9px; gap: 5px; }
+  .rel-label { padding-right: 9px; letter-spacing: 1px; }
 }

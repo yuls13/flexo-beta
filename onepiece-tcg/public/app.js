@@ -306,12 +306,26 @@ function syncFilters() {
 function renderHead() {
   const s = state.series;
   const names = [s.names.fr, s.names.en, s.names.jp].filter(Boolean);
-  const dates = Object.entries(s.release || {})
-    .map(([l, d]) => {
-      const L = l.toUpperCase();
-      return `<span class="date ${d > today() ? 'future' : ''}">${flag(L)} ${d > today() ? 'sortie ' : ''}${dateFmt.format(new Date(d))}</span>`;
-    })
-    .join('');
+  // Dates de sortie : une seule ligne, langues sorties le même jour regroupées, ordre chronologique.
+  const groups = [];
+  for (const [l, d] of Object.entries(s.release || {}).sort((a, b) => a[1].localeCompare(b[1]))) {
+    const g = groups.find((x) => x.d === d);
+    if (g) g.langs.push(l.toUpperCase());
+    else groups.push({ d, langs: [l.toUpperCase()] });
+  }
+  const years = new Set(groups.map((g) => g.d.slice(0, 4)));
+  const oneYear = years.size === 1 ? [...years][0] : null;
+  const relFmt = new Intl.DateTimeFormat('fr-FR', oneYear ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: '2-digit' });
+  const dates = groups.length
+    ? `<div class="release" aria-label="Dates de sortie"><span class="rel-label">🗓️ Sortie${oneYear ? ` ${oneYear}` : ''}</span>${groups
+        .map((g) => {
+          const fut = g.d > today();
+          const days = Math.ceil((new Date(g.d) - new Date(today())) / 864e5);
+          const title = `${g.langs.map((L) => LANG_NAMES[L] || L).join(', ')} : ${fut ? 'sortie le ' : 'sorti le '}${dateFmt.format(new Date(g.d))}${fut ? ` (dans ${days} j)` : ''}`;
+          return `<span class="rel ${fut ? 'future' : ''}" title="${esc(title)}"><span class="rel-flags">${g.langs.map(flag).join('')}</span><b>${esc(relFmt.format(new Date(g.d)))}</b></span>`;
+        })
+        .join('')}</div>`
+    : '';
   const future = Object.entries(s.release || {}).filter(([, d]) => d > today());
   const banner = future.length
     ? `<div class="preo-banner">🗓️ ${
@@ -328,7 +342,7 @@ function renderHead() {
       ? `<button class="fav-btn preo-btn ${preoOn ? 'on' : ''}" type="button" data-preo-alert>${preoOn ? '🔔 Alerte précos active' : '🔔 Prévenez-moi des précos'}</button>`
       : '';
   $('#seriesHead').innerHTML = `<div><div class="title-row"><h2>${esc(s.special ? 'Starter decks & coffrets' : s.code)}</h2>${favBtn}${preoBtn}</div>
-    <p class="names">${esc(names.join(' · '))}</p></div><div class="dates">${dates}</div>${banner}`;
+    <p class="names">${esc(names.join(' · '))}</p></div>${dates}${banner}`;
 }
 
 function trustBadge(shopId) {
