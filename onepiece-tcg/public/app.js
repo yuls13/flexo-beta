@@ -1029,7 +1029,7 @@ async function showMyAlerts(highlight) {
       ${!device && support.ok ? '<button class="btn btn-red" type="button" data-push-enable>Activer sur cet appareil</button>' : ''}
       ${device && !state.account?.demo ? '<button class="btn btn-ghost-dark" type="button" data-push-test>Envoyer une notification de test</button>' : ''}
     </div>
-    <p class="muted small">Une même offre n’est notifiée qu’une fois par jour. Les alertes portent sur les boutiques suivies (pas sur vos boutiques ajoutées).</p>`, 'alertes');
+    <p class="muted small">Une même offre n’est notifiée qu’une fois par jour. Les alertes portent sur les boutiques suivies et sur vos boutiques ajoutées.</p>`, 'alertes');
 }
 
 // ---------- Historique des prix ----------

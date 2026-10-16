@@ -163,3 +163,23 @@ test('Alerte précommandes : prévenu à chaque nouvelle boutique, une notificat
   assert.equal(preorderOffers({ lang: 'any' }, [pre({ flags: [{ kind: 'suspect' }] })]).length, 0);
   assert.ok(preorderMessage({ id: 'x', series: 'EB05', lang: 'any' }, [pre({})], 1).title.startsWith('🗓️ EB05 :'));
 });
+
+test('Alertes : les boutiques ajoutées par un utilisateur ne comptent que pour lui', async () => {
+  const sub = (n) => ({ endpoint: `https://push.example/${n}`, keys: { p256dh: 'k', auth: 'a' } });
+  const docs = {
+    'users/a': { alerts: [{ id: 'x', series: 'OP13', type: 'display', lang: 'FR', maxPrice: 110 }], pushSubscriptions: [sub(1)] },
+    'users/b': { alerts: [{ id: 'y', series: 'OP13', type: 'display', lang: 'FR', maxPrice: 110 }], pushSubscriptions: [sub(2)] },
+  };
+  const db = {
+    get: async (p) => docs[p] || null,
+    set: async (p, d) => (docs[p] = { ...(docs[p] || {}), ...d }),
+    list: async (c) => Object.entries(docs).filter(([k]) => k.startsWith(`${c}/`)).map(([k, data]) => ({ id: k.split('/')[1], data })),
+  };
+  const sent = [];
+  const alerts = createAlertService({ db, push: { available: true, send: async (s) => (sent.push(s.endpoint), { ok: true }) } });
+  const mine = offer({ total: 99, shopId: 'custom:petiteboutique.fr', shopName: 'Petite boutique', url: 'https://petiteboutique.fr/p' });
+  const r = await alerts.evaluate('OP13', { offers: [offer({ total: 130 })] }, { extraOffers: (uid) => (uid === 'a' ? [mine] : []) });
+  assert.equal(r.sent, 1);
+  assert.deepEqual(sent, ['https://push.example/1']);
+  assert.equal((await alerts.watchers('OP13')).length, 2);
+});

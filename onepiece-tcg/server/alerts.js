@@ -75,20 +75,29 @@ export function createAlertService({ db, push }) {
     return list;
   }
 
-  async function evaluate(seriesId, priceData) {
+  // Utilisateurs ayant au moins une alerte active sur cette série et un appareil abonné.
+  async function watchers(seriesId) {
+    return (await users()).filter(
+      ({ data }) => (data.alerts || []).some((a) => a && a.active !== false && a.series === seriesId) && (data.pushSubscriptions || []).some(validSubscription)
+    );
+  }
+
+  // extraOffers(uid, data) : offres supplémentaires propres à l'utilisateur (ses boutiques ajoutées).
+  async function evaluate(seriesId, priceData, { extraOffers = null } = {}) {
     if (!db || !push?.available || !priceData?.offers) return { sent: 0 };
     let sent = 0;
     for (const { id: uid, data } of await users()) {
       const alerts = (data.alerts || []).filter((a) => a && a.active !== false && a.series === seriesId);
       const subs = (data.pushSubscriptions || []).filter(validSubscription);
       if (!alerts.length || !subs.length) continue;
+      const offers = extraOffers ? [...priceData.offers, ...(extraOffers(uid, data) || [])] : priceData.offers;
       const state = (await db.get(`alertState/${uid}`)) || {};
       const updates = {};
       const gone = new Set();
       for (const alert of alerts) {
         if (alert.kind === 'preorder') {
           // Prévenu à chaque nouvelle boutique qui ouvre les précommandes (une seule notification par relevé).
-          const found = preorderOffers(alert, priceData.offers);
+          const found = preorderOffers(alert, offers);
           const known = new Set(state.notified?.[alert.id]?.shops || []);
           const fresh = found.filter((o) => !known.has(o.shopId));
           if (!fresh.length) continue;
@@ -104,7 +113,7 @@ export function createAlertService({ db, push }) {
           }
           continue;
         }
-        const offer = matchAlert(alert, priceData.offers);
+        const offer = matchAlert(alert, offers);
         if (!offer) continue;
         const key = `${offer.url}|${offer.total}`;
         const prev = state.notified?.[alert.id];
@@ -128,5 +137,5 @@ export function createAlertService({ db, push }) {
     return { sent };
   }
 
-  return { evaluate };
+  return { evaluate, watchers };
 }

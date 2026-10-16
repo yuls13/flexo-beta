@@ -89,9 +89,10 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
     };
   }
 
-  async function run(s, extraShops) {
+  async function run(s, extraShops, { onlyExtra = false, context = null } = {}) {
     const startedAt = Date.now();
-    const targets = [...scrapable, ...extraShops.filter((x) => !blocked.has(x.domain.replace(/^www\./, '')))];
+    const extra = extraShops.filter((x) => !blocked.has(x.domain.replace(/^www\./, '')));
+    const targets = onlyExtra ? extra : [...scrapable, ...extra];
     const perShop = await pool(targets, 8, (shop) => searchShop(shop, s));
     const offers = [];
     const shopStatus = [];
@@ -122,7 +123,12 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
         ms,
       });
     });
-    flagPrices(offers);
+    if (context) {
+      // Prix suspects jugés par rapport à toutes les offres connues de la série (copies : la liste
+      // de référence n'est pas modifiée).
+      const ref = context.map((o) => ({ ...o, flags: o.flags.filter((f) => f.kind === 'info') }));
+      flagPrices([...ref, ...offers]);
+    } else flagPrices(offers);
     offers.sort(compareOffers);
     return {
       series: s.id,
@@ -156,7 +162,14 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
     return p;
   }
 
-  return { getSeries, scrapable, diagnose };
+  // Offres des seules boutiques données (boutiques personnelles, pour les alertes du relevé programmé).
+  async function searchShops(seriesId, extraShops, context = []) {
+    const s = series.find((x) => x.id === seriesId);
+    if (!s || !extraShops.length) return [];
+    return (await run(s, extraShops, { onlyExtra: true, context })).offers;
+  }
+
+  return { getSeries, scrapable, diagnose, searchShops };
 }
 
 export function shippingFor(shop, type, price, defaults) {

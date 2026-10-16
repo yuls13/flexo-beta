@@ -83,8 +83,27 @@ const FEATURES = {
   pushKey: pushService.publicKey,
 };
 
+// Boutiques personnelles des utilisateurs (relevé programmé) : chaque boutique n'est interrogée
+// qu'une fois par série, puis chaque utilisateur ne reçoit que les offres de SES boutiques.
+const customEntryOf = (c) => [c.domain, c.platform === 'link' ? 'auto' : c.platform, c.name].map((x) => encodeURIComponent(x || '')).join('|');
+async function userShopOffers(seriesId, data) {
+  const users = await alertService.watchers(seriesId);
+  if (!users.length) return null;
+  const byUser = new Map();
+  const all = new Map();
+  for (const { id: uid, data: u } of users) {
+    const param = (u.customShops || []).slice(0, MAX_CUSTOM_SHOPS).map(customEntryOf).join(',');
+    const { shops: list } = await parseCustomParam(param, { knownDomains, blacklist, resolve });
+    byUser.set(uid, new Set(list.map((x) => x.id)));
+    for (const x of list) all.set(x.id, x);
+  }
+  if (!all.size) return null;
+  const offers = await priceService.searchShops(seriesId, [...all.values()], data.offers);
+  return (uid) => offers.filter((o) => byUser.get(uid)?.has(o.shopId));
+}
+
 // Après un relevé complet (hors boutiques personnelles) : point d'historique et alertes.
-async function afterCollect(seriesId, data) {
+async function afterCollect(seriesId, data, { withUserShops = false } = {}) {
   if (DEMO || !db || data.cached) return;
   const own = { ...data, offers: data.offers.filter((o) => !String(o.shopId).startsWith('custom:')) };
   try {
@@ -93,7 +112,8 @@ async function afterCollect(seriesId, data) {
     console.error(`historique ${seriesId} :`, err.message);
   }
   try {
-    const { sent } = await alertService.evaluate(seriesId, own);
+    const extraOffers = withUserShops ? await userShopOffers(seriesId, own).catch((err) => (console.error(`boutiques personnelles ${seriesId} :`, err.message), null)) : null;
+    const { sent } = await alertService.evaluate(seriesId, own, { extraOffers });
     if (sent) console.log(`alertes ${seriesId} : ${sent} notification(s)`);
   } catch (err) {
     console.error(`alertes ${seriesId} :`, err.message);
@@ -109,7 +129,7 @@ async function collectAll() {
   for (const s of series) {
     try {
       const data = await priceService.getSeries(s.id, { force: true });
-      await afterCollect(s.id, data);
+      await afterCollect(s.id, data, { withUserShops: true });
       report.push({ series: s.id, offers: data.offers.length, cached: !!data.cached });
     } catch (err) {
       report.push({ series: s.id, error: err.message });

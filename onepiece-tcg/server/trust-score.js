@@ -59,15 +59,17 @@ export function computeScore({ flags = {}, blacklisted, age, tp, site, registry,
   }
 
   // Avis Google (si une clé Google Places est configurée sur le serveur).
-  if (google) {
+  if (google?.rating) {
     const weight = google.reviews != null && google.reviews < 20 ? 0.5 : 1;
     const base = google.rating >= 4.5 ? 15 : google.rating >= 4 ? 10 : google.rating >= 3.5 ? 5 : google.rating >= 3 ? -5 : -15;
     add('Avis Google', google.rating >= 3.5, Math.round(base * weight), `${google.rating.toFixed(1)}/5${google.reviews != null ? ` sur ${google.reviews} avis` : ''}`);
   }
 
   // Magasin physique : vérifié à la main → +15 et au moins « Fiable » ; simplement mentionné sur le site → +10.
-  const physicalVerified = !!flags.physicalStore;
-  if (physicalVerified) add('Magasin physique', true, 15, 'Boutique physique vérifiée : au moins « Fiable »');
+  const physicalVerified = !!flags.physicalStore || !!google?.physical;
+  if (physicalVerified) {
+    add('Magasin physique', true, 15, google?.physical ? `Fiche Google avec adresse : ${google.address}` : 'Boutique physique vérifiée : au moins « Fiable »');
+  }
   else if (site?.physical) add('Magasin physique', true, 10, 'Magasin ou retrait en boutique mentionné sur le site');
   if (flags.establishedRetailer) add('Enseigne reconnue', true, 10);
   if (flags.pokescamVerified) add('Référencée fiable par Pokescam', true, 5);

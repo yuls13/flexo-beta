@@ -101,8 +101,14 @@
       "base": "https://ludotrotter.fr",
       "platform": "woocommerce",
       "country": "FR",
-      "flags": {},
-      "searchUrl": "https://ludotrotter.fr/?s={q}&post_type=product"
+      "flags": {
+        "physicalStore": true
+      },
+      "searchUrl": "https://ludotrotter.fr/?s={q}&post_type=product",
+      "notes": "Réseau de magasins (dont Salon-de-Provence).",
+      "refs": [
+        "https://lexpress-franchise.com/franchise/ludotrotter/"
+      ]
     },
     {
       "id": "vcollect",

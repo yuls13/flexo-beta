@@ -107,7 +107,7 @@ export async function googleReviews(domain, apiKey) {
     headers: {
       'Content-Type': 'application/json',
       'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': 'places.displayName,places.rating,places.userRatingCount,places.websiteUri',
+      'X-Goog-FieldMask': 'places.displayName,places.rating,places.userRatingCount,places.websiteUri,places.formattedAddress,places.businessStatus,places.pureServiceAreaBusiness',
     },
     body: JSON.stringify({ textQuery: rootDomain(domain), languageCode: 'fr', maxResultCount: 5 }),
     signal: AbortSignal.timeout(10000),
@@ -122,7 +122,16 @@ export async function googleReviews(domain, apiKey) {
       return false;
     }
   });
-  return place?.rating ? { rating: place.rating, reviews: place.userRatingCount ?? null, name: place.displayName?.text || null } : null;
+  if (!place) return null;
+  // Fiche Google Business avec une adresse (et pas une simple zone desservie) : boutique physique.
+  const physical = !!place.formattedAddress && !place.pureServiceAreaBusiness && place.businessStatus !== 'CLOSED_PERMANENTLY';
+  return {
+    rating: place.rating ?? null,
+    reviews: place.userRatingCount ?? null,
+    name: place.displayName?.text || null,
+    address: physical ? place.formattedAddress : null,
+    physical,
+  };
 }
 
 export async function siteChecks(domain) {

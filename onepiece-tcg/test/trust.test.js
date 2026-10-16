@@ -108,3 +108,10 @@ test('magasin physique vérifié : fiable d’office (sauf société fermée), s
   const mention = computeScore({ site: { https: true, legal: true, companyId: true, physical: true } });
   assert.equal(mention.checks.find((c) => c.label === 'Magasin physique').points, 10);
 });
+
+test('fiche Google avec adresse = magasin physique (fiable d’office)', () => {
+  const r = computeScore({ site: { https: true, legal: false, companyId: false }, google: { rating: null, physical: true, address: '1 rue du Port, 13300 Salon-de-Provence' } });
+  assert.ok(r.score >= 55);
+  assert.match(r.checks.find((c) => c.label === 'Magasin physique').detail, /Salon-de-Provence/);
+  assert.ok(!r.checks.some((c) => c.label === 'Avis Google'));
+});
