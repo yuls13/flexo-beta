@@ -39,6 +39,10 @@ const state = {
   favSeries: [], // séries préférées (compte)
   favShops: [], // boutiques préférées (compte)
   favOnly: false, // filtre « boutiques préférées seulement »
+  view: 'prix', // vue affichée sur mobile (barre de navigation du bas) : prix | cartes | alertes | compte
+  sort: 'total', // tri des offres : total | booster | trust | stock
+  expanded: {}, // type -> true : toutes les boutiques affichées (sinon les 5 meilleures)
+  shopOpen: {}, // « type|boutique » -> true : autres offres de la boutique dépliées
   alerts: [], // alertes de prix (compte) : { id, series, type, lang, maxPrice, active, createdAt }
   pushSubs: [], // appareils abonnés aux notifications (compte)
   history: {}, // seriesId -> { data, at }
@@ -177,7 +181,14 @@ async function init() {
   for (const c of state.customShops) if (c.trust) state.trust[c.id] = c.trust;
   renderMyShops();
   const prefs = store.get('prefs', {});
-  Object.assign(state, { lang: prefs.lang || 'all', type: prefs.type || 'all', stock: ['buyable', 'preorder', 'all'].includes(prefs.stock) ? prefs.stock : 'buyable' });
+  Object.assign(state, {
+    lang: prefs.lang || 'all',
+    type: prefs.type || 'all',
+    stock: ['buyable', 'preorder', 'all'].includes(prefs.stock) ? prefs.stock : 'buyable',
+    sort: ['total', 'booster', 'trust', 'stock'].includes(prefs.sort) ? prefs.sort : 'total',
+  });
+  $('#sortSel').value = state.sort;
+  setView('prix');
 
   for (const b of document.querySelectorAll('#langFilter button[data-v]')) {
     if (FLAG_SVG[b.dataset.v]) b.innerHTML = flag(b.dataset.v);
@@ -464,13 +475,14 @@ function renderBest(data) {
         f.alerts || f.history
           ? `<div class="w-actions">${
               f.alerts
-                ? `<button type="button" class="w-act ${hasAlert(o) ? 'on' : ''}" data-alert-new="${esc(`${o.type}|${o.lang || ''}`)}" title="Être prévenu quand le prix baisse">🔔<span>${hasAlert(o) ? 'Alerte active' : 'Alerte'}</span></button>`
+                ? `<button type="button" class="w-act ${hasAlert(o) ? 'on' : ''}" data-alert-new="${esc(`${o.type}|${o.lang || ''}`)}" title="${hasAlert(o) ? 'Alerte active' : 'Être prévenu quand le prix baisse'}" aria-label="${hasAlert(o) ? 'Alerte active' : 'Créer une alerte de prix'}">🔔</button>`
                 : ''
-            }${f.history ? `<button type="button" class="w-act" data-history="${esc(`${o.type}|${o.lang || ''}`)}" title="Évolution du meilleur prix">📈<span>Historique</span></button>` : ''}</div>`
+            }${f.history ? `<button type="button" class="w-act" data-history="${esc(`${o.type}|${o.lang || ''}`)}" title="Historique du prix" aria-label="Historique du prix">📈</button>` : ''}</div>`
           : ''
       }</div>`
     )
     .join('');
+  $('#best').scrollLeft = 0;
 }
 
 function offerRow(o, isTop) {
@@ -480,7 +492,7 @@ function offerRow(o, isTop) {
   return `<article class="offer ${o.available === false ? 'out' : ''} ${suspect ? 'suspect' : ''} ${isTop ? 'top1' : ''}">
     <div class="offer-main">
       <div class="offer-shop">${favStar(o.shopId)}${shopLogo(o.shopId, o.shopName)}${isTop ? '👑 ' : ''}${esc(o.shopName)} ${o.custom ? '<span class="tag mine">⭐ Ma boutique</span>' : ''} ${trustBadge(o.shopId)}</div>
-      <p class="offer-title">${esc(o.title)}</p>
+      <p class="offer-title" title="${esc(o.title)}">${esc(o.title)}</p>
       <div class="tags">
         <span class="tag">${o.lang ? `${flag(o.lang)} ${LANG_NAMES[o.lang]}` : 'Langue ?'}</span>
         ${stockTag(o)}${flags}
@@ -498,8 +510,54 @@ function offerRow(o, isTop) {
   </article>`;
 }
 
+// ---------- Liste des offres : tri, une ligne par boutique, 5 boutiques puis « voir plus » ----------
+
+const VISIBLE_SHOPS = 5;
+const isSuspect = (o) => o.flags.some((f) => f.kind === 'suspect');
+const stockRank = (o) => (o.available === true && !o.preorder ? 0 : o.preorder && o.available !== false ? 1 : o.available == null ? 2 : 3);
+const SORTS = {
+  total: (a, b) => isSuspect(a) - isSuspect(b) || (a.available === false) - (b.available === false) || a.total - b.total,
+  booster: (a, b) => isSuspect(a) - isSuspect(b) || (a.available === false) - (b.available === false) || (a.perBooster ?? a.total) - (b.perBooster ?? b.total) || a.total - b.total,
+  trust: (a, b) => (trustOf(b.shopId)?.score ?? -1) - (trustOf(a.shopId)?.score ?? -1) || isSuspect(a) - isSuspect(b) || a.total - b.total,
+  stock: (a, b) => stockRank(a) - stockRank(b) || isSuspect(a) - isSuspect(b) || a.total - b.total,
+};
+
+function offerGroup(t, list) {
+  const sorted = [...list].sort(SORTS[state.sort] || SORTS.total);
+  // Meilleure offre (couronne) : la moins chère, disponible et non suspecte, quel que soit le tri.
+  const cheapest = list.filter((o) => o.available !== false && !isSuspect(o)).sort((a, b) => a.total - b.total)[0];
+  const byShop = new Map();
+  for (const o of sorted) {
+    if (!byShop.has(o.shopId)) byShop.set(o.shopId, []);
+    byShop.get(o.shopId).push(o);
+  }
+  const shops = [...byShop.values()];
+  const shown = state.expanded[t] ? shops : shops.slice(0, VISIBLE_SHOPS);
+  const rows = shown
+    .map((offersOfShop) => {
+      const [first, ...others] = offersOfShop;
+      const key = `${t}|${first.shopId}`;
+      const open = !!state.shopOpen[key];
+      return `${offerRow(first, first === cheapest)}${
+        others.length
+          ? `<button type="button" class="more-offers" data-shop-more="${esc(key)}" aria-expanded="${open}">${open ? '▴ Masquer' : `▾ ${others.length} autre${others.length > 1 ? 's' : ''} offre${others.length > 1 ? 's' : ''}`} chez ${esc(first.shopName)}</button>${
+              open ? `<div class="sub-offers">${others.map((o) => offerRow(o, o === cheapest)).join('')}</div>` : ''
+            }`
+          : ''
+      }`;
+    })
+    .join('');
+  const rest = shops.length - VISIBLE_SHOPS;
+  const more =
+    rest > 0
+      ? `<button type="button" class="show-all" data-expand="${t}">${state.expanded[t] ? '▴ Réduire' : `Voir les ${rest} autre${rest > 1 ? 's' : ''} boutique${rest > 1 ? 's' : ''}`}</button>`
+      : '';
+  return `<section class="group" id="group-${t}"><h3>${typeIcon(t)}${esc(typeLabel(t))} <span class="count">${list.length} offre${list.length > 1 ? 's' : ''} · ${shops.length} boutique${shops.length > 1 ? 's' : ''}</span></h3>${rows}${more}</section>`;
+}
+
 function render() {
   if (!state.series) return;
+  syncNavBadges();
   const data = state.data[state.series.id];
   if (!data) {
     $('#best').innerHTML = '';
@@ -520,12 +578,7 @@ function render() {
   const offers = filtered(data.offers);
   const groups = TYPE_ORDER.map((t) => [t, offers.filter((o) => o.type === t)]).filter(([, list]) => list.length);
   $('#offers').innerHTML = groups.length
-    ? groups
-        .map(
-          ([t, list]) => `<section class="group"><h3>${typeIcon(t)}${esc(state.config.productTypes[t].label)} <span class="count">${list.length} offre${list.length > 1 ? 's' : ''}</span></h3>
-          ${list.map((o, i) => offerRow(o, i === 0 && o.available !== false && !o.flags.some((f) => f.kind === 'suspect'))).join('')}</section>`
-        )
-        .join('')
+    ? groups.map(([t, list]) => offerGroup(t, list)).join('')
     : `<div class="empty">Aucune offre trouvée avec ces filtres.${state.stock !== 'all' ? ' Essayez le filtre « Tout » (inclut les ruptures).' : ''}<br>Pensez aussi aux liens « Vérifier aussi sur » ci-dessous.</div>`;
 
   const st = { ok: '✔ Offres trouvées', empty: '○ Rien pour cette série', error: '✖ Injoignable', protected: '🛡 Site protégé (anti-robots)' };
@@ -938,7 +991,7 @@ async function showMyAlerts(highlight) {
         )
         .join('')}</ul>`
     : '';
-  openDialog(`<h2>🔔 Mes alertes de prix</h2>
+  presentView(`<h2>🔔 Mes alertes de prix</h2>
     ${
       list.length
         ? `<ul class="alert-list">${list
@@ -967,7 +1020,7 @@ async function showMyAlerts(highlight) {
       ${!device && support.ok ? '<button class="btn btn-red" type="button" data-push-enable>Activer sur cet appareil</button>' : ''}
       ${device && !state.account?.demo ? '<button class="btn btn-ghost-dark" type="button" data-push-test>Envoyer une notification de test</button>' : ''}
     </div>
-    <p class="muted small">Une même offre n’est notifiée qu’une fois par jour. Les alertes portent sur les boutiques suivies (pas sur vos boutiques ajoutées).</p>`);
+    <p class="muted small">Une même offre n’est notifiée qu’une fois par jour. Les alertes portent sur les boutiques suivies (pas sur vos boutiques ajoutées).</p>`, 'alertes');
 }
 
 // ---------- Historique des prix ----------
@@ -1100,6 +1153,7 @@ async function setupAccount(pickFavorite) {
     render();
     renderMyShops();
     renderCards();
+    renderViews();
   });
 }
 
@@ -1149,14 +1203,15 @@ function syncFavToggle() {
 const GOOGLE_G = `<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>`;
 
 function showAccount(reason) {
+  const present = (html) => presentView(html, 'compte');
   const acc = state.account;
-  if (!acc) return openDialog('<h2>Mon compte</h2><p class="muted">Chargement…</p>');
+  if (!acc) return present('<h2>Mon compte</h2><p class="muted">Chargement…</p>');
   if (!acc.available) {
-    return openDialog(`<h2>Mon compte</h2><p>${esc(acc.reason)}</p>`);
+    return present(`<h2>Mon compte</h2><p>${esc(acc.reason)}</p>`);
   }
   const u = state.user;
   if (!u) {
-    return openDialog(`<h2>Créer mon compte</h2>
+    return present(`<h2>Créer mon compte</h2>
       ${reason ? `<p class="notice">${esc(reason)}</p>` : ''}
       <p class="muted">Avec un compte, retrouvez sur tous vos appareils :</p>
       <ul class="perks">
@@ -1168,7 +1223,7 @@ function showAccount(reason) {
       <button class="btn-google" id="googleSignIn" type="button">${GOOGLE_G}<span>Continuer avec Google</span></button>
       <p class="muted small">Le compte est créé à la première connexion. Seuls votre nom, votre e-mail et vos préférences sont enregistrés. Vous pouvez tout supprimer à tout moment.</p>
       ${acc.demo ? '<p class="notice">Version démo : la connexion est simulée, aucun compte Google n’est utilisé.</p>' : ''}
-      <p id="signInError" class="err-msg" hidden></p>`);
+      <p id="signInError" class="err-msg" hidden></p>${isMobile() && state.view === 'compte' ? '<button class="btn btn-ghost-dark btn-wide" type="button" data-open-checker>🛡️ Vérifier un site</button>' : ''}`);
   }
   const seriesName = (id) => {
     const s = state.config.series.find((x) => x.id === id);
@@ -1179,7 +1234,7 @@ function showAccount(reason) {
     ids.length
       ? `<div class="chips">${ids.map((id) => `<span class="chip">${esc(label(id))}<button type="button" class="chip-x" data-unfav-${kind}="${esc(id)}" aria-label="Retirer">✕</button></span>`).join('')}</div>`
       : `<p class="muted small">Aucune pour l’instant : utilisez l’étoile ☆ ${kind === 'series' ? 'à côté du nom de la série' : 'à côté du nom d’une boutique'}.</p>`;
-  openDialog(`<h2>Mon compte</h2>
+  present(`<h2>Mon compte</h2>
     <div class="profile">${u.photo ? `<img class="avatar lg" src="${esc(safeUrl(u.photo))}" alt="" referrerpolicy="no-referrer" />` : `<span class="avatar lg">${esc((u.name || '?')[0].toUpperCase())}</span>`}
       <div><b>${esc(u.name || '')}</b><br><span class="muted">${esc(u.email || '')}</span></div></div>
     ${acc.demo ? '<p class="notice">Compte de démonstration (connexion simulée).</p>' : ''}
@@ -1190,7 +1245,7 @@ function showAccount(reason) {
     <div class="account-actions">
       <button class="btn btn-ghost-dark" id="signOutBtn" type="button">Se déconnecter</button>
       <button class="btn btn-danger" id="deleteDataBtn" type="button">Supprimer mes données</button>
-    </div>`);
+    </div>${isMobile() && state.view === 'compte' ? '<button class="btn btn-ghost-dark btn-wide" type="button" data-open-checker>🛡️ Vérifier un site</button>' : ''}`);
 }
 
 function requireAccount(reason) {
@@ -1323,6 +1378,75 @@ function scoreHtml(t, shop) {
     ${(shop?.refs || []).length ? `<p class="muted">Références : ${shop.refs.map((r) => `<a href="${esc(safeUrl(r))}" target="_blank" rel="noopener noreferrer">${esc(new URL(r).hostname)}</a>`).join(', ')}</p>` : ''}`;
 }
 
+// ---------- Vues mobiles (barre de navigation du bas) ----------
+
+const mobileQuery = window.matchMedia('(max-width: 720px)');
+const isMobile = () => mobileQuery.matches;
+const VIEW_TARGETS = { compte: '#accountView', alertes: '#alertsView' };
+
+// Affiche le contenu dans la vue mobile correspondante si elle est ouverte, sinon dans une fenêtre.
+function presentView(html, view) {
+  if (view && isMobile() && state.view === view && VIEW_TARGETS[view]) {
+    $(VIEW_TARGETS[view]).innerHTML = html;
+    if ($('#dlg').open) $('#dlg').close();
+    return;
+  }
+  openDialog(html);
+}
+
+function setView(v) {
+  state.view = v;
+  document.querySelectorAll('[data-view]').forEach((el) => el.classList.toggle('m-off', !el.dataset.view.split(' ').includes(v)));
+  document.querySelectorAll('#bottomNav [data-nav]').forEach((b) => {
+    b.classList.toggle('on', b.dataset.nav === v);
+    b.setAttribute('aria-current', b.dataset.nav === v ? 'page' : 'false');
+  });
+  document.body.dataset.screen = v;
+  renderViews();
+}
+
+function renderViews() {
+  // Une seule vue intégrée remplie à la fois (évite les identifiants en double, ex. bouton de connexion).
+  for (const [v, sel] of Object.entries(VIEW_TARGETS)) if (v !== state.view || !isMobile()) $(sel).innerHTML = '';
+  if (!isMobile()) return;
+  if (state.view === 'alertes') renderAlertsView();
+  if (state.view === 'compte') showAccount();
+}
+
+function renderAlertsView() {
+  const box = $('#alertsView');
+  if (!state.config.features?.alerts) {
+    box.innerHTML = '<h2>🔔 Mes alertes</h2><p class="muted">Les alertes de prix ne sont pas encore configurées sur ce serveur.</p>';
+    return;
+  }
+  if (!state.user) {
+    box.innerHTML = `<h2>🔔 Mes alertes</h2>
+      <p class="muted">Recevez une notification dès qu’un produit passe sous votre prix, ou dès qu’une série à venir ouvre ses précommandes.</p>
+      <button class="btn-google" id="googleSignIn" type="button">${GOOGLE_G}<span>Se connecter avec Google</span></button>
+      <p id="signInError" class="err-msg" hidden></p>`;
+    return;
+  }
+  showMyAlerts();
+}
+
+function syncNavBadges() {
+  const n = state.alerts.filter((a) => a.active !== false).length;
+  const b = $('#bnAlertCount');
+  if (b) {
+    b.hidden = !n;
+    b.textContent = n;
+  }
+  const ico = $('#bnAccountIco');
+  if (ico) {
+    const u = state.user;
+    ico.innerHTML = u
+      ? u.photo
+        ? `<img class="avatar" src="${esc(safeUrl(u.photo))}" alt="" referrerpolicy="no-referrer" />`
+        : `<span class="avatar">${esc((u.name || u.email || '?').trim()[0].toUpperCase())}</span>`
+      : '👤';
+  }
+}
+
 function openDialog(html) {
   $('#dlgBody').innerHTML = html;
   $('#dlg').showModal();
@@ -1407,6 +1531,26 @@ document.addEventListener('click', async (e) => {
   if (unB) {
     toggleFavShop(unB.dataset.unfavShop);
     return showAccount();
+  }
+  const nav = t.closest('[data-nav]');
+  if (nav) {
+    setView(nav.dataset.nav);
+    window.scrollTo({ top: 0 });
+    return;
+  }
+  if (t.closest('[data-open-checker]')) return showChecker();
+  const shopMore = t.closest('[data-shop-more]');
+  if (shopMore) {
+    state.shopOpen[shopMore.dataset.shopMore] = !state.shopOpen[shopMore.dataset.shopMore];
+    return render();
+  }
+  const expand = t.closest('[data-expand]');
+  if (expand) {
+    const tp = expand.dataset.expand;
+    state.expanded[tp] = !state.expanded[tp];
+    render();
+    if (!state.expanded[tp]) document.getElementById(`group-${tp}`)?.scrollIntoView({ block: 'start' });
+    return;
   }
   const expB = t.closest('[data-exp]');
   if (expB) return setExperience(expB.dataset.expShop, expB.dataset.exp);
@@ -1558,8 +1702,32 @@ $('#dlg').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) e.currentTarget.close();
 });
 
+$('#sortSel').addEventListener('change', (e) => {
+  state.sort = e.target.value;
+  savePrefs();
+  render();
+});
+mobileQuery.addEventListener?.('change', () => setView(state.view));
+
+// En-tête réduit au défilement (mobile) : seuls les onglets de séries restent visibles.
+let lastScrollY = 0;
+window.addEventListener(
+  'scroll',
+  () => {
+    const y = window.scrollY;
+    const top = document.querySelector('.top');
+    // Translation de la hauteur de la ligne du logo : la mise en page ne bouge pas (pas d'effet yo-yo).
+    top.style.setProperty('--top-hide', `${top.querySelector('.top-inner').offsetHeight + parseFloat(getComputedStyle(top).paddingTop || 0)}px`);
+    if (!isMobile()) top.classList.remove('compact');
+    else if (y > 120 && y > lastScrollY + 4) top.classList.add('compact');
+    else if (y < lastScrollY - 8 || y < 60) top.classList.remove('compact');
+    lastScrollY = y;
+  },
+  { passive: true }
+);
+
 function savePrefs() {
-  store.set('prefs', { lang: state.lang, type: state.type, stock: state.stock });
+  store.set('prefs', { lang: state.lang, type: state.type, stock: state.stock, sort: state.sort });
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

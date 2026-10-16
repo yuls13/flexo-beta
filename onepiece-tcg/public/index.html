@@ -68,9 +68,9 @@
   <div id="demoBanner" class="demo-banner" hidden>⚠️ MODE DÉMO : prix fictifs générés pour tester l’interface. Lancez le serveur sans DEMO=1 pour les vrais prix.</div>
 
   <main>
-    <section id="seriesHead" class="series-head"></section>
+    <section id="seriesHead" class="series-head" data-view="prix cartes"></section>
 
-    <section class="filters" aria-label="Filtres">
+    <section class="filters" aria-label="Filtres" data-view="prix">
       <div class="seg" id="langFilter" role="group" aria-label="Langue">
         <button data-v="all" class="on">Toutes</button>
         <button data-v="FR" aria-label="Français" title="Français">FR</button>
@@ -84,32 +84,42 @@
         <button data-v="preorder">🗓️ Précommandes</button>
         <button data-v="all">Tout</button>
       </div>
+      <label class="sort-sel">↕ Trier par
+        <select id="sortSel" aria-label="Trier les offres">
+          <option value="total">Prix total</option>
+          <option value="booster">Prix par booster</option>
+          <option value="trust">Fiabilité de la boutique</option>
+          <option value="stock">Disponibilité</option>
+        </select>
+      </label>
     </section>
 
-    <p id="status" class="status" role="status"></p>
+    <p id="status" class="status" role="status" data-view="prix"></p>
 
-    <section id="best" class="best" aria-label="Meilleurs prix"></section>
-    <section id="cards" class="panel cards" aria-label="Chase cards" hidden></section>
-    <section id="offers" class="offers"></section>
+    <section id="best" class="best" aria-label="Meilleurs prix" data-view="prix"></section>
+    <section id="cards" class="panel cards" aria-label="Chase cards" data-view="cartes" hidden></section>
+    <section id="alertsView" class="panel m-only" data-view="alertes" aria-label="Mes alertes"></section>
+    <section id="accountView" class="panel m-only" data-view="compte" aria-label="Mon compte"></section>
+    <section id="offers" class="offers" data-view="prix"></section>
 
-    <section class="panel">
+    <section class="panel" data-view="prix">
       <h2>Vérifier aussi sur</h2>
       <p class="muted">Ces sites ne peuvent pas être lus automatiquement (protection anti-robots). Liens directs vers la recherche :</p>
       <div id="links" class="link-grid"></div>
     </section>
 
-    <section class="panel">
+    <section class="panel" data-view="compte">
       <div class="panel-head"><h2>⭐ Mes boutiques</h2>
         <button id="addShopBtn" class="btn btn-red btn-sm" type="button">➕ Ajouter une boutique</button></div>
       <div id="myShops" class="shop-list"></div>
     </section>
 
-    <details class="panel" id="shopPanel">
+    <details class="panel" id="shopPanel" data-view="compte">
       <summary>Boutiques interrogées <span id="shopSummary" class="muted"></span></summary>
       <div id="shopList" class="shop-list"></div>
     </details>
 
-    <section class="panel note">
+    <section class="panel note" data-view="compte">
       <h2>Comment lire les résultats</h2>
       <ul>
         <li><b>Total</b> = prix + port <em>estimé</em> vers la France (le port réel dépend de la boutique et du panier).</li>
@@ -121,7 +131,14 @@
     </section>
   </main>
 
-  <footer class="foot">
+  <nav id="bottomNav" class="bottom-nav" aria-label="Navigation">
+    <button type="button" data-nav="prix" class="on"><span class="bn-ico">💰</span><span>Prix</span></button>
+    <button type="button" data-nav="cartes"><span class="bn-ico">💎</span><span>Cartes</span></button>
+    <button type="button" data-nav="alertes"><span class="bn-ico">🔔<b id="bnAlertCount" hidden></b></span><span>Alertes</span></button>
+    <button type="button" data-nav="compte"><span class="bn-ico" id="bnAccountIco">👤</span><span>Compte</span></button>
+  </nav>
+
+  <footer class="foot" data-view="compte">
     <p>Berry Radar — outil personnel non affilié à Bandai, Toei Animation ni aux boutiques citées. Prix indicatifs, à confirmer sur le site marchand.</p>
   </footer>
 
