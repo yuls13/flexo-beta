@@ -35,11 +35,12 @@
       "queries": [
         "EB05",
         "EB-05",
-        "Heroines Edition"
+        "Heroine Edition",
+        "One Piece EB05"
       ],
       "match": [
         "\\bEB-?05\\b",
-        "heroines edition (vol\\.? ?2|2)"
+        "heroines? edition (vol\\.? ?2|2)"
       ]
     },
     {
@@ -201,11 +202,11 @@
       "queries": [
         "EB03",
         "EB-03",
-        "Heroines"
+        "Heroine Edition"
       ],
       "match": [
         "\\bEB-?03\\b",
-        "heroines edition(?! (vol\\.? ?2|2))"
+        "heroines? edition(?! (vol\\.? ?2|2))"
       ],
       "exclude": [
         "\\bEB-?05\\b"

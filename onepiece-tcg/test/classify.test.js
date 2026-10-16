@@ -88,3 +88,10 @@ test('Autres jeux écartés, même sans le mot « Pokémon » (codes EB des exte
   assert.equal(classify('Booster OP16 Français', S.OP16)?.type, 'booster');
   assert.equal(classify('Booster PRB02 The Best Vol.2', S.PRB02)?.type, 'booster');
 });
+
+test('EB05 : « Heroine Edition » au singulier reconnu (titre Parkage)', () => {
+  const t = 'One Piece Card Game - Display x24 Extra Booster Packs EB-05 Heroine Edition Vol.2';
+  assert.equal(classify(t, S.EB05, 150)?.type, 'display');
+  assert.equal(classify(t, S.EB03, 150), null);
+  assert.equal(classify('Display Heroine Edition Vol.2 (EN) - One Piece', S.EB05, 150)?.lang, 'EN');
+});

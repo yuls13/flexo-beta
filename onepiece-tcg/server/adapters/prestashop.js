@@ -8,14 +8,17 @@ export function parsePresta(json) {
   const products = json?.products || [];
   return products.map((p) => {
     const availability = p.availability || '';
-    const msg = `${p.availability_message || ''} ${p.availability_date || ''}`;
+    const msg = `${p.availability_message || ''} ${p.availability_date || ''} ${p.labels?.preorder || ''}`;
+    const preorder = /pr[ée]-?commande|pre-?order|disponible le|sortie le|date de sortie/i.test(msg) || !!p.labels?.preorder;
+    const unavailable = availability === 'unavailable' || (!availability && p.quantity != null && p.quantity <= 0);
     return {
       title: decodeEntities(p.name || ''),
       price: parsePrice(p.price_amount ?? p.price),
       url: p.url || p.link,
-      available:
-        availability === 'unavailable' ? false : availability ? true : p.quantity != null ? p.quantity > 0 : null,
-      preorder: /pr[ée]-?commande|pre-?order|disponible le|sortie le/i.test(msg) || undefined,
+      // Précommande signalée : commandable même si le stock affiché est à zéro.
+      available: unavailable ? (preorder ? null : false) : availability || p.quantity != null ? true : null,
+      backorder: (unavailable && preorder) || undefined,
+      preorder: preorder || undefined,
       image: p.cover?.bySize?.home_default?.url || p.cover?.medium?.url || p.cover?.small?.url || null,
     };
   });
@@ -38,12 +41,14 @@ export function parsePrestaHtml(html, base) {
       chunk.match(/itemprop="price"[^>]*content="([\d.,]+)"/i) ||
       chunk.match(/class="[^"]*\bprice\b[^"]*"[^>]*>\s*([^<]*\d[^<]*)</i);
     const unavailable = /out-of-stock|rupture|[ée]puis[ée]|indisponible|unavailable/i.test(chunk);
+    const preorder = /pr[ée]-?commande|pre-?order/i.test(chunk);
     out.push({
       title,
       price: priceM ? parsePrice(priceM[1]) : null,
       url: new URL(link[1], base).href,
-      available: unavailable ? false : null,
-      preorder: /pr[ée]-?commande/i.test(chunk) || undefined,
+      available: unavailable && !preorder ? false : null,
+      backorder: (unavailable && preorder) || undefined,
+      preorder: preorder || undefined,
       image: (chunk.match(/<img[^>]+(?:data-src|src)="([^"]+)"/i) || [])[1] || null,
     });
   }

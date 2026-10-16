@@ -75,3 +75,15 @@ test('PrestaShop HTML (repli)', () => {
   assert.equal(a.url, 'https://shop.fr/one-piece/1-display-op16-fr.html');
   assert.equal(b.available, false);
 });
+
+test('PrestaShop : précommande à stock zéro = commandable (pas « rupture »)', async () => {
+  const { parsePresta } = await import('../server/adapters/prestashop.js');
+  const [p] = parsePresta({
+    products: [{ name: 'One Piece Card Game - Display x24 Extra Booster Packs EB-05 Heroine Edition Vol.2', price_amount: 149.9, url: 'https://shop.fr/p', availability: 'unavailable', availability_message: 'Précommande - sortie le 30/10/2026', quantity: 0 }],
+  });
+  assert.equal(p.available, null);
+  assert.equal(p.backorder, true);
+  assert.equal(p.preorder, true);
+  const [q] = parsePresta({ products: [{ name: 'X', price_amount: 10, url: 'https://shop.fr/q', availability: 'unavailable', availability_message: 'Rupture de stock' }] });
+  assert.equal(q.available, false);
+});
