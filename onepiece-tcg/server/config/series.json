@@ -1,0 +1,267 @@
+{
+  "_comment": "Séries suivies. 'queries' = termes envoyés aux moteurs de recherche des boutiques ; 'match' = motifs (regex, insensibles à la casse) qui rattachent un titre de produit à la série ; 'exclude' = motifs qui empêchent le rattachement. Dates au format AAAA-MM-JJ.",
+  "series": [
+    {
+      "id": "OP18",
+      "code": "OP-18",
+      "names": {
+        "en": "The Dominance of God",
+        "jp": "神の支配"
+      },
+      "release": {
+        "en": "2026-11-20",
+        "jp": "2026-11-21"
+      },
+      "queries": [
+        "OP18",
+        "OP-18",
+        "Dominance of God"
+      ],
+      "match": [
+        "\\bOP-?18\\b",
+        "dominance of god"
+      ]
+    },
+    {
+      "id": "EB05",
+      "code": "EB-05",
+      "names": {
+        "en": "Heroines Edition vol.2"
+      },
+      "release": {
+        "en": "2026-10-30",
+        "jp": "2026-10-31"
+      },
+      "queries": [
+        "EB05",
+        "EB-05",
+        "Heroines Edition"
+      ],
+      "match": [
+        "\\bEB-?05\\b",
+        "heroines edition (vol\\.? ?2|2)"
+      ]
+    },
+    {
+      "id": "OP17",
+      "code": "OP-17",
+      "names": {
+        "fr": "Les Guerriers les plus puissants au monde",
+        "en": "The World's Strongest Warriors",
+        "jp": "世界最強の戦士"
+      },
+      "release": {
+        "fr": "2026-08-28",
+        "en": "2026-08-28",
+        "jp": "2026-08-22"
+      },
+      "queries": [
+        "OP17",
+        "OP-17",
+        "Strongest Warriors",
+        "Guerriers les plus puissants"
+      ],
+      "match": [
+        "\\bOP-?17\\b",
+        "strongest warriors?",
+        "guerriers les plus puissants"
+      ]
+    },
+    {
+      "id": "OP16",
+      "code": "OP-16",
+      "names": {
+        "fr": "L'Heure de la Bataille Décisive",
+        "en": "The Time of Battle",
+        "jp": "決戦の刻"
+      },
+      "release": {
+        "fr": "2026-06-12",
+        "en": "2026-06-12",
+        "jp": "2026-05-30"
+      },
+      "queries": [
+        "OP16",
+        "OP-16",
+        "Time of Battle",
+        "Bataille Décisive"
+      ],
+      "match": [
+        "\\bOP-?16\\b",
+        "time of battle",
+        "bataille d[ée]cisive"
+      ]
+    },
+    {
+      "id": "OP15",
+      "code": "OP15-EB04",
+      "names": {
+        "fr": "Aventure sur l'Île de Dieu",
+        "en": "Adventure on Kami's Island"
+      },
+      "release": {
+        "fr": "2026-04-03",
+        "en": "2026-04-03",
+        "jp": "2026-02-28"
+      },
+      "queries": [
+        "OP15",
+        "OP-15",
+        "Kami's Island",
+        "Île de Dieu"
+      ],
+      "match": [
+        "\\bOP-?15\\b",
+        "kami'?s island",
+        "[îi]le de dieu"
+      ]
+    },
+    {
+      "id": "OP14",
+      "code": "OP14-EB04",
+      "names": {
+        "fr": "Les Sept de la Mer d'Azur",
+        "en": "The Azure Sea's Seven"
+      },
+      "release": {
+        "fr": "2026-01-30",
+        "en": "2026-01-16",
+        "jp": "2025-11-22"
+      },
+      "queries": [
+        "OP14",
+        "OP-14",
+        "Azure Sea",
+        "Mer d'Azur"
+      ],
+      "match": [
+        "\\bOP-?14\\b",
+        "azure sea'?s seven",
+        "mer d'azur"
+      ]
+    },
+    {
+      "id": "OP13",
+      "code": "OP-13",
+      "names": {
+        "fr": "Successeurs",
+        "en": "Carrying On His Will"
+      },
+      "release": {
+        "fr": "2025-11-07"
+      },
+      "queries": [
+        "OP13",
+        "OP-13",
+        "Carrying On His Will",
+        "Successeurs"
+      ],
+      "match": [
+        "\\bOP-?13\\b",
+        "carrying on his will",
+        "successeurs"
+      ]
+    },
+    {
+      "id": "EB04",
+      "code": "EB-04",
+      "names": {
+        "en": "Egghead Crisis"
+      },
+      "release": {
+        "jp": "2026-01-31"
+      },
+      "queries": [
+        "EB04",
+        "EB-04",
+        "Egghead Crisis"
+      ],
+      "match": [
+        "\\bEB-?04\\b",
+        "egghead crisis"
+      ],
+      "exclude": [
+        "\\bOP-?1[45]\\b",
+        "azure sea",
+        "kami'?s island",
+        "mer d'azur",
+        "[îi]le de dieu"
+      ]
+    },
+    {
+      "id": "EB03",
+      "code": "EB-03",
+      "names": {
+        "en": "Heroines Edition"
+      },
+      "release": {
+        "en": "2026-02-20",
+        "jp": "2025-10-25"
+      },
+      "queries": [
+        "EB03",
+        "EB-03",
+        "Heroines"
+      ],
+      "match": [
+        "\\bEB-?03\\b",
+        "heroines edition(?! (vol\\.? ?2|2))"
+      ],
+      "exclude": [
+        "\\bEB-?05\\b"
+      ]
+    },
+    {
+      "id": "PRB02",
+      "code": "PRB-02",
+      "names": {
+        "en": "One Piece Card The Best vol.2"
+      },
+      "release": {
+        "en": "2025-10-03",
+        "jp": "2025-07-26"
+      },
+      "queries": [
+        "PRB02",
+        "PRB-02",
+        "The Best vol.2"
+      ],
+      "match": [
+        "\\bPRB-?02\\b",
+        "the best vol\\.? ?2"
+      ]
+    },
+    {
+      "id": "STARTERS",
+      "code": "ST / Coffrets",
+      "special": true,
+      "names": {
+        "fr": "Starter decks & coffrets",
+        "en": "Starter decks & collections"
+      },
+      "release": {},
+      "queries": [
+        "one piece starter deck",
+        "one piece premium collection",
+        "one piece gift collection",
+        "one piece coffret"
+      ],
+      "match": [
+        "\\bST-?\\d{2}\\b",
+        "starter",
+        "deck de d[ée]marrage",
+        "premium (card )?collection",
+        "gift collection",
+        "coffret",
+        "illustration box",
+        "anniversary set",
+        "special goods set",
+        "\\bdeck\\b"
+      ],
+      "types": [
+        "starter",
+        "coffret"
+      ]
+    }
+  ]
+}

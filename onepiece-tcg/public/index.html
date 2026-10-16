@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Berry Radar</title>
+  <meta name="description" content="Comparateur de prix One Piece Card Game : displays, boosters, double packs, starters et coffrets parmi des boutiques vérifiées." />
+  <meta name="theme-color" content="#0b1f3a" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Pirata+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="splash" class="splash" role="status" aria-live="polite">
+    <svg class="splash-sea" viewBox="0 0 400 260" aria-hidden="true">
+      <defs>
+        <linearGradient id="spSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1f3a"/><stop offset="1" stop-color="#1f6fb2"/></linearGradient>
+        <linearGradient id="spSun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2c14e"/><stop offset="1" stop-color="#e2711d"/></linearGradient>
+      </defs>
+      <rect width="400" height="260" fill="url(#spSky)"/>
+      <g class="sp-stars" fill="#fff"><circle cx="40" cy="30" r="1.4"/><circle cx="110" cy="58" r="1"/><circle cx="330" cy="26" r="1.5"/><circle cx="270" cy="70" r="1"/><circle cx="360" cy="90" r="1.2"/><circle cx="70" cy="96" r="1"/></g>
+      <circle cx="200" cy="178" r="58" fill="url(#spSun)" opacity="0.9"/>
+      <g class="sp-ship">
+        <path d="M132 168h136l-16 26H150z" fill="#7a4e2d"/>
+        <path d="M132 168h136" stroke="#3b2a1a" stroke-width="3"/>
+        <circle cx="168" cy="178" r="3" fill="#3b2a1a"/><circle cx="200" cy="178" r="3" fill="#3b2a1a"/><circle cx="232" cy="178" r="3" fill="#3b2a1a"/>
+        <path d="M200 74v94" stroke="#3b2a1a" stroke-width="5"/>
+        <path d="M200 66l26 7-26 7z" fill="#c8102e"/>
+        <path d="M156 88q44-8 88 0q6 34 0 66q-44-8-88 0q-6-34 0-66z" fill="#fbf5e6" stroke="#e6cf9c" stroke-width="2"/>
+        <image href="icons/icon.svg" x="178" y="98" width="44" height="44"/>
+      </g>
+      <path class="sp-wave w1" d="M0 196q25-12 50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0V260H0z" fill="#12457a"/>
+      <path class="sp-wave w2" d="M0 212q25-10 50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0t50 0V260H0z" fill="#0b1f3a" opacity="0.85"/>
+    </svg>
+    <h1 class="splash-title">Berry Radar</h1>
+    <div class="logpose" aria-hidden="true"><span class="lp-needle"></span></div>
+    <p id="splashMsg" class="splash-msg">⚓ Le navire lève l’ancre…</p>
+  </div>
+  <header class="top">
+    <div class="top-inner">
+      <a class="brand" href="#" aria-label="Berry Radar">
+        <img src="icons/icon.svg" alt="" width="48" height="48" />
+        <div>
+          <h1>Berry Radar</h1>
+          <p>Le meilleur prix One Piece Card Game, repéré pour toi</p>
+        </div>
+      </a>
+      <div class="top-actions">
+        <button id="accountBtn" class="btn btn-ghost" type="button" title="Se connecter avec Google"><span>Se connecter</span></button>
+        <button id="checkBtn" class="btn btn-ghost" type="button" title="Vérifier si un site est fiable">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2 4 5v6c0 5 3.4 9.5 8 11 4.6-1.5 8-6 8-11V5l-8-3Zm-1 14-4-4 1.4-1.4 2.6 2.6 5.6-5.6L18 9l-7 7Z"/></svg>
+          <span>Vérifier un site</span>
+        </button>
+        <button id="refreshBtn" class="btn btn-red" type="button">
+          <svg class="wheel" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"><circle cx="32" cy="32" r="16"/><circle cx="32" cy="32" r="5" fill="currentColor"/><path d="M32 4v12M32 48v12M4 32h12M48 32h12M12.2 12.2l8.5 8.5M43.3 43.3l8.5 8.5M12.2 51.8l8.5-8.5M43.3 20.7l8.5-8.5"/></g></svg>
+          <span>Actualiser</span>
+        </button>
+      </div>
+    </div>
+    <nav id="tabs" class="tabs" aria-label="Séries"></nav>
+    <svg class="waves" viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 20 Q 75 0 150 20 T 300 20 T 450 20 T 600 20 T 750 20 T 900 20 T 1050 20 T 1200 20 V40 H0Z"/></svg>
+  </header>
+
+  <div id="demoBanner" class="demo-banner" hidden>⚠️ MODE DÉMO : prix fictifs générés pour tester l’interface. Lancez le serveur sans DEMO=1 pour les vrais prix.</div>
+
+  <main>
+    <section id="seriesHead" class="series-head" data-view="prix cartes"></section>
+
+    <section class="filters" aria-label="Filtres" data-view="prix">
+      <div class="seg" id="langFilter" role="group" aria-label="Langue">
+        <button data-v="all" class="on">Toutes</button>
+        <button data-v="FR" aria-label="Français" title="Français">FR</button>
+        <button data-v="EN" aria-label="Anglais" title="Anglais">EN</button>
+        <button data-v="JP" aria-label="Japonais" title="Japonais">JP</button>
+      </div>
+      <div class="seg" id="typeFilter" role="group" aria-label="Produit"></div>
+      <button id="favShopsToggle" class="fav-toggle" type="button" aria-pressed="false" hidden>★ Mes boutiques préférées</button>
+      <div class="seg" id="stockFilter" role="group" aria-label="Disponibilité">
+        <button data-v="buyable" class="on">En stock + précos</button>
+        <button data-v="preorder">🗓️ Précommandes</button>
+        <button data-v="all">Tout</button>
+      </div>
+      <label class="sort-sel">↕ Trier par
+        <select id="sortSel" aria-label="Trier les offres">
+          <option value="total">Prix total</option>
+          <option value="booster">Prix par booster</option>
+          <option value="trust">Fiabilité de la boutique</option>
+          <option value="stock">Disponibilité</option>
+        </select>
+      </label>
+    </section>
+
+    <p id="status" class="status" role="status" data-view="prix"></p>
+
+    <section id="best" class="best" aria-label="Meilleurs prix" data-view="prix"></section>
+    <section id="cards" class="panel cards" aria-label="Chase cards" data-view="cartes" hidden></section>
+    <section id="alertsView" class="panel m-only" data-view="alertes" aria-label="Mes alertes"></section>
+    <section id="accountView" class="panel m-only" data-view="compte" aria-label="Mon compte"></section>
+    <section id="offers" class="offers" data-view="prix"></section>
+
+    <section class="panel" data-view="prix">
+      <h2>Vérifier aussi sur</h2>
+      <p class="muted">Ces sites ne peuvent pas être lus automatiquement (protection anti-robots). Liens directs vers la recherche :</p>
+      <div id="links" class="link-grid"></div>
+    </section>
+
+    <section class="panel" data-view="compte">
+      <div class="panel-head"><h2>⭐ Mes boutiques</h2>
+        <button id="addShopBtn" class="btn btn-red btn-sm" type="button">➕ Ajouter une boutique</button></div>
+      <div id="myShops" class="shop-list"></div>
+    </section>
+
+    <details class="panel" id="shopPanel" data-view="compte">
+      <summary>Boutiques interrogées <span id="shopSummary" class="muted"></span></summary>
+      <div id="shopList" class="shop-list"></div>
+    </details>
+
+    <section class="panel note" data-view="compte">
+      <h2>Comment lire les résultats</h2>
+      <ul>
+        <li><b>Total</b> = prix + port <em>estimé</em> vers la France (le port réel dépend de la boutique et du panier).</li>
+        <li><b>Score de confiance</b> : mêmes critères pour toutes les boutiques (ancienneté du domaine, avis Trustpilot et Google, HTTPS, mentions légales, société active au registre, paiement par CB/PayPal). Cliquez un badge pour le détail et indiquer si vous avez déjà commandé dans la boutique (👍 +10 / 👎 −10 sur votre score).</li>
+        <li><b>⚠ Prix suspect</b> : nettement sous le prix médian ou sous un prix plancher réaliste. C’est souvent un signe d’arnaque, de produit d’occasion ou d’erreur.</li>
+        <li><b>🗓️ Précommande</b> : série pas encore sortie dans cette langue (ou annoncée comme telle par la boutique). La date de sortie est indiquée ; les précommandes sont classées après le stock disponible pour les séries déjà sorties.</li>
+        <li>Toujours payer par carte bancaire ou PayPal (jamais par virement), et vérifier la langue du produit sur la fiche.</li>
+      </ul>
+    </section>
+  </main>
+
+  <nav id="bottomNav" class="bottom-nav" aria-label="Navigation">
+    <button type="button" data-nav="prix" class="on"><span class="bn-ico">💰</span><span>Prix</span></button>
+    <button type="button" data-nav="cartes"><span class="bn-ico">💎</span><span>Cartes</span></button>
+    <button type="button" data-nav="alertes"><span class="bn-ico">🔔<b id="bnAlertCount" hidden></b></span><span>Alertes</span></button>
+    <button type="button" data-nav="compte"><span class="bn-ico" id="bnAccountIco">👤</span><span>Compte</span></button>
+  </nav>
+
+  <footer class="foot" data-view="compte">
+    <p>Berry Radar — outil personnel non affilié à Bandai, Toei Animation ni aux boutiques citées. Prix indicatifs, à confirmer sur le site marchand.</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+
+  <dialog id="dlg" class="dlg">
+    <form method="dialog" class="dlg-close"><button aria-label="Fermer">✕</button></form>
+    <div id="dlgBody"></div>
+  </dialog>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
