@@ -3,7 +3,7 @@
 // En mode démo, un compte simulé est gardé dans le navigateur.
 
 const FIREBASE_VERSION = '10.14.1';
-export const EMPTY_PREFS = { favoriteSeries: [], favoriteShops: [], customShops: [], owned: {}, alerts: [], pushSubscriptions: [] };
+export const EMPTY_PREFS = { favoriteSeries: [], favoriteShops: [], customShops: [], owned: {}, alerts: [], pushSubscriptions: [], shopReviews: {} };
 export const MAX_ALERTS = 30;
 export const MAX_DEVICES = 5;
 
@@ -23,6 +23,7 @@ export function mergePrefs(remote, local) {
     favoriteShops: [...new Set([...r.favoriteShops, ...l.favoriteShops])],
     customShops: shops.slice(0, 10),
     owned: { ...l.owned, ...r.owned },
+    shopReviews: { ...l.shopReviews, ...r.shopReviews },
     alerts: alerts.slice(0, MAX_ALERTS),
     pushSubscriptions: subs.slice(-MAX_DEVICES),
   };

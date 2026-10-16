@@ -33,6 +33,7 @@ const state = {
   customShops: [], // boutiques ajoutées par l'utilisateur (conservées dans ce navigateur)
   cards: {}, // seriesId -> réponse /api/cards
   owned: {}, // idProduct -> { name, code, at } : cartes cochées « je l'ai »
+  shopReviews: {}, // shopId -> { v: 'good' | 'bad', at } : « j'ai déjà commandé ici »
   account: null, // module de connexion (Firebase ou démo)
   user: null, // { uid, name, email, photo } une fois connecté
   favSeries: [], // séries préférées (compte)
@@ -171,6 +172,7 @@ async function init() {
   state.data = store.get('prices', {});
   state.customShops = store.get('customShops', []);
   state.owned = store.get('owned', {});
+  state.shopReviews = store.get('shopReviews', {});
   state.cards = store.get('cards-v6', {});
   for (const c of state.customShops) if (c.trust) state.trust[c.id] = c.trust;
   renderMyShops();
@@ -348,10 +350,23 @@ function renderHead() {
     <p class="names">${esc(names.join(' · '))}</p></div>${dates}${banner}`;
 }
 
-function trustBadge(shopId) {
+// Score affiché : score de la boutique, ajusté par l'expérience personnelle (+10 / −10).
+const LEVEL_NAMES = { high: 'Très fiable', good: 'Fiable', medium: 'Prudence', low: 'Risqué', danger: 'Arnaque signalée', unknown: 'Non vérifiable' };
+function trustOf(shopId) {
   const t = state.trust[shopId];
+  const exp = state.shopReviews[shopId]?.v;
+  if (!t || t.level === 'danger' || !['good', 'bad'].includes(exp)) return t;
+  const points = exp === 'good' ? 10 : -10;
+  const score = Math.max(0, Math.min(100, t.score + points));
+  const level = t.unverified ? 'unknown' : score >= 75 ? 'high' : score >= 55 ? 'good' : score >= 35 ? 'medium' : 'low';
+  const check = { label: 'Mon expérience', ok: exp === 'good', points, detail: exp === 'good' ? 'Ma commande s’est bien passée' : 'Ma commande s’est mal passée' };
+  return { ...t, score, level, label: LEVEL_NAMES[level], checks: [...t.checks, check], personal: exp };
+}
+
+function trustBadge(shopId) {
+  const t = trustOf(shopId);
   if (!t) return `<button class="trust" data-trust="${esc(shopId)}" type="button" title="Vérification en cours">🛡 …</button>`;
-  const txt = t.level === 'unknown' ? esc(t.label) : `${t.score}/100 · ${esc(t.label)}`;
+  const txt = `${t.level === 'unknown' ? esc(t.label) : `${t.score}/100 · ${esc(t.label)}`}${t.personal ? (t.personal === 'good' ? ' · 👍' : ' · 👎') : ''}`;
   return `<button class="trust ${t.level}" data-trust="${esc(shopId)}" type="button" title="Score de confiance : cliquer pour le détail">🛡 ${txt}</button>`;
 }
 
@@ -1054,6 +1069,8 @@ async function setupAccount(pickFavorite) {
         state.favShops = merged.favoriteShops;
         state.customShops = merged.customShops;
         state.owned = merged.owned;
+        state.shopReviews = merged.shopReviews;
+        store.set('shopReviews', state.shopReviews);
         for (const c of state.customShops) if (c.trust) state.trust[c.id] = c.trust;
         store.set('owned', state.owned);
         if (state.customShops.map((c) => c.id).join() !== before) saveCustomShops();
@@ -1092,6 +1109,7 @@ function accountPrefs() {
     favoriteShops: state.favShops,
     customShops: state.customShops,
     owned: state.owned,
+    shopReviews: state.shopReviews,
     alerts: state.alerts,
     pushSubscriptions: state.pushSubs,
   };
@@ -1299,7 +1317,7 @@ function scoreHtml(t, shop) {
   return `<div class="score"><div class="ring" style="--p:${t.score};--c:${color}">${t.score}</div>
       <div><b style="color:${color}">${esc(t.label)}</b><br><span class="muted">${esc(t.domain)}${t.checkedAt ? ` · vérifié ${esc(ago(t.checkedAt))}` : ''}</span></div></div>
     <ul class="checks">${checks}</ul>
-    ${t.unverified ? '<p class="muted">⚠️ Les vérifications en direct (domaine, avis, site) n’ont pas abouti : le score ne reflète que la liste blanche. Nouvel essai automatique dans quelques minutes.</p>' : ''}
+    ${t.unverified ? '<p class="muted">⚠️ Les vérifications en direct (domaine, avis, site) n’ont pas abouti : impossible de conclure pour l’instant. Nouvel essai automatique dans quelques minutes.</p>' : ''}
     ${shop?.notes ? `<p class="muted">📝 ${esc(shop.notes)}</p>` : ''}
     ${t.trustpilotUrl ? `<p class="muted"><a href="${esc(safeUrl(t.trustpilotUrl))}" target="_blank" rel="noopener noreferrer">Voir les avis Trustpilot ↗</a></p>` : ''}
     ${(shop?.refs || []).length ? `<p class="muted">Références : ${shop.refs.map((r) => `<a href="${esc(safeUrl(r))}" target="_blank" rel="noopener noreferrer">${esc(new URL(r).hostname)}</a>`).join(', ')}</p>` : ''}`;
@@ -1312,8 +1330,27 @@ function openDialog(html) {
 
 function showTrust(shopId) {
   const shop = state.config.shops.find((s) => s.id === shopId) || state.customShops.find((c) => c.id === shopId);
-  const t = state.trust[shopId];
-  openDialog(`<h2 class="dlg-shop">${shopLogo(shopId, shop?.name, 'lg')}${esc(shop?.name || shopId)}</h2>${t ? scoreHtml(t, shop) : '<p>Vérification en cours, réessayez dans quelques secondes…</p>'}`);
+  const t = trustOf(shopId);
+  const exp = state.shopReviews[shopId]?.v;
+  const expBtn = (v, label) => `<button type="button" class="exp-btn ${exp === v ? 'on' : ''}" data-exp="${v}" data-exp-shop="${esc(shopId)}" aria-pressed="${exp === v}">${label}</button>`;
+  const experience = t?.level === 'danger'
+    ? ''
+    : `<div class="exp-box"><h3 class="sub-h">🧾 J’ai déjà commandé ici</h3>
+      <div class="exp-row">${expBtn('good', '👍 Ça s’est bien passé')}${expBtn('bad', '👎 Ça s’est mal passé')}${exp ? expBtn('none', 'Effacer') : ''}</div>
+      <p class="muted small">Votre avis ajuste <b>votre</b> score de cette boutique (+10 ou −10)${state.user ? ', synchronisé avec votre compte' : ', enregistré sur cet appareil'}.</p></div>`;
+  openDialog(`<h2 class="dlg-shop">${shopLogo(shopId, shop?.name, 'lg')}${esc(shop?.name || shopId)}</h2>${t ? scoreHtml(t, shop) : '<p>Vérification en cours, réessayez dans quelques secondes…</p>'}${experience}`);
+}
+
+function setExperience(shopId, v) {
+  if (v === 'none') delete state.shopReviews[shopId];
+  else state.shopReviews[shopId] = { v, at: new Date().toISOString() };
+  store.set('shopReviews', state.shopReviews);
+  syncAccount();
+  render();
+  renderLinks();
+  renderMyShops();
+  showTrust(shopId);
+  toast(v === 'good' ? 'Merci ! +10 sur votre score de cette boutique 👍' : v === 'bad' ? 'Noté : −10 sur votre score de cette boutique 👎' : 'Avis effacé');
 }
 
 function showChecker() {
@@ -1371,6 +1408,8 @@ document.addEventListener('click', async (e) => {
     toggleFavShop(unB.dataset.unfavShop);
     return showAccount();
   }
+  const expB = t.closest('[data-exp]');
+  if (expB) return setExperience(expB.dataset.expShop, expB.dataset.exp);
   const newAlert = t.closest('[data-alert-new]');
   if (newAlert) {
     const [type, lang] = newAlert.dataset.alertNew.split('|');

@@ -54,7 +54,7 @@ const trustService = DEMO
       evaluate: async (domain) => {
         const shop = shops.find((s) => rootDomain(s.domain) === rootDomain(domain));
         const blacklisted = blacklist.find((b) => rootDomain(b.domain) === rootDomain(domain)) || null;
-        const r = computeScore({ whitelisted: !!shop, flags: shop?.flags, blacklisted, ...demoTrust(shop || { domain }) });
+        const r = computeScore({ flags: shop?.flags, blacklisted, ...demoTrust(shop || { domain }) });
         return { domain: rootDomain(domain), shopId: shop?.id || null, ...r, label: LEVEL_LABELS[r.level], checkedAt: new Date().toISOString() };
       },
     }

@@ -56,7 +56,8 @@ export function demoTrust(shop) {
       return { created, years: (Date.now() - new Date(created)) / 3.156e10 };
     })(),
     tp: r() < 0.8 ? { rating: 3 + r() * 2, reviews: Math.floor(10 + r() * 2000) } : null,
-    site: { https: true, legal: r() > 0.1, companyId: r() > 0.3 },
+    site: { https: true, legal: r() > 0.1, companyId: r() > 0.3, payments: { card: r() > 0.1, paypal: r() > 0.3, transfer: r() > 0.5 } },
+    registry: r() > 0.4 ? { siren: '732829320', status: 'active', name: 'Boutique démo SAS', created: `20${10 + Math.floor(r() * 14)}-03-01` } : null,
   };
 }
 

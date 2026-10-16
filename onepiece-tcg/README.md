@@ -1,6 +1,6 @@
 # 📡 Berry Radar — comparateur One Piece Card Game
 
-Application web (installable sur téléphone) qui compare en direct les prix des **displays, boosters, double packs, starter decks et coffrets** One Piece Card Game, série par série, parmi une **liste blanche de boutiques vérifiées**, avec un **score de confiance** pour chaque boutique et une **alerte sur les prix suspects**.
+Application web (installable sur téléphone) qui compare en direct les prix des **displays, boosters, double packs, starter decks et coffrets** One Piece Card Game, série par série, parmi une **sélection de boutiques suivies**, avec un **score de confiance** pour chaque boutique et une **alerte sur les prix suspects**.
 
 - Séries suivies : OP-13 à OP-18 (OP-18 et EB-05 à venir), EB-03, EB-04, PRB-02, plus un onglet *Starters & coffrets*.
 - Langues : 🇫🇷 FR, 🇬🇧 EN, 🇯🇵 JP (détectées dans le titre du produit).
@@ -164,23 +164,28 @@ server/config/     series.json, shops.json (liste blanche), blacklist.json
 
 Les sites protégés contre les robots (Cardmarket, Fnac, Cultura, Micromania, Play-In, Amazon) apparaissent sous forme de **liens de recherche directs**.
 
-**Score de confiance (0 à 100)** :
+**Score de confiance (0 à 100)** : les mêmes critères pour toutes les boutiques, qu'elles soient suivies par l'app ou ajoutées par l'utilisateur.
 
 | Critère | Points |
 |---|---|
-| Boutique sur la liste blanche | +30 |
 | Connexion HTTPS | +10 / −20 |
 | Mentions légales ou CGV | +10 / −15 |
 | SIRET, RCS ou n° de TVA trouvé | +10 |
+| Société active au registre officiel (annuaire des entreprises de l'État, d'après le SIREN affiché) | +10 / fermée −30 |
+| Paiement par carte bancaire ou PayPal mentionné / virement seul | +10 / −25 |
 | Ancienneté du domaine (RDAP) : plus de 5 ans → moins de 6 mois | +20 → −30 |
 | Note Trustpilot : 4,5 et plus → moins de 3 | +20 → −20 |
+| Note Google (si une clé Google Places est configurée) : 4,5 et plus → moins de 3 | +15 → −15 |
 | Magasin physique, enseigne reconnue, référencement Pokescam, protection acheteur | bonus |
+| **Mon expérience** (« J'ai déjà commandé ici ») : bien passé / mal passé | +10 / −10, sur le score de l'utilisateur seulement |
 
-Paliers : Très fiable (75 et plus), Fiable (55 et plus), Prudence (35 et plus), Risqué. Si aucune vérification en direct n'aboutit, la boutique affiche « Non vérifiable » au lieu d'un score trompeur.
+Les notes basées sur moins de 20 avis comptent pour moitié. Paliers : Très fiable (75 et plus), Fiable (55 et plus), Prudence (35 et plus), Risqué. Si aucune vérification en direct n'aboutit, la boutique affiche « Non vérifiable » au lieu d'un score trompeur.
+
+**Avis Google (facultatif)** : créer une clé sur [console.cloud.google.com](https://console.cloud.google.com) (API et services → activer « Places API (New) » → Identifiants → Créer une clé API, de préférence restreinte à cette API), puis l'ajouter sur Render dans `GOOGLE_PLACES_API_KEY`. Google demande un compte de facturation, mais un usage aussi faible (une recherche par boutique et par jour) reste normalement dans le quota gratuit mensuel. Sans clé, ce critère est simplement absent.
 
 **Prix suspect** : un prix est signalé s'il est inférieur de 40 % ou plus au prix médian du même produit (même type, même langue), ou s'il passe sous un prix plancher réaliste (par exemple 85 € pour un display FR/EN). Les offres suspectes ne sont jamais mises en avant comme « meilleur prix ».
 
-**Vérifier un site** : collez n'importe quelle adresse pour obtenir son score (liste noire, ancienneté, avis, HTTPS, mentions légales).
+**Vérifier un site** : collez n'importe quelle adresse pour obtenir son score (liste noire, ancienneté, avis, HTTPS, mentions légales, registre, paiement).
 
 ## Personnaliser
 
