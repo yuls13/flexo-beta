@@ -92,3 +92,15 @@ test('taux BCE : 1 $ en euros, et conversion des prix TCGplayer', async () => {
     globalThis.fetch = realFetch;
   }
 });
+
+test('baseCards : une ligne par numéro (version de base), triée, nom sans mention de version', async () => {
+  const { baseCards } = await import('../server/chase.js');
+  const list = [
+    { card_set_id: 'OP13-010', card_name: 'Nami (Parallel)', rarity: 'C', card_image_id: 'OP13-010_p1' },
+    { card_set_id: 'OP13-002', card_name: 'Zoro', rarity: 'SR', card_image_id: 'OP13-002' },
+    { card_set_id: 'OP13-002', card_name: 'Zoro (Parallel)', rarity: 'SR', card_image_id: 'OP13-002_p1' },
+    { card_set_id: 'OP13-001', card_name: 'Luffy', rarity: 'L', card_image_id: 'OP13-001' },
+    { card_set_id: 'OP13-010', card_name: 'Nami', rarity: 'C', card_image_id: 'OP13-010' },
+  ];
+  assert.deepEqual(baseCards(list).map((c) => `${c.code} ${c.name} ${c.rarity}`), ['OP13-001 Luffy L', 'OP13-002 Zoro SR', 'OP13-010 Nami C']);
+});

@@ -56,6 +56,30 @@ export function cardmarketPrice(cmProducts, versions, variant) {
   return p ? { eur: p.avg7 ?? p.trend ?? null, avg7: p.avg7 ?? null, trend: p.trend ?? null, idProduct: p.idProduct } : null;
 }
 
+// Ordre des raretés One Piece (de la plus courante à la plus rare) pour l'affichage.
+export const RARITY_ORDER = ['C', 'UC', 'R', 'SR', 'SEC', 'L', 'SP', 'TR', 'P'];
+
+// Liste des cartes « normales » d'un set (version de base de chaque numéro), triée par numéro.
+export function baseCards(list, versionsByCode = new Map()) {
+  const byCode = new Map();
+  for (const c of list) {
+    const code = codeOf(c);
+    if (!CODE_RE.test(code)) continue;
+    const isBase = !c.card_image_id || variantOf(c.card_image_id) === 1;
+    const cur = byCode.get(code);
+    if (cur && !isBase) continue;
+    if (cur?.isBase && isBase) continue;
+    byCode.set(code, { code, name: (c.card_name || c.name || '').replace(/\s*\([^)]*\)\s*$/, '').trim(), rarity: c.rarity || null, color: c.card_color || null, isBase });
+  }
+  // Numéros connus seulement par leurs versions (base absente de la liste) : nom tiré de la version 1.
+  for (const [code, versions] of versionsByCode) {
+    if (byCode.has(code) || !versions.length) continue;
+    const v1 = versions.find((v) => v.variant === 1) || versions[0];
+    byCode.set(code, { code, name: v1.name, rarity: v1.rarity, color: null, isBase: true });
+  }
+  return [...byCode.values()].map(({ isBase, ...c }) => c).sort((a, b) => a.code.localeCompare(b.code, 'en', { numeric: true }));
+}
+
 export function createChaseService({ cardmarket }) {
   const cache = new Map(); // seriesId -> { data, at }
   const versionCache = new Map(); // code -> { versions, at }
@@ -150,13 +174,15 @@ export function createChaseService({ cardmarket }) {
       }
     }
     cards.sort((a, b) => (b.eur ?? -1) - (a.eur ?? -1) || a.code.localeCompare(b.code) || a.variant - b.variant);
+    const setCards = baseCards(list, versionsByCode);
     return {
+      setCards,
       available: true,
       lang: 'EN/FR',
       source,
       updatedAt: cm.updatedAt || new Date().toISOString(),
       cardmarket: { western: cm.western, method: cm.method, candidates: cm.expansions, error: cm.error || null },
-      stats: { optcgCards: list.length, codesChecked: versionsByCode.size, chase: cards.length },
+      stats: { optcgCards: list.length, codesChecked: versionsByCode.size, chase: cards.length, base: setCards.length },
       rate: { usdEur: rate.usdEur, date: rate.date, source: rate.source },
       cards,
     };
@@ -164,7 +190,7 @@ export function createChaseService({ cardmarket }) {
 
   async function getChase(seriesId) {
     const hit = cache.get(seriesId);
-    if (hit && Date.now() - hit.at < TTL_MS && hit.data.cards.length) return hit.data;
+    if (hit && Date.now() - hit.at < TTL_MS && (hit.data.cards.length || hit.data.setCards?.length)) return hit.data;
     const data = await build(seriesId);
     cache.set(seriesId, { data, at: Date.now() });
     return data;

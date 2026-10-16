@@ -43,6 +43,7 @@ const state = {
   sort: 'total', // tri des offres : total | booster | trust | stock
   expanded: {}, // type -> true : toutes les boutiques affichées (sinon les 5 meilleures)
   shopOpen: {}, // « type|boutique » -> true : autres offres de la boutique dépliées
+  setUi: { q: '', rarity: 'all', missing: false, open: null }, // liste du set (onglet Cartes)
   alerts: [], // alertes de prix (compte) : { id, series, type, lang, maxPrice, active, createdAt }
   pushSubs: [], // appareils abonnés aux notifications (compte)
   history: {}, // seriesId -> { data, at }
@@ -177,7 +178,7 @@ async function init() {
   state.customShops = store.get('customShops', []);
   state.owned = store.get('owned', {});
   state.shopReviews = store.get('shopReviews', {});
-  state.cards = store.get('cards-v6', {});
+  state.cards = store.get('cards-v7', {});
   for (const c of state.customShops) if (c.trust) state.trust[c.id] = c.trust;
   renderMyShops();
   const prefs = store.get('prefs', {});
@@ -735,7 +736,7 @@ async function loadCards() {
   try {
     const data = await api(`/api/cards?series=${encodeURIComponent(s.id)}`);
     state.cards[s.id] = { ...data, fetchedAt: new Date().toISOString() };
-    if (data.available) store.set('cards-v6', state.cards);
+    if (data.available) store.set('cards-v7', state.cards);
   } catch (err) {
     state.cards[s.id] = { available: false, error: err.message, cards: [] };
   }
@@ -777,19 +778,19 @@ function renderCards() {
       : data.available
         ? 'Aucune version alternative trouvée pour cette série dans les données Cardmarket (version EN/FR).'
         : `Prix Cardmarket indisponibles pour le moment (${esc(data.error || 'erreur')}).`;
-    box.innerHTML = `${head()}<p class="muted">${msg}</p>`;
+    box.innerHTML = `${head()}<p class="muted">${msg}</p>${setListHtml(s.id, data)}`;
     return;
   }
   const all = data.cards;
   const shown = all;
-  const owned = all.filter((c) => state.owned[c.idProduct]);
+  const owned = all.filter((c) => chaseHave(s.id, c));
   const value = owned.reduce((sum, c) => sum + (c.eur ?? 0), 0);
   box.innerHTML = `${head(all.length)}
     <div class="chase-wrap">
     <button class="chase-nav prev" type="button" aria-label="Défiler vers la gauche" data-chase-scroll="-1">‹</button>
     <div class="chase-row" id="chaseRow" tabindex="0" aria-label="Chase cards, défilement horizontal">${shown
       .map((c) => {
-        const have = !!state.owned[c.idProduct];
+        const have = chaseHave(s.id, c);
         const [first, ...rest] = c.images || [];
         return `<figure class="chase ${have ? 'have' : ''}">
           <a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer" class="chase-img" title="Voir sur Cardmarket">
@@ -800,20 +801,99 @@ function renderCards() {
             <b title="${esc(c.fullName || c.name)}">${esc(c.name)}</b>
             <span class="muted">${esc(c.code)} · V.${c.variant}${c.rarity ? ` · ${esc(c.rarity)}` : ''}</span>
             ${chasePrice(c, data.rate)}
-            <label class="have-box"><input type="checkbox" data-own="${esc(c.idProduct)}" ${have ? 'checked' : ''} /> Je l’ai</label>
+            <label class="have-box"><input type="checkbox" data-own="${esc(c.idProduct)}" ${have ? 'checked' : ''} ${setFlag(s.id, 'master') ? 'disabled title="Inclus dans votre master set"' : ''} /> Je l’ai</label>
           </figcaption>
         </figure>`;
       })
       .join('')}</div>
     <button class="chase-nav next" type="button" aria-label="Défiler vers la droite" data-chase-scroll="1">›</button>
     </div>
-    <p class="muted">${owned.length ? `✅ Vous en possédez ${owned.length}/${all.length} · valeur estimée ≈ <b>${esc(eur.format(value))}</b>` : state.user ? 'Cochez « Je l’ai » pour suivre votre collection (synchronisé avec votre compte).' : 'Cochez « Je l’ai » pour suivre votre collection (enregistré sur cet appareil ; connectez-vous pour le retrouver partout).'} · Versions et visuels : base OPTCG API (illustrations officielles, marquées « SAMPLE »).</p>`;
+    <p class="muted">${owned.length ? `✅ Vous en possédez ${owned.length}/${all.length} · valeur estimée ≈ <b>${esc(eur.format(value))}</b>` : state.user ? 'Cochez « Je l’ai » pour suivre votre collection (synchronisé avec votre compte).' : 'Cochez « Je l’ai » pour suivre votre collection (enregistré sur cet appareil ; connectez-vous pour le retrouver partout).'} · Versions et visuels : base OPTCG API (illustrations officielles, marquées « SAMPLE »).</p>
+    ${setListHtml(s.id, data)}`;
   for (const b of box.querySelectorAll('[data-chase-scroll]')) {
     b.addEventListener('click', () => {
       const row = $('#chaseRow');
       row.scrollBy({ left: Number(b.dataset.chaseScroll) * row.clientWidth * 0.85, behavior: 'smooth' });
     });
   }
+}
+
+// ---------- Liste du set : cartes normales, full set, master set ----------
+
+const RARITY_ORDER = ['L', 'SEC', 'SR', 'R', 'UC', 'C', 'SP', 'TR', 'P'];
+const RARITY_NAMES = { L: 'Leader', SEC: 'Secrète', SR: 'Super rare', R: 'Rare', UC: 'Peu commune', C: 'Commune', SP: 'Spéciale', TR: 'Treasure rare', P: 'Promo' };
+const setKey = (sid, kind) => `set:${sid}:${kind}`;
+const setFlag = (sid, kind) => !!state.owned[setKey(sid, kind)];
+const baseKey = (code) => `${code}_v1`;
+const fullSet = (sid) => setFlag(sid, 'full') || setFlag(sid, 'master');
+const baseHave = (sid, code) => fullSet(sid) || !!state.owned[baseKey(code)];
+const chaseHave = (sid, c) => setFlag(sid, 'master') || !!state.owned[c.idProduct];
+
+function setListHtml(sid, data) {
+  const list = data.setCards || [];
+  if (!list.length) return '';
+  const chase = data.cards || [];
+  const full = fullSet(sid);
+  const master = setFlag(sid, 'master');
+  const nBase = list.filter((c) => baseHave(sid, c.code)).length;
+  const nChase = chase.filter((c) => chaseHave(sid, c)).length;
+  const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+  const open = state.setUi.open ?? isMobile();
+  const allBaseByHand = !full && nBase === list.length;
+  return `<section class="setlist" aria-label="Liste du set ${esc(sid)}">
+    <div class="set-head"><h3>📋 Liste du set ${esc(sid)}</h3><span class="muted">${list.length} cartes normales${chase.length ? ` · ${chase.length} versions alternatives` : ''}</span></div>
+    <div class="set-flags">
+      <label class="set-flag ${full ? 'on' : ''}"><input type="checkbox" data-setflag="full" ${full ? 'checked' : ''} ${master ? 'disabled' : ''} />
+        <span><b>🃏 J’ai le full set</b><small>les ${list.length} cartes normales</small></span></label>
+      <label class="set-flag ${master ? 'on' : ''}"><input type="checkbox" data-setflag="master" ${master ? 'checked' : ''} />
+        <span><b>🏆 J’ai le master set</b><small>normales + ${chase.length} versions alternatives</small></span></label>
+    </div>
+    <div class="set-progress">
+      <div><span>Cartes normales</span><b>${nBase}/${list.length}</b><i style="--p:${pct(nBase, list.length)}%"></i></div>
+      <div><span>Master set</span><b>${nBase + nChase}/${list.length + chase.length}</b><i style="--p:${pct(nBase + nChase, list.length + chase.length)}%"></i></div>
+    </div>
+    ${allBaseByHand ? '<p class="notice">🎉 Vous avez coché toutes les cartes normales : cochez « J’ai le full set » !</p>' : ''}
+    <details class="set-details" id="setDetails" ${open ? 'open' : ''}>
+      <summary>Voir la liste des ${list.length} cartes</summary>
+      <div class="set-tools">
+        <input type="search" id="setSearch" placeholder="Rechercher un nom ou un numéro" value="${esc(state.setUi.q)}" aria-label="Rechercher une carte" autocomplete="off" />
+        <div class="seg seg-sm" id="setRarity" role="group" aria-label="Rareté">${['all', ...RARITY_ORDER.filter((r) => list.some((c) => c.rarity === r))]
+          .map((r) => `<button type="button" data-rarity="${r}" class="${state.setUi.rarity === r ? 'on' : ''}" ${r !== 'all' ? `title="${esc(RARITY_NAMES[r] || r)}"` : ''}>${r === 'all' ? 'Toutes' : esc(r)}</button>`)
+          .join('')}</div>
+        <button type="button" class="fav-toggle ${state.setUi.missing ? 'on' : ''}" id="setMissing" aria-pressed="${state.setUi.missing}">Manquantes seulement</button>
+      </div>
+      <ul class="set-grid" id="setGrid">${setGridHtml(sid, list)}</ul>
+    </details>
+  </section>`;
+}
+
+function setGridHtml(sid, list) {
+  const q = state.setUi.q.trim().toLowerCase();
+  const full = fullSet(sid);
+  const rows = list.filter(
+    (c) =>
+      (state.setUi.rarity === 'all' || c.rarity === state.setUi.rarity) &&
+      (!state.setUi.missing || !baseHave(sid, c.code)) &&
+      (!q || c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q))
+  );
+  if (!rows.length) return `<li class="set-empty muted">${state.setUi.missing ? 'Aucune carte manquante avec ces filtres 🎉' : 'Aucune carte ne correspond.'}</li>`;
+  return rows
+    .map((c) => {
+      const have = baseHave(sid, c.code);
+      return `<li class="set-card ${have ? 'have' : ''}"><label>
+        <input type="checkbox" data-own-base="${esc(baseKey(c.code))}" data-code="${esc(c.code)}" ${have ? 'checked' : ''} ${full ? 'disabled title="Inclus dans votre full set"' : ''} />
+        <span class="sc-num">${esc(c.code)}</span><span class="sc-title">${esc(c.name)}</span>
+        ${c.rarity ? `<span class="rar rar-${esc(c.rarity)}" title="${esc(RARITY_NAMES[c.rarity] || c.rarity)}">${esc(c.rarity)}</span>` : ''}
+      </label></li>`;
+    })
+    .join('');
+}
+
+function refreshSetGrid() {
+  const s = state.series;
+  const data = state.cards[s?.id];
+  const grid = $('#setGrid');
+  if (grid && data?.setCards) grid.innerHTML = setGridHtml(s.id, data.setCards);
 }
 
 // Image officielle introuvable : on essaie les adresses suivantes, puis on affiche le code de la carte.
@@ -1259,12 +1339,14 @@ function showAccount(reason) {
     <h3 class="sub-h">★ Mes séries préférées</h3>${chips(state.favSeries, 'series', seriesName)}
     <h3 class="sub-h">★ Mes boutiques préférées</h3>${chips(state.favShops, 'shop', shopName)}
     ${state.config.features?.alerts ? `<button class="btn btn-ghost-dark btn-wide" type="button" data-my-alerts>🔔 Mes alertes de prix (${state.alerts.length})</button>` : ''}
-    <p class="muted small">${state.customShops.length} boutique${state.customShops.length > 1 ? 's' : ''} ajoutée${state.customShops.length > 1 ? 's' : ''} · ${Object.keys(state.owned).length} carte${Object.keys(state.owned).length > 1 ? 's' : ''} cochée${Object.keys(state.owned).length > 1 ? 's' : ''} « Je l’ai » · synchronisé avec votre compte</p>
+    <p class="muted small">${state.customShops.length} boutique${state.customShops.length > 1 ? 's' : ''} ajoutée${state.customShops.length > 1 ? 's' : ''} · ${ownedCount()} carte${ownedCount() > 1 ? 's' : ''} cochée${ownedCount() > 1 ? 's' : ''} « Je l’ai » · synchronisé avec votre compte</p>
     <div class="account-actions">
       <button class="btn btn-ghost-dark" id="signOutBtn" type="button">Se déconnecter</button>
       <button class="btn btn-danger" id="deleteDataBtn" type="button">Supprimer mes données</button>
     </div>${isMobile() && state.view === 'compte' ? '<button class="btn btn-ghost-dark btn-wide" type="button" data-open-checker>🛡️ Vérifier un site</button>' : ''}`);
 }
+
+const ownedCount = () => Object.keys(state.owned).filter((k) => !k.startsWith('set:')).length;
 
 function requireAccount(reason) {
   if (state.user) return true;
@@ -1674,6 +1756,23 @@ document.addEventListener('click', (e) => {
   saveCustomShops();
 });
 document.addEventListener('change', (e) => {
+  const flagBox = e.target.closest('[data-setflag]');
+  const baseBox = e.target.closest('[data-own-base]');
+  if (flagBox || baseBox) {
+    const sid = state.series.id;
+    const key = flagBox ? setKey(sid, flagBox.dataset.setflag) : baseBox.dataset.ownBase;
+    if (e.target.checked) state.owned[key] = flagBox ? { set: sid, at: new Date().toISOString() } : { code: baseBox.dataset.code, at: new Date().toISOString() };
+    else delete state.owned[key];
+    store.set('owned', state.owned);
+    syncAccount();
+    const y = window.scrollY;
+    const scroll = $('#chaseRow')?.scrollLeft || 0;
+    renderCards();
+    if ($('#chaseRow')) $('#chaseRow').scrollLeft = scroll;
+    window.scrollTo({ top: y });
+    if (flagBox && e.target.checked) toast(flagBox.dataset.setflag === 'master' ? '🏆 Master set complet, bravo capitaine !' : '🃏 Full set complet, bravo !');
+    return;
+  }
   const box = e.target.closest('[data-own]');
   if (!box) return;
   const card = state.cards[state.series.id]?.cards.find((c) => String(c.idProduct) === box.dataset.own);
@@ -1718,6 +1817,34 @@ $('#stockFilter').addEventListener('click', (e) => {
 });
 $('#dlg').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) e.currentTarget.close();
+});
+
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'setSearch') return;
+  state.setUi.q = e.target.value;
+  refreshSetGrid();
+});
+document.addEventListener(
+  'toggle',
+  (e) => {
+    if (e.target.id === 'setDetails') state.setUi.open = e.target.open;
+  },
+  true
+);
+document.addEventListener('click', (e) => {
+  const r = e.target.closest('#setRarity [data-rarity]');
+  if (r) {
+    state.setUi.rarity = r.dataset.rarity;
+    document.querySelectorAll('#setRarity [data-rarity]').forEach((b) => b.classList.toggle('on', b === r));
+    return refreshSetGrid();
+  }
+  const m = e.target.closest('#setMissing');
+  if (m) {
+    state.setUi.missing = !state.setUi.missing;
+    m.classList.toggle('on', state.setUi.missing);
+    m.setAttribute('aria-pressed', String(state.setUi.missing));
+    refreshSetGrid();
+  }
 });
 
 $('#sortSel').addEventListener('change', (e) => {

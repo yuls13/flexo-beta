@@ -76,7 +76,15 @@ export function demoCards(series) {
       return { idProduct: `demo-${series.id}-${i}`, name, code, variant, eur: price, priceSource: i % 3 ? 'tcgplayer' : 'cardmarket', usd: i % 3 ? Math.round(price / 0.92) : null, avg7: i % 3 ? null : price, price, images: [], url: '#' };
     })
     .sort((a, b) => b.price - a.price);
-  return { available: true, demo: true, lang: 'EN/FR', updatedAt: new Date().toISOString(), cards };
+  // Liste FICTIVE des cartes normales (numéros, raretés plausibles).
+  const extra = ['Usopp', 'Chopper', 'Franky', 'Brook', 'Jinbe', 'Marco', 'Smoker', 'Tashigi', 'Koby', 'Garp', 'Vivi', 'Perona', 'Mihawk', 'Crocodile', 'Doflamingo', 'Bartolomeo'];
+  const pool = [...names, ...extra];
+  const setCards = Array.from({ length: 121 }, (_, i) => {
+    const n = i + 1;
+    const rarity = n <= 4 ? 'L' : n > 118 ? 'SEC' : [3, 17, 31, 45, 59, 73, 87, 101, 115].includes(n) ? 'SR' : n % 3 === 0 ? 'R' : n % 2 === 0 ? 'UC' : 'C';
+    return { code: `${series.id}-${String(n).padStart(3, '0')}`, name: pool[Math.floor(r() * pool.length)], rarity, color: null };
+  });
+  return { available: true, demo: true, lang: 'EN/FR', updatedAt: new Date().toISOString(), cards, setCards };
 }
 
 // Historique FICTIF pour le mode démo : 120 jours de relevés (toutes les 6 h) qui aboutissent

@@ -1,6 +1,6 @@
 // Service worker : interface disponible hors ligne ; l'API n'est jamais mise en cache ici
 // (les derniers prix sont conservés côté page dans localStorage).
-const CACHE = 'berry-radar-v10';
+const CACHE = 'berry-radar-v11';
 const ASSETS = ['./', 'index.html', 'styles.css', 'app.js', 'account.js', 'tracking.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png'];
 
 self.addEventListener('install', (e) => {
