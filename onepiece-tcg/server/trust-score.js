@@ -65,14 +65,19 @@ export function computeScore({ flags = {}, blacklisted, age, tp, site, registry,
     add('Avis Google', google.rating >= 3.5, Math.round(base * weight), `${google.rating.toFixed(1)}/5${google.reviews != null ? ` sur ${google.reviews} avis` : ''}`);
   }
 
-  if (flags.physicalStore) add('Magasin physique', true, 5);
+  // Magasin physique : vérifié à la main → +15 et au moins « Fiable » ; simplement mentionné sur le site → +10.
+  const physicalVerified = !!flags.physicalStore;
+  if (physicalVerified) add('Magasin physique', true, 15, 'Boutique physique vérifiée : au moins « Fiable »');
+  else if (site?.physical) add('Magasin physique', true, 10, 'Magasin ou retrait en boutique mentionné sur le site');
   if (flags.establishedRetailer) add('Enseigne reconnue', true, 10);
   if (flags.pokescamVerified) add('Référencée fiable par Pokescam', true, 5);
   if (flags.buyerProtection) add('Protection acheteur', true, 5);
 
-  const score = clampScore(checks.reduce((s, c) => s + c.points, 0));
+  let score = clampScore(checks.reduce((s, c) => s + c.points, 0));
+  // Une boutique physique vérifiée est fiable d'office (sauf société fermée au registre).
+  if (physicalVerified && registry?.status !== 'closed') score = Math.max(score, 55);
   // Aucune vérification en direct n'a abouti : on ne conclut pas (ni « fiable » ni « risqué »).
-  const unverified = !site && !age && !tp && !google;
+  const unverified = !site && !age && !tp && !google && !physicalVerified;
   const level = unverified ? 'unknown' : levelFor(score);
   return { score, level, checks, unverified };
 }

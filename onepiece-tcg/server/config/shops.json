@@ -160,8 +160,11 @@
       "base": "https://www.lerepaireducollectionneur.fr",
       "platform": "shopify",
       "country": "FR",
-      "flags": {},
-      "searchUrl": "https://www.lerepaireducollectionneur.fr/search?q={q}&type=product"
+      "flags": {
+        "physicalStore": true
+      },
+      "searchUrl": "https://www.lerepaireducollectionneur.fr/search?q={q}&type=product",
+      "notes": "Boutique avec magasin physique."
     },
     {
       "id": "tcgspeed",

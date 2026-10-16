@@ -48,6 +48,8 @@ const COMPANY_ID = /\b(siret|siren|rcs|n° ?tva|tva intra|num[ée]ro de tva|ust-
 const PAY_CARD = /\b(visa|master ?card|carte bancaire|cartes bancaires|carte de cr[ée]dit|american express|amex|apple ?pay|google ?pay|shopify payments|stripe|payplug|stancer|monetico|systempay|paybox|up2pay|lyra|sumup|mollie|adyen|alma)\b/i;
 const PAY_PAYPAL = /pay ?pal/i;
 const PAY_TRANSFER = /\bvirement/i;
+// Magasin physique mentionné (horaires, retrait en boutique, click & collect…).
+const PHYSICAL = /horaires d['’]ouverture|notre (magasin|boutique physique)|boutique physique|retrait (gratuit )?(en|au) magasin|retrait en boutique|click (?:&|&amp;|and|et) ?collect|venez nous (voir|rendre visite)/i;
 export function detectPayments(text) {
   return { card: PAY_CARD.test(text), paypal: PAY_PAYPAL.test(text), transfer: PAY_TRANSFER.test(text) };
 }
@@ -140,7 +142,7 @@ export async function siteChecks(domain) {
       /* page légale injoignable : on garde le résultat de la page d'accueil */
     }
   }
-  return { https, legal, companyId, payments: detectPayments(pages), siren: extractSiren(pages) };
+  return { https, legal, companyId, payments: detectPayments(pages), siren: extractSiren(pages), physical: PHYSICAL.test(pages) };
 }
 
 export { computeScore, LEVEL_LABELS } from './trust-score.js';

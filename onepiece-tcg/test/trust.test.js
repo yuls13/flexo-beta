@@ -12,7 +12,7 @@ test('boutique établie et bien notée → très fiable', () => {
     registry: { siren: '732829320', status: 'active', name: 'Boutique SAS', created: '2010-01-01' },
   });
   assert.equal(r.level, 'high');
-  assert.equal(r.score, 95);
+  assert.equal(r.score, 100);
 });
 
 test('domaine récent, sans mentions légales, mal noté → risqué', () => {
@@ -96,4 +96,15 @@ test('expérience personnelle : +10 / −10 sur le score de l’utilisateur', ()
   assert.equal(withExperience(t, null), t);
   const danger = computeScore({ blacklisted: { reason: 'x' } });
   assert.equal(withExperience(danger, 'good').score, 0);
+});
+
+test('magasin physique vérifié : fiable d’office (sauf société fermée), simple mention sur le site : +10', () => {
+  const thin = { site: { https: true, legal: false, companyId: false } };
+  const r = computeScore({ ...thin, flags: { physicalStore: true } });
+  assert.ok(r.score >= 55);
+  assert.equal(r.level, 'good');
+  const closed = computeScore({ ...thin, flags: { physicalStore: true }, registry: { siren: '732829320', status: 'closed' } });
+  assert.ok(closed.score < 55);
+  const mention = computeScore({ site: { https: true, legal: true, companyId: true, physical: true } });
+  assert.equal(mention.checks.find((c) => c.label === 'Magasin physique').points, 10);
 });

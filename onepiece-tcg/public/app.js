@@ -224,7 +224,7 @@ async function init() {
 
 async function loadTrust() {
   try {
-    const domains = state.customShops.map((c) => c.domain).join(',');
+    const domains = state.user ? state.customShops.map((c) => c.domain).join(',') : '';
     const { shops } = await api(`/api/trust${domains ? `?custom=${encodeURIComponent(domains)}` : ''}`);
     for (const t of shops) if (t.shopId) state.trust[t.shopId] = t;
     render();
@@ -628,7 +628,9 @@ function customEntry(c) {
   return [c.domain, c.platform === 'link' ? 'auto' : c.platform, c.name].map(encodeURIComponent).join('|');
 }
 
+// Boutiques personnelles : réservées aux utilisateurs connectés.
 function customParam() {
+  if (!state.user) return '';
   return state.customShops.map(customEntry).join(',');
 }
 
@@ -646,6 +648,12 @@ function saveCustomShops() {
 function renderMyShops() {
   const list = $('#myShops');
   if (!list) return;
+  const addBtn = $('#addShopBtn');
+  if (addBtn) addBtn.textContent = state.user ? '➕ Ajouter une boutique' : '🔒 Se connecter pour ajouter';
+  if (!state.user) {
+    list.innerHTML = '<p class="muted">Connectez-vous avec votre compte Google pour ajouter vos propres boutiques : elles seront vérifiées, interrogées à chaque recherche et retrouvées sur tous vos appareils.</p>';
+    return;
+  }
   list.innerHTML = state.customShops.length
     ? state.customShops
         .map(
@@ -663,6 +671,7 @@ function renderMyShops() {
 }
 
 function showAddShop() {
+  if (!requireAccount('Connectez-vous avec Google pour ajouter vos propres boutiques.')) return;
   openDialog(`<h2>Ajouter une boutique</h2>
     <p class="muted">Collez l’adresse du site. L’app vérifie sa fiabilité et détecte si ses prix peuvent être lus automatiquement (Shopify, WooCommerce, PrestaShop).</p>
     <form class="check-form" id="addForm"><input id="addInput" placeholder="ex. www.ma-boutique-tcg.fr" autocomplete="off" inputmode="url" required />
@@ -1126,7 +1135,8 @@ async function setupAccount(pickFavorite) {
         store.set('shopReviews', state.shopReviews);
         for (const c of state.customShops) if (c.trust) state.trust[c.id] = c.trust;
         store.set('owned', state.owned);
-        if (state.customShops.map((c) => c.id).join() !== before) saveCustomShops();
+        // Boutiques du compte : (re)lancer la recherche pour les inclure.
+        if (state.customShops.length || state.customShops.map((c) => c.id).join() !== before) saveCustomShops();
         if (JSON.stringify(remote) !== JSON.stringify(accountPrefs())) syncAccount(0);
         if (state.firstAuth && pickFavorite && state.favSeries.length && !state.favSeries.includes(state.series.id)) {
           selectSeries(state.favSeries[0]);
@@ -1140,6 +1150,14 @@ async function setupAccount(pickFavorite) {
       state.favOnly = false;
       state.alerts = [];
       state.pushSubs = [];
+      // Déconnexion : les boutiques personnelles quittent l'appareil (elles restent dans le compte).
+      if (state.customShops.length) {
+        state.customShops = [];
+        store.set('customShops', []);
+        state.data = {};
+        store.set('prices', {});
+        if (!state.firstAuth) load(false);
+      }
     }
     state.firstAuth = false;
     if (user && $('#googleSignIn')) {

@@ -27,6 +27,8 @@ Le bouton **🔍 Diagnostic** de chaque boutique, dans « Boutiques interrogées
 
 ## Mes boutiques (ajout manuel)
 
+Réservé aux utilisateurs connectés avec leur compte Google : les boutiques ajoutées sont enregistrées dans le compte et interrogées à chaque recherche.
+
 Le bouton **➕ Ajouter une boutique** accepte n'importe quelle adresse. L'app :
 1. vérifie la fiabilité du site (même score que pour les boutiques suivies), refuse les sites de la liste noire et avertit si le score est faible ;
 2. détecte la plateforme, par son API ou par l'empreinte de sa page d'accueil. Si aucune n'est reconnue, la boutique passe en **détection automatique**. Elle apparaît dans « Boutiques interrogées » avec le tag « ⭐ Ajoutée par vous », et ses offres ressortent dans les résultats avec le tag « ⭐ Ma boutique ».
@@ -176,7 +178,9 @@ Les sites protégés contre les robots (Cardmarket, Fnac, Cultura, Micromania, P
 | Ancienneté du domaine (RDAP) : plus de 5 ans → moins de 6 mois | +20 → −30 |
 | Note Trustpilot : 4,5 et plus → moins de 3 | +20 → −20 |
 | Note Google (si une clé Google Places est configurée) : 4,5 et plus → moins de 3 | +15 → −15 |
-| Magasin physique, enseigne reconnue, référencement Pokescam, protection acheteur | bonus |
+| Magasin physique vérifié (à la main) : **au moins « Fiable »** quel que soit le reste, sauf société fermée | +15 |
+| Magasin physique mentionné sur le site (horaires, retrait en boutique, click & collect) | +10 |
+| Enseigne reconnue, référencement Pokescam, protection acheteur | bonus |
 | **Mon expérience** (« J'ai déjà commandé ici ») : bien passé / mal passé | +10 / −10, sur le score de l'utilisateur seulement |
 
 Les notes basées sur moins de 20 avis comptent pour moitié. Paliers : Très fiable (75 et plus), Fiable (55 et plus), Prudence (35 et plus), Risqué. Si aucune vérification en direct n'aboutit, la boutique affiche « Non vérifiable » au lieu d'un score trompeur.
