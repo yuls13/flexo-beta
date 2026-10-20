@@ -36,7 +36,9 @@ const FIREBASE = process.env.FIREBASE_API_KEY
 const AUTH = DEMO ? { provider: 'demo' } : FIREBASE ? { provider: 'firebase', firebase: FIREBASE } : null;
 
 const readJson = async (f) => JSON.parse(await fs.readFile(path.join(__dirname, 'config', f), 'utf8'));
-const { series: rawSeries } = await readJson('series.json');
+// L'onglet « Starters & coffrets » est retiré de l'app (entrée gardée dans series.json, inactive).
+const { series: allSeries } = await readJson('series.json');
+const rawSeries = allSeries.filter((x) => !x.special);
 const { shops, shippingDefaults } = await readJson('shops.json');
 const { domains: blacklist } = await readJson('blacklist.json');
 const series = compileSeries(rawSeries);

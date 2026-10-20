@@ -229,6 +229,17 @@
       "searchUrl": "https://www.blazingtail.fr/recherche?controller=search&s={q}"
     },
     {
+      "id": "parkage",
+      "name": "Parkage",
+      "domain": "www.parkage.com",
+      "base": "https://www.parkage.com",
+      "platform": "prestashop",
+      "country": "FR",
+      "flags": {},
+      "searchUrl": "https://www.parkage.com/fr/recherche?controller=search&s={q}",
+      "searchPath": "/fr/recherche"
+    },
+    {
       "id": "cardcosmos",
       "name": "CardCosmos (DE)",
       "domain": "cardcosmos.de",

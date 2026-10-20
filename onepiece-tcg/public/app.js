@@ -44,6 +44,7 @@ const state = {
   expanded: {}, // type -> true : toutes les boutiques affichées (sinon les 5 meilleures)
   shopOpen: {}, // « type|boutique » -> true : autres offres de la boutique dépliées
   setUi: { q: '', rarity: 'all', missing: false, open: null }, // liste du set (onglet Cartes)
+  cardLang: 'FR', // version suivie dans l'onglet Cartes : FR | EN | JP (collections séparées)
   alerts: [], // alertes de prix (compte) : { id, series, type, lang, maxPrice, active, createdAt }
   pushSubs: [], // appareils abonnés aux notifications (compte)
   history: {}, // seriesId -> { data, at }
@@ -187,6 +188,7 @@ async function init() {
     type: prefs.type || 'all',
     stock: ['buyable', 'preorder', 'all'].includes(prefs.stock) ? prefs.stock : 'buyable',
     sort: ['total', 'booster', 'trust', 'stock'].includes(prefs.sort) ? prefs.sort : 'total',
+    cardLang: ['FR', 'EN', 'JP'].includes(prefs.cardLang) ? prefs.cardLang : 'FR',
   });
   $('#sortSel').value = state.sort;
   setView('prix');
@@ -265,7 +267,7 @@ async function runLoad(refresh) {
   const btn = $('#refreshBtn');
   btn.disabled = true;
   btn.classList.add('loading');
-  $('#status').textContent = `⚓ Recherche des prix ${state.series.code} dans ${state.config.shops.filter((s) => s.platform !== 'link').length} boutiques…`;
+  startSearchAnim();
   try {
     const custom = customParam();
     const data = await api(
@@ -276,6 +278,7 @@ async function runLoad(refresh) {
   } catch (err) {
     $('#status').innerHTML = `<span class="err">Échec de la recherche : ${esc(err.message)}</span>`;
   } finally {
+    stopSearchAnim();
     state.loading = false;
     btn.disabled = false;
     btn.classList.remove('loading');
@@ -283,6 +286,35 @@ async function runLoad(refresh) {
     // Série changée pendant la recherche (ex. série préférée après connexion) : on la charge à son tour.
     else if (isStale(state.series.id)) load(false);
   }
+}
+
+// Animation pendant la recherche : navire qui traverse, nom des boutiques inspectées qui défile.
+let searchTimer = null;
+const SHIP_SVG = `<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M8 26h48l-6 9H14z" fill="#7a4e2d"/><path d="M32 4v22" stroke="#3b2a1a" stroke-width="2.5"/><path d="M32 3l10 3-10 3z" fill="#c8102e"/><path d="M19 9q13-3 26 0q2 8 0 15q-13-3-26 0q-2-8 0-15z" fill="#fbf5e6" stroke="#d9a227" stroke-width="1.2"/><circle cx="32" cy="16.5" r="4" fill="none" stroke="#c8102e" stroke-width="1.6"/></svg>`;
+function startSearchAnim() {
+  const names = [...state.config.shops.filter((x) => x.platform !== 'link').map((x) => x.name), ...(state.user ? state.customShops.map((c) => c.name) : [])];
+  const n = names.length;
+  $('#status').innerHTML = `<div class="searching">
+      <div class="sea-track" aria-hidden="true"><div class="sea-ship">${SHIP_SVG}</div></div>
+      <div class="search-msg"><b>Recherche des prix ${esc(state.series.code)}</b> · <span id="searchShop">🔭 ${n} boutiques à inspecter…</span></div>
+    </div>`;
+  document.body.classList.add('is-searching');
+  if (!state.data[state.series.id]) $('#offers').innerHTML = skeletonHtml();
+  let i = 0;
+  clearInterval(searchTimer);
+  searchTimer = setInterval(() => {
+    const el = $('#searchShop');
+    if (!el || !n) return;
+    el.textContent = `🔭 La vigie inspecte ${names[i % n]}… (${Math.min(i + 1, n)}/${n})`;
+    i++;
+  }, 650);
+}
+function stopSearchAnim() {
+  clearInterval(searchTimer);
+  document.body.classList.remove('is-searching');
+}
+function skeletonHtml() {
+  return `<div class="skeletons" aria-hidden="true">${'<div class="skel"><i></i><i></i><i></i></div>'.repeat(3)}</div>`;
 }
 
 function isStale(id) {
@@ -298,10 +330,11 @@ function renderTabs() {
   const list = [...state.config.series].sort((a, b) => fav(b) - fav(a));
   $('#tabs').innerHTML = list
     .map((s) => {
-      const sub = s.special ? 'ST · coffrets' : s.names.fr || s.names.en || '';
-      return `<button class="tab ${state.series?.id === s.id ? 'on' : ''} ${fav(s) ? 'fav' : ''}" data-id="${esc(s.id)}" type="button">
-        <b>${fav(s) ? '<span class="tab-star" aria-label="Série préférée">★</span>' : ''}${esc(s.special ? 'Starters' : s.id)}${isUpcoming(s) ? '<span class="soon">bientôt</span>' : ''}</b>
-        <small>${esc(sub.length > 26 ? sub.slice(0, 25) + '…' : sub)}</small></button>`;
+      const sub = s.names.fr || s.names.en || '';
+      return `<button class="tab ${state.series?.id === s.id ? 'on' : ''} ${fav(s) ? 'fav' : ''}" data-id="${esc(s.id)}" type="button" title="${esc(`${s.id}${sub ? ` · ${sub}` : ''}`)}">
+        ${isUpcoming(s) ? '<span class="soon">bientôt</span>' : ''}
+        <b>${fav(s) ? '<span class="tab-star" aria-label="Série préférée">★</span>' : ''}${esc(s.id)}</b>
+        <small>${esc(sub)}</small></button>`;
     })
     .join('');  $('#tabs .tab.on')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
 }
@@ -562,7 +595,7 @@ function render() {
   const data = state.data[state.series.id];
   if (!data) {
     $('#best').innerHTML = '';
-    $('#offers').innerHTML = state.loading ? '' : '<div class="empty">Cliquez sur « Actualiser » pour lancer la recherche.</div>';
+    $('#offers').innerHTML = state.loading ? skeletonHtml() : '<div class="empty">Cliquez sur « Actualiser » pour lancer la recherche.</div>';
     $('#shopList').innerHTML = '';
     $('#shopSummary').textContent = '';
     return;
@@ -766,7 +799,16 @@ function renderCards() {
   box.hidden = false;
   const data = state.cards[s.id];
   const langFlags = `<span class="flag-pair" role="img" aria-label="Version anglaise ou française" title="Prix de la version occidentale (anglais, français…) sur Cardmarket ; les cartes japonaises sont exclues">${FLAG_SVG.EN}${FLAG_SVG.FR}</span>`;
-  const head = (n) => `<div class="cards-head"><h2>💎 Chase cards ${esc(s.id)}</h2>
+  const rel = s.release || {};
+  const langOpt = (L, label) => {
+    const d = rel[L.toLowerCase()];
+    const soon = d && d > today() ? ` (sortie ${shortDate(d)})` : '';
+    return `<option value="${L}" ${state.cardLang === L ? 'selected' : ''}>${label}${soon}</option>`;
+  };
+  const langBar = `<div class="card-lang"><label>🌐 Version
+      <select id="cardLang" aria-label="Langue de la collection">${langOpt('FR', '🇫🇷 Française')}${langOpt('EN', '🇬🇧 Anglaise')}${langOpt('JP', '🇯🇵 Japonaise')}</select></label>
+      <span class="muted small">${state.cardLang === 'JP' ? 'Collection japonaise : prix non disponibles (aucune source fiable).' : state.cardLang === 'EN' ? 'Collection anglaise · prix de la version anglaise.' : 'Collection française · prix de la version occidentale (EN/FR).'} Noms des cartes en anglais (base OPTCG).</span></div>`;
+  const head = (n) => `${langBar}<div class="cards-head"><h2>💎 Chase cards ${esc(s.id)}</h2>
     <span class="muted">${n ? `${n} version${n > 1 ? 's' : ''} alternative${n > 1 ? 's' : ''} · ` : ''}prix en euros · moyenne 7 jours ${langFlags} Cardmarket, sinon TCGplayer converti${data?.updatedAt ? ` · données du ${esc(dateFmt.format(new Date(data.updatedAt)))}` : ''}</span></div>`;
   if (!data) {
     box.innerHTML = `${head()}<p class="muted">⚓ Chargement des prix Cardmarket…</p>`;
@@ -800,8 +842,8 @@ function renderCards() {
           <figcaption>
             <b title="${esc(c.fullName || c.name)}">${esc(c.name)}</b>
             <span class="muted">${esc(c.code)} · V.${c.variant}${c.rarity ? ` · ${esc(c.rarity)}` : ''}</span>
-            ${chasePrice(c, data.rate)}
-            <label class="have-box"><input type="checkbox" data-own="${esc(c.idProduct)}" ${have ? 'checked' : ''} ${setFlag(s.id, 'master') ? 'disabled title="Inclus dans votre master set"' : ''} /> Je l’ai</label>
+            ${state.cardLang === 'JP' ? '<span class="chase-price muted" title="Aucune source de prix fiable pour la version japonaise">prix JP —</span>' : chasePrice(c, data.rate)}
+            <label class="have-box"><input type="checkbox" data-own="${esc(langKey(c.idProduct))}" ${have ? 'checked' : ''} ${setFlag(s.id, 'master') ? 'disabled title="Inclus dans votre master set"' : ''} /> Je l’ai</label>
           </figcaption>
         </figure>`;
       })
@@ -822,12 +864,14 @@ function renderCards() {
 
 const RARITY_ORDER = ['L', 'SEC', 'SR', 'R', 'UC', 'C', 'SP', 'TR', 'P'];
 const RARITY_NAMES = { L: 'Leader', SEC: 'Secrète', SR: 'Super rare', R: 'Rare', UC: 'Peu commune', C: 'Commune', SP: 'Spéciale', TR: 'Treasure rare', P: 'Promo' };
-const setKey = (sid, kind) => `set:${sid}:${kind}`;
+// Collections séparées par langue : la version FR garde les clés historiques, EN/JP ajoutent « @EN » / « @JP ».
+const langKey = (key) => (state.cardLang === 'FR' ? key : `${key}@${state.cardLang}`);
+const setKey = (sid, kind) => langKey(`set:${sid}:${kind}`);
 const setFlag = (sid, kind) => !!state.owned[setKey(sid, kind)];
-const baseKey = (code) => `${code}_v1`;
+const baseKey = (code) => langKey(`${code}_v1`);
 const fullSet = (sid) => setFlag(sid, 'full') || setFlag(sid, 'master');
 const baseHave = (sid, code) => fullSet(sid) || !!state.owned[baseKey(code)];
-const chaseHave = (sid, c) => setFlag(sid, 'master') || !!state.owned[c.idProduct];
+const chaseHave = (sid, c) => setFlag(sid, 'master') || !!state.owned[langKey(c.idProduct)];
 
 function setListHtml(sid, data) {
   const list = data.setCards || [];
@@ -1775,7 +1819,7 @@ document.addEventListener('change', (e) => {
   }
   const box = e.target.closest('[data-own]');
   if (!box) return;
-  const card = state.cards[state.series.id]?.cards.find((c) => String(c.idProduct) === box.dataset.own);
+  const card = state.cards[state.series.id]?.cards.find((c) => String(c.idProduct) === box.dataset.own.replace(/@(EN|JP)$/, ''));
   if (box.checked) state.owned[box.dataset.own] = { name: card?.name, code: card?.code, at: new Date().toISOString() };
   else delete state.owned[box.dataset.own];
   store.set('owned', state.owned);
@@ -1847,6 +1891,13 @@ document.addEventListener('click', (e) => {
   }
 });
 
+document.addEventListener('change', (e) => {
+  if (e.target.id !== 'cardLang') return;
+  state.cardLang = e.target.value;
+  savePrefs();
+  renderCards();
+});
+
 $('#sortSel').addEventListener('change', (e) => {
   state.sort = e.target.value;
   savePrefs();
@@ -1872,7 +1923,7 @@ window.addEventListener(
 );
 
 function savePrefs() {
-  store.set('prefs', { lang: state.lang, type: state.type, stock: state.stock, sort: state.sort });
+  store.set('prefs', { lang: state.lang, type: state.type, stock: state.stock, sort: state.sort, cardLang: state.cardLang });
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
