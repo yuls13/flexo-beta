@@ -113,6 +113,14 @@ Sur iPhone/iPad, les notifications ne fonctionnent que si l'app est **ajoutée �
 
 Sans `FIREBASE_SERVICE_ACCOUNT`, les boutons 🔔 et 📈 sont masqués. Sans clés VAPID, seul l'historique est actif. En mode démo, l'historique est fictif et les notifications sont simulées.
 
+## Découvrir de nouvelles boutiques (IA)
+
+Sous les offres, le bouton **🤖 Chercher avec l'IA** demande à Claude, le modèle d'Anthropic, de parcourir le web à la recherche de boutiques qui vendent la série affichée. Claude n'a qu'un outil, la recherche web d'Anthropic, et doit citer une vraie page produit pour chaque boutique. Le serveur revérifie ensuite chaque proposition : domaine réel et public, hors liste noire, pas déjà suivi, plateforme détectée, score de confiance. L'utilisateur, connecté, choisit les boutiques à ajouter à « Mes boutiques ». Le résultat est gardé 24 h par série et partagé entre les utilisateurs.
+
+**Configuration** : créer une clé sur [platform.claude.com](https://platform.claude.com) (Settings → API keys), puis l'ajouter sur Render dans `ANTHROPIC_API_KEY`. Sans clé, le panneau indique que la fonction n'est pas configurée.
+
+**Coût indicatif** : une recherche coûte environ 0,30 à 0,60 $, selon la longueur des pages lues : Claude Opus 5.5 à 4 $ / 20 $ par million de jetons, plus 10 $ pour 1 000 recherches web. Avec le cache de 24 h, c'est au plus une recherche par série et par jour. Fixer une limite de dépense mensuelle dans la console Anthropic (Settings → Limits) est recommandé.
+
 ## Lancer en local
 
 Node.js 20 ou plus récent. **Aucune dépendance à installer.**

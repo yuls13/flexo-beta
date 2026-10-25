@@ -613,7 +613,7 @@ function render() {
   const groups = TYPE_ORDER.map((t) => [t, offers.filter((o) => o.type === t)]).filter(([, list]) => list.length);
   $('#offers').innerHTML = groups.length
     ? groups.map(([t, list]) => offerGroup(t, list)).join('')
-    : `<div class="empty">Aucune offre trouvée avec ces filtres.${state.stock !== 'all' ? ' Essayez le filtre « Tout » (inclut les ruptures).' : ''}<br>Pensez aussi aux liens « Vérifier aussi sur » ci-dessous.</div>`;
+    : `<div class="empty">Aucune offre trouvée avec ces filtres.${state.stock !== 'all' ? ' Essayez le filtre « Tout » (inclut les ruptures).' : ''}<br>Essayez aussi « Découvrir de nouvelles boutiques » ci-dessous.</div>`;
 
   const st = { ok: '✔ Offres trouvées', empty: '○ Rien pour cette série', error: '✖ Injoignable', protected: '🛡 Site protégé (anti-robots)' };
   $('#shopList').innerHTML = data.shops
@@ -638,7 +638,8 @@ function render() {
 }
 
 function renderLinks() {
-  if (!state.series) return;
+  renderDiscover();
+  if (!state.series || !$('#links')) return;
   const q = state.series.special ? 'One Piece starter deck' : `One Piece ${state.series.id}`;
   $('#links').innerHTML =
     state.config.shops
@@ -756,6 +757,93 @@ function showAddShop() {
       toast(`${info.name} ajoutée : recherche des prix en cours…`);
     });
   });
+}
+
+// ---------- Découverte de nouvelles boutiques par l'IA ----------
+
+const discover = { results: {}, loading: null }; // seriesId -> réponse /api/discover
+
+function renderDiscover() {
+  const box = $('#discoverPanel');
+  if (!box || !state.series) return;
+  const sid = state.series.id;
+  if (!state.config.features?.discover) {
+    box.innerHTML = `<h2>🧭 Découvrir de nouvelles boutiques</h2><p class="muted">La recherche de boutiques par l’IA n’est pas encore configurée sur ce serveur.</p>`;
+    return;
+  }
+  const res = discover.results[sid];
+  const busy = discover.loading === sid;
+  const mine = new Set(state.customShops.map((c) => c.id));
+  const list = (res?.candidates || []).filter((c) => !mine.has(c.id));
+  const AV = { stock: '✅ En stock', preorder: '🗓️ Précommande', unknown: '' };
+  box.innerHTML = `<div class="panel-head"><h2>🧭 Découvrir de nouvelles boutiques</h2>
+      <button class="btn btn-red btn-sm" type="button" data-discover ${busy ? 'disabled' : ''}>${busy ? '⏳ Recherche…' : res ? '🔄 Relancer' : '🤖 Chercher avec l’IA'}</button></div>
+    <p class="muted small">L’IA parcourt le web à la recherche de boutiques qui vendent ${esc(state.series.code)}. Chaque proposition est vérifiée (site réel, liste noire, score de confiance) avant d’être affichée ; vous choisissez ensuite celles à ajouter à vos boutiques.</p>
+    ${busy ? `<div class="searching"><div class="sea-track" aria-hidden="true"><div class="sea-ship">${SHIP_SVG}</div></div><div class="search-msg"><b>L’IA explore le web…</b> · <span id="discoverMsg">jusqu’à une minute</span></div></div>` : ''}
+    ${
+      res && !busy
+        ? list.length
+          ? `<div class="disc-list">${list
+              .map(
+                (c) => `<div class="disc-card">
+              <div class="sc-head">${shopLogo(c.id, c.name)}<b class="sc-name" title="${esc(c.name)}">${esc(c.name)}</b></div>
+              <small class="sc-domain">${esc(c.domain)}</small>
+              <div class="sc-badges">${discTrust(c)}${AV[c.availability] ? `<span class="tag">${AV[c.availability]}</span>` : ''}${c.price ? `<span class="tag">${esc(eur.format(c.price))}</span>` : ''}</div>
+              ${c.product ? `<p class="disc-product" title="${esc(c.product)}">${esc(c.product)}</p>` : ''}
+              <div class="sc-actions">
+                <a class="diag-btn" href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener noreferrer">Voir ↗</a>
+                <button class="btn btn-red btn-sm" type="button" data-disc-add="${esc(c.id)}">➕ Ajouter</button>
+              </div>
+            </div>`
+              )
+              .join('')}</div>
+            <p class="muted small">${res.cached ? 'Résultat de la dernière recherche (moins de 24 h). ' : ''}${res.demo ? 'Données fictives (démo).' : ''}</p>`
+          : `<p class="muted">${res.candidates?.length ? 'Toutes les boutiques trouvées sont déjà dans vos boutiques.' : 'Aucune nouvelle boutique fiable trouvée pour cette série. Réessayez dans quelques jours, surtout pour une série à venir.'}</p>`
+        : ''
+    }`;
+}
+
+function discTrust(c) {
+  const t = c.trust;
+  if (!t) return '';
+  const txt = t.level === 'unknown' ? esc(t.label) : `${t.score}/100 · ${esc(t.label)}`;
+  return `<span class="trust ${t.level}">🛡 ${txt}</span>`;
+}
+
+let discoverTimer = null;
+async function runDiscover() {
+  if (!requireAccount('Connectez-vous avec Google pour découvrir et ajouter de nouvelles boutiques.')) return;
+  const sid = state.series.id;
+  discover.loading = sid;
+  renderDiscover();
+  const steps = ['🔎 Recherche des boutiques…', '🧾 Lecture des fiches produit…', '🛡️ Vérification des sites trouvés…', '⚖️ Calcul des scores de confiance…'];
+  let i = 0;
+  clearInterval(discoverTimer);
+  discoverTimer = setInterval(() => {
+    const el = $('#discoverMsg');
+    if (el) el.textContent = steps[i++ % steps.length];
+  }, 4000);
+  try {
+    discover.results[sid] = await api(`/api/discover?series=${encodeURIComponent(sid)}`);
+    for (const c of discover.results[sid].candidates || []) if (c.trust) state.trust[c.id] = c.trust;
+  } catch (err) {
+    toast(err.message);
+  } finally {
+    clearInterval(discoverTimer);
+    discover.loading = null;
+    renderDiscover();
+  }
+}
+
+function addDiscovered(id) {
+  if (!requireAccount('Connectez-vous avec Google pour ajouter des boutiques.')) return;
+  const c = (discover.results[state.series.id]?.candidates || []).find((x) => x.id === id);
+  if (!c || state.customShops.some((x) => x.id === id)) return;
+  if (state.customShops.length >= 10) return toast('Vous avez atteint 10 boutiques ajoutées : retirez-en une d’abord.');
+  state.trust[c.id] = c.trust;
+  state.customShops.push({ id: c.id, domain: c.domain, base: c.base, name: c.name, platform: c.platform || 'auto', trust: c.trust, addedAt: new Date().toISOString(), via: 'ia' });
+  saveCustomShops();
+  toast(`${c.name} ajoutée à vos boutiques : recherche des prix en cours…`);
 }
 
 // ---------- Top cartes (Cardmarket) ----------
@@ -1683,6 +1771,9 @@ document.addEventListener('click', async (e) => {
     return;
   }
   if (t.closest('[data-open-checker]')) return showChecker();
+  if (t.closest('[data-discover]')) return runDiscover();
+  const discAdd = t.closest('[data-disc-add]');
+  if (discAdd) return addDiscovered(discAdd.dataset.discAdd);
   const shopMore = t.closest('[data-shop-more]');
   if (shopMore) {
     state.shopOpen[shopMore.dataset.shopMore] = !state.shopOpen[shopMore.dataset.shopMore];

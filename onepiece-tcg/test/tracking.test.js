@@ -183,3 +183,15 @@ test('Alertes : les boutiques ajoutées par un utilisateur ne comptent que pour 
   assert.deepEqual(sent, ['https://push.example/1']);
   assert.equal((await alerts.watchers('OP13')).length, 2);
 });
+
+test('Découverte IA : extraction du JSON final et nettoyage des propositions', async () => {
+  const { extractJson, cleanCandidate } = await import('../server/discover.js');
+  const text = 'Voici ce que j’ai trouvé…\n```json\n[{"name":"Shop","domain":"shop.fr","url":"https://shop.fr/p/eb05","product":"Display EB-05","price":"149,90","availability":"preorder"},{"name":"X","url":"javascript:alert(1)"}]\n```';
+  const raw = extractJson(text);
+  assert.equal(raw.length, 2);
+  const [a, b] = raw.map(cleanCandidate);
+  assert.deepEqual(a, { host: 'shop.fr', name: 'Shop', url: 'https://shop.fr/p/eb05', product: 'Display EB-05', price: 149.9, availability: 'preorder' });
+  assert.equal(b, null);
+  assert.deepEqual(extractJson('pas de JSON'), []);
+  assert.equal(cleanCandidate({ domain: 'ok.fr', price: 99999, availability: 'bientôt' }).price, null);
+});

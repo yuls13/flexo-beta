@@ -771,3 +771,10 @@ body { background-image: var(--doodles); background-size: 360px 360px; backgroun
 .card-lang label { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; }
 .card-lang select { font: inherit; font-weight: 700; font-size: max(16px, 0.95rem); padding: 7px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
 .card-lang label { white-space: nowrap; }
+
+/* ================= Découverte de boutiques (IA) ================= */
+.discover .searching { margin: 8px 0; }
+.disc-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; margin-top: 10px; }
+.disc-card { display: grid; gap: 6px; align-content: start; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; background: var(--bg); min-width: 0; }
+.disc-card .sc-actions { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 2px; }
+.disc-product { margin: 0; font-size: 0.8rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -17,6 +17,7 @@ import { parseServiceAccount, createFirestoreAdmin } from './firestoreAdmin.js';
 import { createHistoryService, snapshotFromOffers } from './history.js';
 import { createPushService, validSubscription } from './push.js';
 import { createAlertService } from './alerts.js';
+import { createDiscoveryService } from './discover.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -79,10 +80,37 @@ const historyService = DEMO
   : createHistoryService({ db });
 const pushService = createPushService({ publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY, subject: process.env.VAPID_SUBJECT });
 const alertService = createAlertService({ db, push: pushService });
+// Découverte de boutiques par l'IA (clé ANTHROPIC_API_KEY facultative).
+const discoveryService = DEMO
+  ? { available: true, discover: async (s) => demoDiscovery(s) }
+  : createDiscoveryService({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      // Chaque proposition de l'IA est revérifiée : domaine public, hors liste noire et hors boutiques
+      // suivies, plateforme détectée, score de confiance.
+      validate: async (c) => {
+        const clean = await sanitizeDomain(c.host);
+        if (!clean || clean.unresolved || knownDomains.has(rootDomain(clean.host)) || isBlacklisted(clean.host)) return null;
+        const info = await inspectShop(clean.host);
+        if (info.error) return null;
+        const id = customShopId(info.domain);
+        const trust = { ...(await trustService.evaluate(info.domain)), shopId: id };
+        return { id, name: c.name || info.name, domain: info.domain, base: info.base, platform: info.platform, trust, product: c.product, url: c.url, price: c.price, availability: c.availability };
+      },
+    });
+function demoDiscovery(s) {
+  const mk = (n, d, price, availability, score) => ({
+    id: customShopId(d), name: n, domain: d, base: `https://${d}`, platform: 'shopify', product: `One Piece Card Game ${s.code} – Display 24 boosters`, url: `https://${d}/demo/${s.id.toLowerCase()}`, price, availability,
+    trust: { domain: d, shopId: customShopId(d), score, level: score >= 75 ? 'high' : score >= 55 ? 'good' : 'medium', label: score >= 75 ? 'Très fiable' : score >= 55 ? 'Fiable' : 'Prudence', checks: [] },
+  });
+  return { series: s.id, at: new Date().toISOString(), demo: true, searches: 6, candidates: [mk('La Taverne du Jeu', 'taverne-du-jeu.example', 139.9, 'preorder', 72), mk('Cartes & Dragons', 'cartes-dragons.example', 144.5, 'stock', 81), mk('TCG Corner', 'tcg-corner.example', null, 'unknown', 48)] };
+}
+const discoverTimes = new Map();
+
 const FEATURES = {
   history: DEMO || !!db,
   alerts: DEMO || (!!db && pushService.available && !!AUTH),
   pushKey: pushService.publicKey,
+  discover: !!discoveryService.available,
 };
 
 // Boutiques personnelles des utilisateurs (relevé programmé) : chaque boutique n'est interrogée
@@ -343,6 +371,22 @@ async function handleApi(req, res, url) {
     if (!s) return sendJson(res, 404, { error: 'Série inconnue' });
     if (s.special) return sendJson(res, 200, { available: false, cards: [], error: 'Pas de chase cards pour cet onglet' });
     return sendJson(res, 200, { ...(await cardService.getChase(s.id)), demo: DEMO });
+  }
+
+  if (url.pathname === '/api/discover') {
+    const s = rawSeries.find((x) => x.id === url.searchParams.get('series'));
+    if (!s) return sendJson(res, 404, { error: 'Série inconnue' });
+    if (!discoveryService.available) return sendJson(res, 503, { error: 'Découverte non configurée sur ce serveur (clé ANTHROPIC_API_KEY manquante).' });
+    const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+    if (Date.now() - (discoverTimes.get(ip) || 0) < 30000) return sendJson(res, 429, { error: 'Patientez quelques secondes avant une nouvelle recherche.' });
+    discoverTimes.set(ip, Date.now());
+    if (discoverTimes.size > 1000) discoverTimes.delete(discoverTimes.keys().next().value);
+    try {
+      return sendJson(res, 200, await discoveryService.discover(s, { exclude: [...knownDomains] }));
+    } catch (err) {
+      console.error('découverte :', err.message);
+      return sendJson(res, 502, { error: `La recherche n’a pas abouti (${err.message}).` });
+    }
   }
 
   if (url.pathname === '/api/history') {
