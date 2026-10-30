@@ -251,6 +251,426 @@
       "searchUrl": "https://cardcosmos.de/search?q={q}&type=product"
     },
     {
+      "id": "lecoindesbarons",
+      "name": "Le Coin des Barons",
+      "domain": "lecoindesbarons.com",
+      "base": "https://lecoindesbarons.com",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {
+        "physicalStore": true
+      },
+      "notes": "Boutiques physiques (Paris, Lyon, Bordeaux, Lille, Toulouse…).",
+      "refs": [
+        "https://www.opecards.fr/shops/le-coin-des-barons-lyon"
+      ]
+    },
+    {
+      "id": "relictcg",
+      "name": "Relic",
+      "domain": "www.relictcg.com",
+      "base": "https://www.relictcg.com",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {
+        "physicalStore": true
+      },
+      "notes": "Boutique à Toulouse, retrait en magasin possible.",
+      "refs": [
+        "https://www.relictcg.com/"
+      ]
+    },
+    {
+      "id": "lootbox",
+      "name": "Lootbox",
+      "domain": "lootboxjeux.fr",
+      "base": "https://lootboxjeux.fr",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {
+        "physicalStore": true
+      },
+      "notes": "Boutique physique à Nîmes."
+    },
+    {
+      "id": "fujistore",
+      "name": "Fuji Store",
+      "domain": "fuji-store.fr",
+      "base": "https://fuji-store.fr",
+      "platform": "woocommerce",
+      "country": "FR",
+      "flags": {
+        "physicalStore": true
+      },
+      "notes": "Boutiques à Lyon et Lille.",
+      "refs": [
+        "https://www.onepiecetcgmarket.fr/boutiques"
+      ]
+    },
+    {
+      "id": "meisia",
+      "name": "Boutique MEiSiA",
+      "domain": "shop.cafemeisia.com",
+      "base": "https://shop.cafemeisia.com",
+      "platform": "woocommerce",
+      "country": "FR",
+      "flags": {
+        "physicalStore": true
+      },
+      "notes": "Café-boutique à Paris 10e.",
+      "refs": [
+        "https://www.pkmcards.fr/shops"
+      ]
+    },
+    {
+      "id": "carteonepiece",
+      "name": "Boutique Carte One Piece",
+      "domain": "carteonepiece.fr",
+      "base": "https://carteonepiece.fr",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {},
+      "notes": "Boutique spécialisée One Piece."
+    },
+    {
+      "id": "1piecetcg",
+      "name": "1PieceTCG",
+      "domain": "1piecetcg.fr",
+      "base": "https://1piecetcg.fr",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {},
+      "notes": "Boutique dédiée au One Piece Card Game."
+    },
+    {
+      "id": "destocktcg",
+      "name": "DestockTCG",
+      "domain": "destocktcg.fr",
+      "base": "https://destocktcg.fr",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "dgcardgame",
+      "name": "DG Card Game",
+      "domain": "dgcardgame.com",
+      "base": "https://dgcardgame.com",
+      "platform": "woocommerce",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "pokegeek",
+      "name": "Poke-Geek",
+      "domain": "poke-geek.fr",
+      "base": "https://poke-geek.fr",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "shoptcg",
+      "name": "Shop TCG",
+      "domain": "shop-tcg.fr",
+      "base": "https://shop-tcg.fr",
+      "platform": "woocommerce",
+      "country": "FR",
+      "flags": {},
+      "notes": "FR, EN et JP ; livraison 24-48 h."
+    },
+    {
+      "id": "tradingcardsxxx",
+      "name": "Tradingcardsxxx",
+      "domain": "tradingcardsxxx.fr",
+      "base": "https://tradingcardsxxx.fr",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "guizette",
+      "name": "Guizette Family TCG",
+      "domain": "www.guizettefamily.com",
+      "base": "https://www.guizettefamily.com",
+      "platform": "woocommerce",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "audemondujeu",
+      "name": "Au Démon du Jeu",
+      "domain": "www.audemondujeu.com",
+      "base": "https://www.audemondujeu.com",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "ultrajeux",
+      "name": "UltraJeux",
+      "domain": "www.ultrajeux.com",
+      "base": "https://www.ultrajeux.com",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {
+        "establishedRetailer": true
+      },
+      "notes": "Grande boutique en ligne de jeux de cartes."
+    },
+    {
+      "id": "lemantcg",
+      "name": "Le Mans Trading Card Game",
+      "domain": "lemantcg.fr",
+      "base": "https://lemantcg.fr",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {},
+      "notes": "Précommandes avec 30 % d’arrhes non remboursables : lire les conditions."
+    },
+    {
+      "id": "hamacards",
+      "name": "HamaCards",
+      "domain": "www.hamacards.com",
+      "base": "https://www.hamacards.com",
+      "platform": "woocommerce",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "snooop",
+      "name": "Snooop",
+      "domain": "snooop.gg",
+      "base": "https://snooop.gg",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "buythegame",
+      "name": "Buy the Game",
+      "domain": "buy-the-game.fr",
+      "base": "https://buy-the-game.fr",
+      "platform": "woocommerce",
+      "country": "FR",
+      "flags": {},
+      "notes": "Achat souvent limité à 1 exemplaire par 30 jours."
+    },
+    {
+      "id": "mysticambre",
+      "name": "Mystic Ambre",
+      "domain": "www.mystic-ambre.fr",
+      "base": "https://www.mystic-ambre.fr",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "lantredepo",
+      "name": "L'Antre de Po",
+      "domain": "lantredepo.com",
+      "base": "https://lantredepo.com",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "koalagames",
+      "name": "Koala Games",
+      "domain": "www.koalagames.shop",
+      "base": "https://www.koalagames.shop",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "ludisphere",
+      "name": "Ludisphere",
+      "domain": "ludisphere.fr",
+      "base": "https://ludisphere.fr",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "collectavenue",
+      "name": "Collect Avenue",
+      "domain": "collect-avenue.com",
+      "base": "https://collect-avenue.com",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "antretemps",
+      "name": "Antretemps",
+      "domain": "www.antretemps.com",
+      "base": "https://www.antretemps.com",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "alertehit",
+      "name": "Alerte Hit",
+      "domain": "alertehit.fr",
+      "base": "https://alertehit.fr",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "geekingdome",
+      "name": "GeeKing Dome",
+      "domain": "geekingdome.com",
+      "base": "https://geekingdome.com",
+      "platform": "woocommerce",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "oripaya",
+      "name": "Oripaya",
+      "domain": "oripaya.com",
+      "base": "https://oripaya.com",
+      "platform": "shopify",
+      "country": "FR",
+      "flags": {},
+      "notes": "Produits japonais."
+    },
+    {
+      "id": "nippontcg",
+      "name": "Nippon TCG",
+      "domain": "www.nippontcg.fr",
+      "base": "https://www.nippontcg.fr",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {},
+      "notes": "Produits japonais."
+    },
+    {
+      "id": "asakusa",
+      "name": "Asakusa Store",
+      "domain": "asakusa-tcg.com",
+      "base": "https://asakusa-tcg.com",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {},
+      "notes": "Produits japonais."
+    },
+    {
+      "id": "jmcards",
+      "name": "JM Cards",
+      "domain": "jmcards.fr",
+      "base": "https://jmcards.fr",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "pokuji",
+      "name": "Pokuji",
+      "domain": "pokuji.fr",
+      "base": "https://pokuji.fr",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "playshop",
+      "name": "PlayShop",
+      "domain": "playshop.fr",
+      "base": "https://playshop.fr",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "tcgpokalex",
+      "name": "TCG PokAlex",
+      "domain": "www.tcgpokalex.com",
+      "base": "https://www.tcgpokalex.com",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "iconiq",
+      "name": "Iconiq Cards",
+      "domain": "iconiqcards.com",
+      "base": "https://iconiqcards.com",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "placetcg",
+      "name": "Place TCG",
+      "domain": "www.placetcg.com",
+      "base": "https://www.placetcg.com",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "pokelite",
+      "name": "Pokelite",
+      "domain": "www.pokelite.fr",
+      "base": "https://www.pokelite.fr",
+      "platform": "auto",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "leludorium",
+      "name": "Le Ludorium",
+      "domain": "www.leludorium.fr",
+      "base": "https://www.leludorium.fr",
+      "platform": "prestashop",
+      "country": "FR",
+      "flags": {}
+    },
+    {
+      "id": "oupi",
+      "name": "Oupi",
+      "domain": "oupi.eu",
+      "base": "https://oupi.eu",
+      "platform": "prestashop",
+      "country": "EU",
+      "flags": {},
+      "notes": "Boutique européenne."
+    },
+    {
+      "id": "pixelheart",
+      "name": "PixelHeart",
+      "domain": "www.pixelheart.eu",
+      "base": "https://www.pixelheart.eu",
+      "platform": "woocommerce",
+      "country": "FR",
+      "flags": {},
+      "notes": "Versions EN souvent livrées 4 à 6 semaines après la sortie."
+    },
+    {
+      "id": "pbcards",
+      "name": "PBCards",
+      "domain": "pbcards.eu",
+      "base": "https://pbcards.eu",
+      "platform": "shopify",
+      "country": "EU",
+      "flags": {},
+      "notes": "Produits japonais, livraison UE."
+    },
+    {
+      "id": "universetcg",
+      "name": "Universe TCG",
+      "domain": "www.universetcg.com",
+      "base": "https://www.universetcg.com",
+      "platform": "shopify",
+      "country": "EU",
+      "flags": {},
+      "notes": "Boutique espagnole (Barcelone), livraison UE."
+    },
+    {
       "id": "cardmarket",
       "name": "Cardmarket",
       "domain": "www.cardmarket.com",

@@ -18,6 +18,7 @@ import { createHistoryService, snapshotFromOffers } from './history.js';
 import { createPushService, validSubscription } from './push.js';
 import { createAlertService } from './alerts.js';
 import { createDiscoveryService } from './discover.js';
+import { pool } from './http.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
@@ -256,7 +257,8 @@ async function handleApi(req, res, url) {
   }
 
   if (url.pathname === '/api/trust') {
-    const results = await Promise.all(shops.map((s) => trustService.evaluate(s.domain)));
+    // Vérifications en direct limitées à 10 boutiques à la fois (résultats gardés 24 h).
+    const results = await pool(shops, 10, (s) => trustService.evaluate(s.domain));
     // Boutiques personnelles : domaines séparés par des virgules.
     const custom = (url.searchParams.get('custom') || '').split(',').filter(Boolean).slice(0, MAX_CUSTOM_SHOPS);
     for (const d of custom) {

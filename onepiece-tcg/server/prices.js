@@ -93,7 +93,7 @@ export function createPriceService({ shops, shippingDefaults, blacklist, series,
     const startedAt = Date.now();
     const extra = extraShops.filter((x) => !blocked.has(x.domain.replace(/^www\./, '')));
     const targets = onlyExtra ? extra : [...scrapable, ...extra];
-    const perShop = await pool(targets, 8, (shop) => searchShop(shop, s));
+    const perShop = await pool(targets, 14, (shop) => searchShop(shop, s));
     const offers = [];
     const shopStatus = [];
     perShop.forEach(({ items, errors, ms, strategies, protected: isProtected }, i) => {
